@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     smtp_port: int = 1025
     mail_from: str = "procurement@demo.local"
 
+    # Incoming mail (IMAP). Credentials belong in .env only.
+    imap_host: str = ""
+    imap_port: int = 993
+    imap_user: str = ""
+    imap_password: str = ""
+    imap_folder: str = "INBOX"
+    imap_ssl: bool = True
+
     @property
     def allowed_recipients(self) -> frozenset[str]:
         return frozenset(a.strip().lower() for a in self.mail_allowed_recipients.split(",") if a.strip())

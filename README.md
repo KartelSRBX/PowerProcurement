@@ -4,8 +4,9 @@ From a customer's request email to an approved purchase order. AI does the routi
 (reads the email, drafts supplier and customer letters, extracts terms from replies). A human
 approves every action that leaves the system. Scoring and pricing are plain deterministic code.
 
-> **Status: phase 0 of 8 (scaffold).** Nothing in the pipeline exists yet; this commit gives
-> the runnable foundation. See the roadmap below.
+> **Status: phase 1 of 8 (intake and parsing).** Email in, structured request out, with confidence and
+> a human confirmation step. Parsing accuracy on the gold set is **not measured yet** (needs a live run).
+> See the roadmap below.
 
 ## Run it
 
@@ -42,6 +43,18 @@ uv run ruff check . && uv run pytest        # integration tests need DATABASE_UR
 cd ../frontend && npm ci && npm run lint && npm run build
 ```
 
+## Parsing accuracy
+
+16 synthetic gold emails (English, Serbian Latin/Cyrillic, German, non-requests) live in
+`backend/app/intake/gold/`. To measure the real model (spends a few cents, needs `ANTHROPIC_API_KEY`):
+
+```bash
+cd backend && AI_PROVIDER=anthropic uv run python -m app.intake.evaluate --live
+```
+
+The run records the answers, so later runs and CI replay them for free. No figure is published
+here until a live run has actually been made.
+
 ## Roadmap
 
 Each phase ends with an acceptance check; the next one starts only after it passes.
@@ -49,7 +62,7 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | Phase | Scope | Acceptance |
 | --- | --- | --- |
 | 0 | Scaffold: Docker, CI, database, AI adapter | `docker compose up` works, CI green |
-| 1 | Intake and parsing (step 1) | Parsing accuracy measured on a gold set of sr/en emails |
+| 1 | Intake and parsing (step 1) | Parsing accuracy measured on a gold set of sr/en emails (**harness done, live measurement pending**) |
 | 2 | Suppliers and prices (steps 2–3) | Shortlist and target prices for demo requests in three categories |
 | 3 | RFQ and approval queue (step 4) | Letters go through the approval queue into Mailpit |
 | 4 | Offers and scoring (step 5) | Comparison table; scoring covered by tests |

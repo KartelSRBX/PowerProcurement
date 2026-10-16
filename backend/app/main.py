@@ -4,8 +4,10 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import get_session
+from app.intake.api import router as requests_router
 
 app = FastAPI(title="PowerProcurement", version="0.1.0")
+app.include_router(requests_router)
 
 
 @app.get("/health")

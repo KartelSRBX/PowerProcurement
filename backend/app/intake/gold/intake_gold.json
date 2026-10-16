@@ -1,0 +1,400 @@
+[
+  {
+    "id": "en-01-mcu-passives",
+    "received_date": "2026-10-12",
+    "from": "p.hughes@brightlabs.example",
+    "subject": "RFQ: STM32 and 0603 capacitors",
+    "body": "Hello,\n\nWe are building a pilot batch of controller boards and need a quote for:\n- 500 pcs STM32F407VGT6\n- 2000 pcs 100nF 0603 X7R capacitors\n\nPlease deliver to our site in Serbia. We need the goods by November 20, 2026.\n\nKind regards,\nPaul Hughes\nBrightLabs",
+    "note": "",
+    "expected": {
+      "is_request": true,
+      "language": "en",
+      "category": "electronics",
+      "items": [
+        {
+          "keyword": "stm32f407",
+          "quantity": 500
+        },
+        {
+          "keyword": "100nf",
+          "quantity": 2000
+        }
+      ],
+      "budget_amount": null,
+      "budget_currency": null,
+      "needed_by": "2026-11-20",
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "en-02-laptops",
+    "received_date": "2026-10-12",
+    "from": "it@northwind-trade.example",
+    "subject": "Quote request - laptops and docks",
+    "body": "Hi team,\n\nPlease quote 10 x Dell Latitude 5450 laptops and 10 x docking stations (Dell WD19S or equivalent).\nOur budget for the whole order is EUR 14,000. Delivery to Belgrade, Serbia, by the end of November.\n\nThanks,\nMarko",
+    "note": "",
+    "expected": {
+      "is_request": true,
+      "language": "en",
+      "category": "it_hardware",
+      "items": [
+        {
+          "keyword": "latitude 5450",
+          "quantity": 10
+        },
+        {
+          "keyword": "docking",
+          "quantity": 10
+        }
+      ],
+      "budget_amount": 14000,
+      "budget_currency": "EUR",
+      "needed_by": "2026-11-30",
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "sr-03-monitori",
+    "received_date": "2026-10-13",
+    "from": "nabavka@dunavtech.example",
+    "subject": "Upit za ponudu: monitori",
+    "body": "Poštovani,\n\nmolimo vas za ponudu za sledeću opremu:\n- 25 komada monitora Dell P2423D\n- 25 komada HDMI kablova, 2 m\n\nRok isporuke je 15. novembar 2026. godine, isporuka u Beograd. Planirani budžet je 6.000 EUR.\n\nSrdačan pozdrav,\nJelena Marković\nDunav Tech d.o.o.",
+    "note": "",
+    "expected": {
+      "is_request": true,
+      "language": "sr",
+      "category": "it_hardware",
+      "items": [
+        {
+          "keyword": "p2423d",
+          "quantity": 25
+        },
+        {
+          "keyword": "hdmi",
+          "quantity": 25
+        }
+      ],
+      "budget_amount": 6000,
+      "budget_currency": "EUR",
+      "needed_by": "2026-11-15",
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "sr-04-stampaci-cir",
+    "received_date": "2026-10-13",
+    "from": "office@sumadija-kancelarija.example",
+    "subject": "Упит за понуду — штампачи",
+    "body": "Поштовани,\n\nмолимо вас да нам доставите понуду за:\n- 3 ласерска штампача HP LaserJet Pro M404dn\n- 6 тонера HP CF259A\n\nРок испоруке је 5. новембар 2026. у Нови Сад. Буџет: 150.000 динара.\n\nПоздрав,\nМилош Николић",
+    "note": "Cyrillic Serbian; budget written as динара (= RSD)",
+    "expected": {
+      "is_request": true,
+      "language": "sr",
+      "category": "it_hardware",
+      "items": [
+        {
+          "keyword": "m404dn",
+          "quantity": 3
+        },
+        {
+          "keyword": "cf259a",
+          "quantity": 6
+        }
+      ],
+      "budget_amount": 150000,
+      "budget_currency": "RSD",
+      "needed_by": "2026-11-05",
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "sr-05-releji",
+    "received_date": "2026-10-14",
+    "from": "projekti@elektro-vojvodina.example",
+    "subject": "Trebaju nam releji",
+    "body": "Dobar dan,\n\ntreba nam ponuda za 200 komada relej modula 5V SRD-05VDC-SL-C i 50 komada Arduino Uno R3.\nIsporuka u Srbiji, što pre. Budžet nije definisan, javite cenu pa ćemo videti.\n\nPozdrav,\nDragan",
+    "note": "",
+    "expected": {
+      "is_request": true,
+      "language": "sr",
+      "category": "electronics",
+      "items": [
+        {
+          "keyword": "srd-05vdc",
+          "quantity": 200
+        },
+        {
+          "keyword": "arduino uno",
+          "quantity": 50
+        }
+      ],
+      "budget_amount": null,
+      "budget_currency": null,
+      "needed_by": null,
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "en-06-raspberry",
+    "received_date": "2026-10-14",
+    "from": "shop@adriatic-makers.example",
+    "subject": "Raspberry Pi order",
+    "body": "Hello,\n\nWe need a quote for:\n5 x Raspberry Pi 5 8GB\n5 x official power supply for Raspberry Pi 5\n5 x microSD 128GB cards\n\nWe can spend around $900 in total. Please ship to Podgorica, Montenegro. Needed by Dec 1 2026.\n\nBest,\nAna",
+    "note": "",
+    "expected": {
+      "is_request": true,
+      "language": "en",
+      "category": "electronics",
+      "items": [
+        {
+          "keyword": "raspberry pi 5 8gb",
+          "quantity": 5
+        },
+        {
+          "keyword": "power supply",
+          "quantity": 5
+        },
+        {
+          "keyword": "microsd",
+          "quantity": 5
+        }
+      ],
+      "budget_amount": 900,
+      "budget_currency": "USD",
+      "needed_by": "2026-12-01",
+      "delivery_country": "ME"
+    }
+  },
+  {
+    "id": "sr-07-nejasna-kolicina",
+    "received_date": "2026-10-15",
+    "from": "admin@zlatibor-hotel.example",
+    "subject": "Svičevi za hotel",
+    "body": "Zdravo,\n\ntreba nam nekoliko Cisco switch-eva sa 24 porta za novu zgradu hotela. Koliko tačno još ne znamo,\nzavisi od projekta. Možete li da nam kažete okvirnu cenu i rok isporuke?\n\nHvala,\nZlatibor Hotel",
+    "note": "Quantity is genuinely unknown; the model should leave it empty and raise a clarifying question",
+    "expected": {
+      "is_request": true,
+      "language": "sr",
+      "category": "it_hardware",
+      "items": [
+        {
+          "keyword": "switch",
+          "quantity": null
+        }
+      ],
+      "budget_amount": null,
+      "budget_currency": null,
+      "needed_by": null,
+      "delivery_country": null
+    }
+  },
+  {
+    "id": "en-08-newsletter",
+    "received_date": "2026-10-15",
+    "from": "news@componentdaily.example",
+    "subject": "This week: 20% off all connectors!",
+    "body": "Dear customer,\n\nThis week only: 20% off all connectors in our webshop. Visit our website and use code CONN20 at checkout.\nTo unsubscribe, click here.\n\nComponentDaily",
+    "note": "Marketing, not a request",
+    "expected": {
+      "is_request": false,
+      "language": "en",
+      "category": "other",
+      "items": [],
+      "budget_amount": null,
+      "budget_currency": null,
+      "needed_by": null,
+      "delivery_country": null
+    }
+  },
+  {
+    "id": "sr-09-zahvalnica",
+    "received_date": "2026-10-15",
+    "from": "racunovodstvo@beogradski-servis.example",
+    "subject": "Hvala na isporuci",
+    "body": "Poštovani,\n\nzahvaljujemo se na brzoj isporuci prošle nedelje, sve je stiglo u redu. U prilogu vam šaljemo potvrdu o uplati\nza fakturu br. 2026-0412.\n\nSrdačan pozdrav,\nRačunovodstvo",
+    "note": "Payment confirmation, not a request",
+    "expected": {
+      "is_request": false,
+      "language": "sr",
+      "category": "other",
+      "items": [],
+      "budget_amount": null,
+      "budget_currency": null,
+      "needed_by": null,
+      "delivery_country": null
+    }
+  },
+  {
+    "id": "en-10-partnumbers",
+    "received_date": "2026-10-16",
+    "from": "purchasing@rhein-embedded.example",
+    "subject": "Quote: LM358DR / ESP32",
+    "body": "Dear Sir or Madam,\n\nplease quote the following, delivery address Munich, Germany:\n\nLM358DR - 1000 pcs\nESP32-WROOM-32E - 300 pcs\n\nRequired delivery date: 10.11.2026. Our budget limit is 2.500,00 EUR.\n\nRegards,\nKatrin Vogel",
+    "note": "European number format 2.500,00",
+    "expected": {
+      "is_request": true,
+      "language": "en",
+      "category": "electronics",
+      "items": [
+        {
+          "keyword": "lm358dr",
+          "quantity": 1000
+        },
+        {
+          "keyword": "esp32-wroom-32e",
+          "quantity": 300
+        }
+      ],
+      "budget_amount": 2500,
+      "budget_currency": "EUR",
+      "needed_by": "2026-11-10",
+      "delivery_country": "DE"
+    }
+  },
+  {
+    "id": "sr-11-ssd",
+    "received_date": "2026-10-16",
+    "from": "it@nis-logistika.example",
+    "subject": "Ponuda za SSD diskove",
+    "body": "Poštovani,\n\nmolim ponudu za 8 SSD diskova Samsung 870 EVO 1TB i 8 SATA kablova. Budžet do 700 dolara.\nIsporuka u Niš do 25.11.\n\nPozdrav,\nStefan Ilić",
+    "note": "Year omitted; infer 2026 from the received date",
+    "expected": {
+      "is_request": true,
+      "language": "sr",
+      "category": "it_hardware",
+      "items": [
+        {
+          "keyword": "870 evo",
+          "quantity": 8
+        },
+        {
+          "keyword": "sata",
+          "quantity": 8
+        }
+      ],
+      "budget_amount": 700,
+      "budget_currency": "USD",
+      "needed_by": "2026-11-25",
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "en-12-relative-date",
+    "received_date": "2026-10-14",
+    "from": "ops@zagreb-retail.example",
+    "subject": "40 laptops for new store",
+    "body": "Hello,\n\nwe are opening a new store and need 40 HP ProBook 450 G10 laptops. We would like delivery within 3 weeks\nto Zagreb, Croatia. Budget is EUR 38.000,00.\n\nPlease send your best offer.\n\nIvana Horvat",
+    "note": "'within 3 weeks' from 2026-10-14",
+    "expected": {
+      "is_request": true,
+      "language": "en",
+      "category": "it_hardware",
+      "items": [
+        {
+          "keyword": "probook 450",
+          "quantity": 40
+        }
+      ],
+      "budget_amount": 38000,
+      "budget_currency": "EUR",
+      "needed_by": "2026-11-04",
+      "delivery_country": "HR"
+    }
+  },
+  {
+    "id": "sr-13-kondenzatori-cir",
+    "received_date": "2026-10-16",
+    "from": "nabavka@elektronika-ns.example",
+    "subject": "Потребни кондензатори",
+    "body": "Поштовани,\n\nпотребно нам је 5000 ком кондензатора 10µF 25V и 2000 ком отпорника 10kΩ (0805).\nИспорука у Србији до 30.11.2026.\n\nХвала,\nЕлектроника НС",
+    "note": "Cyrillic Serbian",
+    "expected": {
+      "is_request": true,
+      "language": "sr",
+      "category": "electronics",
+      "items": [
+        {
+          "keyword": "кондензат",
+          "quantity": 5000
+        },
+        {
+          "keyword": "отпорни",
+          "quantity": 2000
+        }
+      ],
+      "budget_amount": null,
+      "budget_currency": null,
+      "needed_by": "2026-11-30",
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "en-14-office-chairs",
+    "received_date": "2026-10-16",
+    "from": "office@startup-nis.example",
+    "subject": "Office chairs",
+    "body": "Hi,\n\nwe need 20 ergonomic office chairs. Budget 400,000 RSD. Delivery to Nis, Serbia, by December 15, 2026.\n\nThanks,\nMilan",
+    "note": "",
+    "expected": {
+      "is_request": true,
+      "language": "en",
+      "category": "other",
+      "items": [
+        {
+          "keyword": "chair",
+          "quantity": 20
+        }
+      ],
+      "budget_amount": 400000,
+      "budget_currency": "RSD",
+      "needed_by": "2026-12-15",
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "sr-15-citirana-prepiska",
+    "received_date": "2026-10-16",
+    "from": "nabavka@kragujevac-med.example",
+    "subject": "Re: Ponuda UPS uređaji",
+    "body": "Poštovani,\n\nmolim ponudu za 12 UPS uređaja APC Smart-UPS 1500VA (isto kao prošli put). Isporuka u Kragujevac.\n\nPozdrav,\nNenad\n\n> Dana 3.6.2026. u 10:14, Vaša firma je napisala:\n> Za prošlu narudžbinu isporučili smo 4 komada APC Smart-UPS 1500VA po ceni od 410 EUR.\n> Srdačno, Vaš prodavac",
+    "note": "Quoted history contains a different quantity (4) that must be ignored",
+    "expected": {
+      "is_request": true,
+      "language": "sr",
+      "category": "it_hardware",
+      "items": [
+        {
+          "keyword": "smart-ups",
+          "quantity": 12
+        }
+      ],
+      "budget_amount": null,
+      "budget_currency": null,
+      "needed_by": null,
+      "delivery_country": "RS"
+    }
+  },
+  {
+    "id": "de-16-netzteile",
+    "received_date": "2026-10-16",
+    "from": "einkauf@bayern-geraete.example",
+    "subject": "Anfrage Netzteile",
+    "body": "Guten Tag,\n\nbitte senden Sie uns ein Angebot für 20 Stück Netzteil 12V 5A (Hohlstecker 5.5 x 2.1 mm).\nLieferung nach Nürnberg, Deutschland.\n\nMit freundlichen Grüßen\nEinkauf",
+    "note": "German: language is 'other'",
+    "expected": {
+      "is_request": true,
+      "language": "other",
+      "category": "electronics",
+      "items": [
+        {
+          "keyword": "netzteil",
+          "quantity": 20
+        }
+      ],
+      "budget_amount": null,
+      "budget_currency": null,
+      "needed_by": null,
+      "delivery_country": "DE"
+    }
+  }
+]
