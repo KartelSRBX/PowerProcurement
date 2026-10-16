@@ -1,0 +1,20 @@
+:root { color-scheme: light dark; --line: #8884; --accent: #2a6df4; }
+body { font-family: system-ui, sans-serif; margin: 0; line-height: 1.45; }
+header { display: flex; gap: 1.5rem; align-items: center; padding: .75rem 1.25rem; border-bottom: 1px solid var(--line); }
+header a:first-child { font-weight: 700; text-decoration: none; }
+.demo { flex: 1; font-size: .85rem; opacity: .75; }
+main { max-width: 1000px; margin: 1.5rem auto; padding: 0 1.25rem 4rem; }
+section { border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; }
+section h2 { margin: 0 0 .5rem; font-size: 1.05rem; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { text-align: left; padding: .3rem .5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+button { padding: .35rem .8rem; border-radius: 6px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button:disabled { opacity: .5; cursor: default; }
+input, select, textarea { font: inherit; padding: .3rem .5rem; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: inherit; }
+textarea { width: 100%; box-sizing: border-box; min-height: 7rem; }
+.row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: .4rem 0; }
+.err { color: #d33; margin: .5rem 0; }
+.tag { font-size: .75rem; padding: .05rem .4rem; border: 1px solid var(--line); border-radius: 99px; }
+.muted { opacity: .7; font-size: .85rem; }
+.letter { border: 1px solid var(--line); border-radius: 6px; padding: .6rem; margin: .5rem 0; }

@@ -55,3 +55,28 @@ harness, a wrong quantity or an extra item lowers the score, and a failing call 
 
 **Not done:** the accuracy of the real model on the gold set. It needs a live run with an API key
 (`uv run python -m app.intake.evaluate --live`), which has not happened. No accuracy figure exists yet.
+
+## Walking skeleton (steps 2-8 without AI)
+
+**Delegated to AI:** data model and migration, synthetic suppliers and price lists, shortlist,
+target prices, letter templates, deterministic scoring with hard filters, quote/outcome/purchase-order
+logic with budget checks, API, browser panel, tests.
+
+**Decided by the human:** build a working skeleton now, without an API key.
+
+**Decisions the AI made and flagged as proposals** (see ADR 0005): scoring formulas, shortlist order,
+target price rule, purchase-order checks, default markup, demo exchange rates.
+
+**Problems found and fixed:**
+1. The first schema omitted whether an offer meets the minimum order quantity, which scoring needs. Caught while writing the offer simulator; the unpushed migration was regenerated.
+2. Next.js standalone and the compose healthcheck issues from phase 0 were already fixed, so the new pages started healthy.
+3. A sanctioned supplier must never receive a letter. Two layers now: it is excluded from the shortlist, and scoring excludes any offer from one with a reason. Both are covered by tests.
+
+**Verified by running:**
+- 46 tests pass, including a full API walk-through from request to purchase order and its refusal cases
+  (no order before acceptance, none below cost, none without a named approver, nothing sent before approval).
+- The same walk-through against the Docker stack with Postgres and Mailpit: 9 messages arrived in Mailpit.
+- A scripted browser run (Chromium) clicked through every step in the panel to `invoice_requested`.
+
+**Not done:** anything that needs a live model; the IMAP reader against a real server; real price sources;
+analytics; ABC/XYZ; deploy.

@@ -28,7 +28,7 @@ def test_ready_reports_503_when_database_is_down():
 def test_ready_and_audit_log_against_real_postgres(pg_url):
     engine = create_engine(pg_url)
     with engine.begin() as c:
-        c.execute(text("DELETE FROM audit_log"))
+        c.execute(text("DELETE FROM audit_log WHERE action = 'phase0.smoke'"))
     with Session(engine) as s:
         s.add(AuditLog(actor="system", action="phase0.smoke", payload={"ok": True}))
         s.commit()

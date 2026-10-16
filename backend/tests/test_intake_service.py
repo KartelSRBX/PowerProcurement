@@ -1,3 +1,4 @@
+import uuid
 from datetime import UTC, datetime
 
 import pytest
@@ -121,11 +122,10 @@ def test_api_explains_missing_recording_in_mock_mode(session):
 @pytest.mark.integration
 def test_intake_against_real_postgres(pg_url):
     engine = create_engine(pg_url)
+    mid = f"<pg-{uuid.uuid4()}@x>"  # unique, so other data in the database is never touched
     with Session(engine) as s:
-        s.query(CustomerRequest).delete()
-        s.commit()
-        row = intake_email(s, FixedAdapter(), SETTINGS, mail("<pg@x>"))
+        row = intake_email(s, FixedAdapter(), SETTINGS, mail(mid))
         assert row.status == "parsed"
-        assert intake_email(s, FixedAdapter(), SETTINGS, mail("<pg@x>")).id == row.id
-        s.query(CustomerRequest).delete()
+        assert intake_email(s, FixedAdapter(), SETTINGS, mail(mid)).id == row.id
+        s.query(CustomerRequest).filter_by(message_id=mid).delete()
         s.commit()

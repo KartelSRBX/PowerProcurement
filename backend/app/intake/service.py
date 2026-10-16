@@ -6,7 +6,7 @@ from app.ai.base import AIAdapter
 from app.config import Settings
 from app.intake.mailbox import InboundEmail
 from app.intake.schemas import ParsedRequest
-from app.models import AuditLog, CustomerRequest
+from app.models import AuditLog, CustomerRequest, RequestItem
 
 PROMPT_ID, PROMPT_VERSION = "intake", "v1"
 
@@ -57,6 +57,21 @@ def intake_email(
     return row
 
 
+def sync_items(session: Session, row: CustomerRequest) -> None:
+    """(Re)create the item rows from the request's current parsed data."""
+    session.query(RequestItem).filter(RequestItem.request_id == row.id).delete()
+    for it in row.parsed.get("items", []):
+        session.add(
+            RequestItem(
+                request_id=row.id,
+                description=it["description"],
+                part_number=it.get("part_number"),
+                quantity=it.get("quantity"),
+                unit=it.get("unit"),
+            )
+        )
+
+
 def confirm_request(
     session: Session, request_id: int, confirmed_by: str, corrected: ParsedRequest | None
 ) -> CustomerRequest:
@@ -69,6 +84,8 @@ def confirm_request(
     if corrected is not None:
         row.parsed = corrected.model_dump(mode="json")
     row.status, row.confirmed_by = "confirmed", confirmed_by
+    session.flush()
+    sync_items(session, row)
     session.add(
         AuditLog(
             actor="human",

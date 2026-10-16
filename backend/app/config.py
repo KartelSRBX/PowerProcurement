@@ -25,6 +25,20 @@ class Settings(BaseSettings):
     smtp_port: int = 1025
     mail_from: str = "procurement@demo.local"
 
+    # Demo exchange rates: units of currency per 1 EUR. Fixed on purpose; the real source is an open question.
+    fx_rsd_per_eur: float = 117.0
+    fx_usd_per_eur: float = 1.08
+    # Default weights for supplier scoring (percent). Changeable per request in the UI.
+    weight_price: int = 30
+    weight_lead_time: int = 20
+    weight_reliability: int = 20
+    weight_terms: int = 15
+    weight_external_risk: int = 15
+    # Starting markup until analytics can recommend one (proposal). 0.15 = 15%.
+    default_markup: float = 0.15
+    # Upper limit for a single purchase order, EUR.
+    po_budget_limit_eur: float = 50000
+
     # Incoming mail (IMAP). Credentials belong in .env only.
     imap_host: str = ""
     imap_port: int = 993

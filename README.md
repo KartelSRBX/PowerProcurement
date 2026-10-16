@@ -4,8 +4,10 @@ From a customer's request email to an approved purchase order. AI does the routi
 (reads the email, drafts supplier and customer letters, extracts terms from replies). A human
 approves every action that leaves the system. Scoring and pricing are plain deterministic code.
 
-> **Status: phase 1 of 8 (intake and parsing).** Email in, structured request out, with confidence and
-> a human confirmation step. Parsing accuracy on the gold set is **not measured yet** (needs a live run).
+> **Status: walking skeleton.** The whole path works end to end on synthetic data and templates, with
+> **no AI**: request, suppliers and target prices, letters with approval, offers and scoring, customer
+> quote with markup, outcome, purchase order, invoice request. The AI steps (email parsing, drafting,
+> extraction) have their interfaces and a gold set but are **not measured yet**; they need an API key.
 > See the roadmap below.
 
 ## Run it
@@ -21,6 +23,16 @@ docker compose up --build
 | Demo inbox (Mailpit) | http://localhost:8025 |
 
 No `.env` is needed for the demo. Copy `.env.example` to `.env` to change settings.
+
+### Try the flow (about two minutes)
+
+1. Open http://localhost:3000, type your name, click **Create request** (a sample request is prefilled).
+2. **Find suppliers and prices**, then **Draft letters**, then approve each letter. They land in Mailpit.
+3. **Simulate supplier answers** (demo only), move the weight sliders, **Score**, then **Quote this**.
+4. Approve the quote, click **accepted** as the customer's answer, approve the purchase order and the invoice request.
+
+Every outward step needs your name and is recorded. The purchase order is refused before the customer accepts
+and when the agreed price is below cost.
 
 ## Safe by default
 
@@ -61,13 +73,13 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 
 | Phase | Scope | Acceptance |
 | --- | --- | --- |
-| 0 | Scaffold: Docker, CI, database, AI adapter | `docker compose up` works, CI green |
+| 0 | Scaffold: Docker, CI, database, AI adapter | `docker compose up` works, CI green (**done**) |
 | 1 | Intake and parsing (step 1) | Parsing accuracy measured on a gold set of sr/en emails (**harness done, live measurement pending**) |
 | 2 | Suppliers and prices (steps 2–3) | Shortlist and target prices for demo requests in three categories |
 | 3 | RFQ and approval queue (step 4) | Letters go through the approval queue into Mailpit |
 | 4 | Offers and scoring (step 5) | Comparison table; scoring covered by tests |
 | 5 | Customer quote and outcome (steps 6–7) | Quote passes markup approval; outcome recorded |
-| 6 | Order and invoice request (step 8) | End-to-end: email, quote, PO, invoice request |
+| 6 | Order and invoice request (step 8) | End-to-end: email, quote, PO, invoice request (**skeleton works without AI; email parsing still needs a key**) |
 | 7 | Analytics and markup | Test recovers patterns planted in the synthetic data |
 | 8 | Publication | README, demo GIF, AI work log; runs in a minute |
 
