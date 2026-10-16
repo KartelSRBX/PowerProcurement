@@ -24,9 +24,17 @@ docker compose up --build
 
 No `.env` is needed for the demo. Copy `.env.example` to `.env` to change settings.
 
+### The panel
+
+A small CRM with tabs (labels are in Russian): **Заявки** (requests and the step-by-step pipeline),
+**Почта** (inbox and sent mail, create a request from an email), **Аналитика писем** (volumes, funnel,
+senders), **Поставщики** (supplier storage and price lists, editable), **Подбор артикулов** (catalog search
+and matching of request items) and **Предложение** (offer builder with a live margin preview).
+Type your name in the top bar first: every approval and edit is recorded under it.
+
 ### Try the flow (about two minutes)
 
-1. Open http://localhost:3000, type your name, click **Create request** (a sample request is prefilled).
+1. Open http://localhost:3000, type your name in the top bar, click **Create request** (a sample request is prefilled). Or open **Почта**, load the demo emails and create a request from one.
 2. **Find suppliers and prices**, then **Draft letters**, then approve each letter. They land in Mailpit.
 3. **Simulate supplier answers** (demo only), move the weight sliders, **Score**, then **Quote this**.
 4. Approve the quote, click **accepted** as the customer's answer, approve the purchase order and the invoice request.

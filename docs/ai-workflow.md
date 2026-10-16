@@ -80,3 +80,24 @@ target price rule, purchase-order checks, default markup, demo exchange rates.
 
 **Not done:** anything that needs a live model; the IMAP reader against a real server; real price sources;
 analytics; ABC/XYZ; deploy.
+
+## Mini-CRM panel (2026-10-16)
+
+**Asked by the human:** a tabbed user panel: email window, message analytics, supplier storage,
+article matching, offer builder.
+
+**Built by the AI:** backend `app/crm/` (mail feed, analytics, supplier CRUD with audit, article search
+and per-request matching, quote preview), migration 0004 (`inbox_emails`, send timestamps), the shell
+and six tabs in the frontend, 5 new tests, ADR 0006.
+
+**Problems found and fixed while verifying in the browser:**
+1. Raw emails did not exist without AI parsing; added `inbox_emails` so the Mail window works without a key.
+2. Running Alembic on SQLite broke on `now()` defaults, so verification moved to a real Postgres container (upgrade, downgrade, upgrade all pass).
+3. My item-drafting rule missed the "NAME - 1000 pcs" format; fixed, and it stays a draft a person checks.
+4. Layout bugs (grid left empty columns, table overflowed its card, chart text too small) found in screenshots and fixed.
+
+**Verified by running:** 53 tests pass against Postgres; a scripted Chromium run went mail → request → article
+matching → supplier letters → offers → quote draft → approved quote → analytics with no console errors.
+
+**Not done:** English version of the panel, login, real inbound IMAP, anything that needs a live model.
+

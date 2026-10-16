@@ -156,6 +156,7 @@ class Rfq(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     decided_by: Mapped[str | None] = mapped_column(String(128))
     sent_to: Mapped[str | None] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class Offer(Base):
@@ -191,6 +192,7 @@ class CustomerQuote(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     decided_by: Mapped[str | None] = mapped_column(String(128))
     sent_to: Mapped[str | None] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class PriceEvent(Base):
@@ -234,3 +236,18 @@ class PurchaseOrder(Base):
     approved_by: Mapped[str] = mapped_column(String(128), nullable=False)
     invoice_requested_by: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class InboxEmail(Base):
+    """A raw inbound email as it arrived, before (or without) AI parsing. Linked to a request
+    by message_id once one exists."""
+
+    __tablename__ = "inbox_emails"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    message_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    sender: Mapped[str] = mapped_column(String(320), nullable=False)
+    subject: Mapped[str] = mapped_column(String(998), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)  # imap | eml | demo

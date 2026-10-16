@@ -13,3 +13,6 @@ export async function api<T = any>(path: string, init?: RequestInit & { json?: u
 }
 
 export const eur = (n: number) => n.toLocaleString("en", { maximumFractionDigits: 2 });
+
+export const fmtDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleString("ru", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";

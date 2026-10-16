@@ -3,10 +3,11 @@
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { api, eur } from "../../lib/api";
+import { usePerson } from "../../lib/person";
 
 export default function RequestPage() {
   const id = useParams<{ id: string }>().id;
-  const [name, setName] = useState("");
+  const { person: name } = usePerson();
   const [err, setErr] = useState("");
   const [d, setD] = useState<any>({});
   const [w, setW] = useState({ price: 30, lead_time: 20, reliability: 20, terms: 15, external_risk: 15 });
@@ -21,11 +22,11 @@ export default function RequestPage() {
     setD({ pipeline, items, shortlist, rfqs, offers, quotes, orders, events, outcomes });
   }, [id]);
 
-  useEffect(() => { setName(localStorage.getItem("pp_name") ?? ""); refresh().catch((e) => setErr(e.message)); }, [refresh]);
+  useEffect(() => { refresh().catch((e) => setErr(e.message)); }, [refresh]);
 
   async function act(fn: () => Promise<unknown>) {
     setErr("");
-    try { localStorage.setItem("pp_name", name); await fn(); await refresh(); } catch (e: any) { setErr(e.message); }
+    try { await fn(); await refresh(); } catch (e: any) { setErr(e.message); }
   }
   const post = (path: string, json: unknown = {}) => api(path, { method: "POST", json });
   const who = name.trim();
@@ -38,8 +39,7 @@ export default function RequestPage() {
     <>
       <h1>Request #{id} <span className="tag">{d.pipeline.stage}</span></h1>
       <p className="muted">Next: {d.pipeline.next}</p>
-      <div className="row"><input placeholder="Your name (required for approvals)" value={name} onChange={(e) => setName(e.target.value)} /></div>
-      {err && <div className="err">{err}</div>}
+            {err && <div className="err">{err}</div>}
 
       <section><h2>Items</h2>
         <table><tbody>{d.items.map((i: any) => <tr key={i.id}><td>{i.quantity ?? "?"} ×</td><td>{i.description}</td></tr>)}</tbody></table>

@@ -56,6 +56,7 @@ class ManualRequestIn(BaseModel):
     body: str = ""
     parsed: ParsedRequest
     confirmed_by: str
+    message_id: str | None = None
 
 
 class SelectIn(BaseModel):
@@ -121,6 +122,7 @@ def manual_request(body: ManualRequestIn, session: Session = Depends(get_session
         body.body,
         body.parsed,
         body.confirmed_by,
+        body.message_id,
     )
     return {"id": row.id, "status": row.status}
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 from app.ai import make_adapter
 from app.config import get_settings
+from app.crm.service import store_raw_email
 from app.db import get_session
 from app.intake.mailbox import EmlDirReader, ImapReader, MailboxReader
 from app.intake.service import intake_email
@@ -25,7 +26,9 @@ def main() -> int:
         return 2
     session = next(get_session())
     adapter = make_adapter(s)
+    source = "eml" if args.dir else "imap"
     for mail in reader.fetch_new():
+        store_raw_email(session, mail, source)
         row = intake_email(session, adapter, s, mail)
         print(f"{row.id}\t{row.status}\t{row.confidence:.2f}\t{row.subject}")
     return 0

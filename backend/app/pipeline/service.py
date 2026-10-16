@@ -79,12 +79,20 @@ def _customer_language(req: CustomerRequest) -> str:
 
 
 def create_manual_request(
-    session: Session, sender: str, subject: str, body: str, parsed: ParsedRequest, confirmed_by: str
+    session: Session,
+    sender: str,
+    subject: str,
+    body: str,
+    parsed: ParsedRequest,
+    confirmed_by: str,
+    message_id: str | None = None,
 ) -> CustomerRequest:
     by = _need_person(confirmed_by)
     stamp = datetime.now().astimezone()
+    if message_id and session.scalar(select(CustomerRequest).where(CustomerRequest.message_id == message_id)):
+        raise PipelineError("a request for this email already exists")
     row = CustomerRequest(
-        message_id=f"manual-{stamp.timestamp():.6f}",
+        message_id=message_id or f"manual-{stamp.timestamp():.6f}",
         sender=sender,
         subject=subject,
         body=body,

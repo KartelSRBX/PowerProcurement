@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "./lib/api";
+import { usePerson } from "./lib/person";
 
 type Req = { id: number; status: string; sender: string; subject: string };
 
@@ -11,12 +12,11 @@ export default function Home() {
   const [reqs, setReqs] = useState<Req[]>([]);
   const [health, setHealth] = useState<any>(null);
   const [err, setErr] = useState("");
-  const [name, setName] = useState("");
+  const { person: name } = usePerson();
   const [f, setF] = useState({ sender: "buyer@customer.example", subject: "RFQ", items: DEMO_ITEMS, category: "electronics", language: "en", needed_by: "" });
 
   const load = () => api<Req[]>("/requests").then(setReqs).catch((e) => setErr(e.message));
   useEffect(() => {
-    setName(localStorage.getItem("pp_name") ?? "");
     load();
     api("/health/ready").then(setHealth).catch(() => setHealth(null));
   }, []);
@@ -28,7 +28,6 @@ export default function Home() {
         const m = line.match(/^\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(.+)$/i);
         return m ? { description: m[2].trim(), quantity: Number(m[1].replace(",", ".")) } : { description: line.trim(), quantity: null };
       });
-      localStorage.setItem("pp_name", name);
       const r = await api("/requests/manual", { method: "POST", json: {
         sender: f.sender, subject: f.subject, body: f.items, confirmed_by: name,
         parsed: { is_request: true, language: f.language, category: f.category, items, needed_by: f.needed_by || null, confidence: 1 },
@@ -39,13 +38,12 @@ export default function Home() {
 
   return (
     <>
-      <h1>Requests</h1>
+      <h1>Заявки</h1>
       <p className="muted">Backend: {health ? `up · AI: ${health.ai_provider} · mail: ${health.mail_mode}` : "unreachable"}</p>
       {err && <div className="err">{err}</div>}
       <section>
         <h2>New request (entered by a person; email parsing needs an AI key)</h2>
-        <div className="row"><input placeholder="Your name (required)" value={name} onChange={(e) => setName(e.target.value)} />
-          <input value={f.sender} onChange={(e) => setF({ ...f, sender: e.target.value })} />
+        <div className="row"><input value={f.sender} onChange={(e) => setF({ ...f, sender: e.target.value })} />
           <input value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })} /></div>
         <textarea value={f.items} onChange={(e) => setF({ ...f, items: e.target.value })} />
         <div className="row">
