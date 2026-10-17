@@ -38,7 +38,7 @@ export default function Home() {
 
   return (
     <>
-      <h1>Заявки</h1>
+      <h1>Requests</h1>
       <p className="muted">Backend: {health ? `up · AI: ${health.ai_provider} · mail: ${health.mail_mode}` : "unreachable"}</p>
       {err && <div className="err">{err}</div>}
       <section>

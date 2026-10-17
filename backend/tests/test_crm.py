@@ -42,7 +42,7 @@ def test_outbound_feed_and_analytics_follow_the_pipeline(client):  # noqa: F811
     assert out and all(m["direction"] == "out" and m["approved_by"] == "kartel" for m in out)
     a = c.get("/analytics/messages").json()
     assert a["totals"]["requests"] == 1 and a["totals"]["outbound_sent"] >= 2
-    assert [f["stage"] for f in a["funnel"]][0] == "Получено писем"
+    assert [f["stage"] for f in a["funnel"]][0] == "Emails received"
     assert a["rfq"]["answered"] >= 1 and len(a["volume"]) == 30
 
 

@@ -6,11 +6,11 @@ import { api, fmtDate } from "../lib/api";
 import { usePerson } from "../lib/person";
 
 const STATUS: Record<string, [string, string]> = {
-  unparsed: ["не разобрано", "warn"], needs_review: ["нужна проверка", "warn"], parsed: ["разобрано ИИ", "acc"],
-  confirmed: ["заявка подтверждена", "ok"], not_request: ["не заявка", ""], draft: ["черновик", "warn"],
-  sent: ["отправлено", "ok"], rejected: ["отклонено", "bad"],
+  unparsed: ["unparsed", "warn"], needs_review: ["needs review", "warn"], parsed: ["parsed by AI", "acc"],
+  confirmed: ["request confirmed", "ok"], not_request: ["not a request", ""], draft: ["draft", "warn"],
+  sent: ["sent", "ok"], rejected: ["rejected", "bad"],
 };
-const KIND: Record<string, string> = { rfq: "запрос поставщику", quote: "КП клиенту", po: "заказ поставщику", email: "письмо клиента" };
+const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", po: "purchase order", email: "customer email" };
 
 const tag = (s: string) => { const [t, c] = STATUS[s] ?? [s, ""]; return <span className={`tag ${c}`}>{t}</span>; };
 
@@ -53,16 +53,16 @@ function RequestFromMail({ mail, onDone }: { mail: any; onDone: () => void }) {
   }
   return (
     <div className="letter">
-      <b>Создать заявку из письма</b>
-      <p className="muted">Автоматический разбор писем включится с ключом ИИ. Пока список позиций набросан простым правилом (не ИИ): проверьте и поправьте, по одной позиции в строке «500 x название».</p>
+      <b>Create a request from this email</b>
+      <p className="muted">Automatic email parsing arrives with an AI key. For now the item list is drafted by a simple text rule (not AI): check and fix it, one item per line, like “500 x name”.</p>
       <textarea value={items} onChange={(e) => setItems(e.target.value)} placeholder="500 x STM32F407VGT6" />
       <div className="row">
-        <select value={category} onChange={(e) => setCategory(e.target.value)}><option value="electronics">электроника</option><option value="it_hardware">IT-оборудование</option><option value="other">другое</option></select>
-        <select value={language} onChange={(e) => setLanguage(e.target.value)}><option value="en">язык клиента: en</option><option value="sr">язык клиента: sr</option></select>
-        <label>нужно к <input type="date" value={neededBy} onChange={(e) => setNeededBy(e.target.value)} /></label>
-        <button className="primary" disabled={!person.trim() || !items.trim()} onClick={create}>Подтвердить как заявку</button>
+        <select value={category} onChange={(e) => setCategory(e.target.value)}><option value="electronics">electronics</option><option value="it_hardware">IT-hardware</option><option value="other">other</option></select>
+        <select value={language} onChange={(e) => setLanguage(e.target.value)}><option value="en">customer language: en</option><option value="sr">customer language: sr</option></select>
+        <label>needed by <input type="date" value={neededBy} onChange={(e) => setNeededBy(e.target.value)} /></label>
+        <button className="primary" disabled={!person.trim() || !items.trim()} onClick={create}>Confirm as request</button>
       </div>
-      {!person.trim() && <div className="muted">Введите своё имя вверху: заявку подтверждает человек.</div>}
+      {!person.trim() && <div className="muted">Enter your name at the top: a person confirms the request.</div>}
       {err && <div className="err">{err}</div>}
     </div>
   );
@@ -94,15 +94,15 @@ export default function MailPage() {
       {err && <div className="err">{err}</div>}
       <div className="split mail">
         <div className="pane"><div className="pane-b">
-          {([["all", "Все"], ["in", "Входящие"], ["out", "Исходящие"]] as const).map(([k, l]) => (
+          {([["all", "All"], ["in", "Inbox"], ["out", "Sent"]] as const).map(([k, l]) => (
             <div key={k} className={`folder ${folder === k ? "active" : ""}`} onClick={() => setFolder(k)}><span>{l}</span><span className="muted">{counts[k]}</span></div>
           ))}
-          <div className="muted" style={{ marginTop: "1rem" }}>Исходящие письма создаются только после одобрения человека; в демо они приходят в Mailpit.</div>
-          <button style={{ marginTop: ".8rem", width: "100%" }} onClick={demo}>Загрузить 16 демо-писем</button>
+          <div className="muted" style={{ marginTop: "1rem" }}>Outgoing emails are created only after a person approves; in the demo they arrive in Mailpit.</div>
+          <button style={{ marginTop: ".8rem", width: "100%" }} onClick={demo}>Load 16 demo emails</button>
         </div></div>
 
         <div className="pane">
-          <div className="pane-h"><input style={{ width: "100%" }} placeholder="Поиск по отправителю, теме, тексту" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <div className="pane-h"><input style={{ width: "100%" }} placeholder="Search sender, subject, text" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           {rows.map((m) => (
             <div key={m.key} className={`msg ${m.key === sel ? "sel" : ""}`} onClick={() => setSel(m.key)}>
               <div className="s">{m.direction === "out" ? "→ " : ""}{m.subject}</div>
@@ -110,28 +110,28 @@ export default function MailPage() {
               <div className="row" style={{ margin: ".2rem 0 0" }}>{tag(m.status)}<span className="muted">{fmtDate(m.at)}</span></div>
             </div>
           ))}
-          {rows.length === 0 && <div className="pane-b muted">Писем нет. Нажмите «Загрузить 16 демо-писем» или создайте заявку на вкладке «Заявки».</div>}
+          {rows.length === 0 && <div className="pane-b muted">No emails. Click “Load 16 demo emails” or create a request on the “Requests” tab.</div>}
         </div>
 
         <div className="pane">
-          {!cur && <div className="pane-b muted">Выберите письмо слева.</div>}
+          {!cur && <div className="pane-b muted">Pick an email on the left.</div>}
           {cur && (
             <>
               <div className="pane-h">
                 <div style={{ fontWeight: 700 }}>{cur.subject}</div>
-                <div className="muted">{cur.direction === "in" ? "От" : "Кому"}: {cur.counterparty} · {fmtDate(cur.at)}</div>
-                <div className="row" style={{ marginBottom: 0 }}><span className="tag acc">{KIND[cur.kind]}</span>{tag(cur.status)}{cur.approved_by && <span className="tag">одобрил: {cur.approved_by}</span>}{cur.source && <span className="tag">источник: {cur.source}</span>}</div>
+                <div className="muted">{cur.direction === "in" ? "From" : "To"}: {cur.counterparty} · {fmtDate(cur.at)}</div>
+                <div className="row" style={{ marginBottom: 0 }}><span className="tag acc">{KIND[cur.kind]}</span>{tag(cur.status)}{cur.approved_by && <span className="tag">approved by: {cur.approved_by}</span>}{cur.source && <span className="tag">source: {cur.source}</span>}</div>
               </div>
               <div className="pane-b">
                 <pre className="body-text">{cur.body}</pre>
                 {cur.direction === "in" && cur.request && (
                   <div className="letter">
-                    <b>Заявка #{cur.request.request_id}</b> · {cur.request.items} поз. · {cur.request.category} · язык {cur.request.language} · уверенность {Math.round((cur.request.confidence ?? 0) * 100)}% · {cur.request.model}
-                    <div className="row"><Link href={`/requests/${cur.request.request_id}`}><button>Открыть конвейер</button></Link><Link href={`/articles?request=${cur.request.request_id}`}><button>Подобрать артикулы</button></Link><Link href={`/quote?request=${cur.request.request_id}`}><button>К предложению</button></Link></div>
+                    <b>Request #{cur.request.request_id}</b> · {cur.request.items} items · {cur.request.category} · language {cur.request.language} · confidence {Math.round((cur.request.confidence ?? 0) * 100)}% · {cur.request.model}
+                    <div className="row"><Link href={`/requests/${cur.request.request_id}`}><button>Open pipeline</button></Link><Link href={`/articles?request=${cur.request.request_id}`}><button>Match articles</button></Link><Link href={`/quote?request=${cur.request.request_id}`}><button>To the offer</button></Link></div>
                   </div>
                 )}
                 {cur.direction === "in" && !cur.request && <RequestFromMail key={cur.key} mail={cur} onDone={load} />}
-                {cur.direction === "out" && cur.request && <div className="row"><Link href={`/requests/${cur.request.request_id}`}><button>Заявка #{cur.request.request_id}</button></Link></div>}
+                {cur.direction === "out" && cur.request && <div className="row"><Link href={`/requests/${cur.request.request_id}`}><button>Request #{cur.request.request_id}</button></Link></div>}
               </div>
             </>
           )}

@@ -7,12 +7,12 @@ import { api } from "../lib/api";
 import { PersonProvider, usePerson } from "../lib/person";
 
 const NAV = [
-  { href: "/", ico: "☰", label: "Заявки" },
-  { href: "/mail", ico: "✉", label: "Почта" },
-  { href: "/analytics", ico: "▥", label: "Аналитика писем" },
-  { href: "/suppliers", ico: "⌂", label: "Поставщики" },
-  { href: "/articles", ico: "⌕", label: "Подбор артикулов" },
-  { href: "/quote", ico: "€", label: "Предложение" },
+  { href: "/", ico: "☰", label: "Requests" },
+  { href: "/mail", ico: "✉", label: "Mail" },
+  { href: "/analytics", ico: "▥", label: "Message analytics" },
+  { href: "/suppliers", ico: "⌂", label: "Suppliers" },
+  { href: "/articles", ico: "⌕", label: "Article matching" },
+  { href: "/quote", ico: "€", label: "Offer" },
 ];
 
 function Top({ title }: { title: string }) {
@@ -25,12 +25,12 @@ function Top({ title }: { title: string }) {
   return (
     <header className="hud-top">
       <span className="title">{title}</span>
-      <span className={`chip ${down ? "bad" : "ok"}`}>{down ? "сервер недоступен" : "сервер на связи"}</span>
-      {health && <span className={`chip ${health.ai_provider === "mock" ? "warn" : "ok"}`}>ИИ: {health.ai_provider === "mock" ? "выключен (mock)" : health.ai_provider}</span>}
-      {health && <span className="chip warn">почта: {health.mail_mode}</span>}
+      <span className={`chip ${down ? "bad" : "ok"}`}>{down ? "server unreachable" : "server online"}</span>
+      {health && <span className={`chip ${health.ai_provider === "mock" ? "warn" : "ok"}`}>AI: {health.ai_provider === "mock" ? "off (mock)" : health.ai_provider}</span>}
+      {health && <span className="chip warn">mail: {health.mail_mode}</span>}
       <a className="chip" href="http://localhost:8025" target="_blank" rel="noreferrer">Mailpit ↗</a>
-      <label className="person">Работает:
-        <input placeholder="ваше имя (нужно для одобрений)" value={person} onChange={(e) => setPerson(e.target.value)} />
+      <label className="person">Working as:
+        <input placeholder="your name (needed for approvals)" value={person} onChange={(e) => setPerson(e.target.value)} />
       </label>
     </header>
   );
@@ -51,7 +51,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
               <span className="nav-ico">{n.ico}</span>{n.label}
             </Link>
           ))}
-          <div className="side-foot">Демо: синтетические данные, письма уходят только в Mailpit. Любое исходящее письмо отправляется после одобрения человека.</div>
+          <div className="side-foot">Demo: synthetic data, email goes only to Mailpit. Every outgoing email is sent only after a person approves it.</div>
         </nav>
         <Top title={current?.label ?? "PowerProcurement"} />
         <main className={`hud-main ${narrow ? "narrow" : ""}`}>{children}</main>

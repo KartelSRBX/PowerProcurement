@@ -5,7 +5,7 @@ export const metadata = { title: "PowerProcurement" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang="en">
       <body>
         <Shell>{children}</Shell>
       </body>

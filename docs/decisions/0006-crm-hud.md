@@ -29,6 +29,6 @@ supplier storage, article matching and an offer builder.
 
 ## Not done / follow-ups
 
-- Window texts are Russian only; the older request page is still English.
+- The UI is English only (project rule: README, code and interface in English). A first version was written in Russian by mistake and translated the next day.
 - The demo inbox is the 16 synthetic gold emails, loaded by a button.
 - No authentication: the "who is working" name is a label, not a login.

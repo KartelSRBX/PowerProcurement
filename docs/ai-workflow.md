@@ -99,5 +99,7 @@ and six tabs in the frontend, 5 new tests, ADR 0006.
 **Verified by running:** 53 tests pass against Postgres; a scripted Chromium run went mail → request → article
 matching → supplier letters → offers → quote draft → approved quote → analytics with no console errors.
 
-**Not done:** English version of the panel, login, real inbound IMAP, anything that needs a live model.
+**Correction (2026-10-17):** the first version of the panel text was in Russian, against the plan ("README, code and UI in English only"). Translated everything to English; the plan line was missed when writing the first version.
+
+**Not done:** login, real inbound IMAP, anything that needs a live model.
 
