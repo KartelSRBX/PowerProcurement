@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../lib/api";
+import Narrative from "../components/Narrative";
 
 const pct = (x: number | null | undefined, d = 0) => (x == null ? "–" : `${(x * 100).toFixed(d)}%`);
 
@@ -58,6 +59,7 @@ export default function Pricing() {
         <button onClick={async () => { await api("/analytics/demo-history", { method: "POST", json: {} }); load(); }}>Load synthetic history</button>
         <span className="muted">sources: {empty ? "none yet" : Object.entries(d.sources).map(([k, v]) => `${k} ${v}`).join(", ")}</span>
       </div>
+      {!empty && <Narrative topic="pricing" customer={customer} category={category} />}
       {empty && <section><span className="muted">No quotes with outcomes yet. Load the synthetic history to see the analysis, or record customer answers on real quotes.</span></section>}
       {!empty && (
         <>

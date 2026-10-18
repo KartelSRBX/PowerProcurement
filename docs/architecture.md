@@ -4,6 +4,7 @@
 Browser ──> frontend (Next.js) ──> backend (FastAPI) ──> Postgres
                                         │
                                         ├── ai/     one adapter interface: replay | recording | Claude API
+                                        ├── assist/ AI-assisted steps; code checks every draft
                                         └── mail/   one sender: approval required, Mailpit by default
 ```
 

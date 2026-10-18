@@ -5,13 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import { api, eur, fmtDate } from "../lib/api";
 import { usePerson } from "../lib/person";
 
-const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote" };
+const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", followup: "supplier follow-up", reminder: "customer reminder" };
 
 export default function Approvals() {
   const { person } = usePerson();
   const who = person.trim();
   const [mode, setMode] = useState<"pending" | "decided">("pending");
-  const [kind, setKind] = useState<"all" | "rfq" | "quote">("all");
+  const [kind, setKind] = useState<"all" | "rfq" | "quote" | "followup" | "reminder">("all");
   const [rows, setRows] = useState<any[]>([]);
   const [sel, setSel] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -26,7 +26,7 @@ export default function Approvals() {
   const cur = shown.find((r) => r.key === sel) ?? null;
   useEffect(() => { setText(cur?.body ?? ""); }, [cur?.key]);  // eslint-disable-line react-hooks/exhaustive-deps
 
-  const base = (r: any) => (r.kind === "rfq" ? `/rfqs/${r.id}` : `/quotes/${r.id}`);
+  const base = (r: any) => (r.kind === "rfq" ? `/rfqs/${r.id}` : r.kind === "quote" ? `/quotes/${r.id}` : `/letters/${r.id}`);
   async function decide(approve: boolean) {
     if (!cur) return;
     setErr("");
@@ -48,7 +48,7 @@ export default function Approvals() {
       <div className="split two">
         <div className="pane">
           <div className="pane-h row" style={{ margin: 0 }}>
-            {(["all", "rfq", "quote"] as const).map((k) => (
+            {(["all", "rfq", "quote", "followup", "reminder"] as const).map((k) => (
               <button key={k} className={kind === k ? "primary" : ""} onClick={() => setKind(k)}>{k === "all" ? "All" : KIND[k]}</button>
             ))}
             <span className="muted">{shown.length} letter(s)</span>
@@ -58,7 +58,7 @@ export default function Approvals() {
               <div className="s">{r.subject}</div>
               <div className="f">{r.counterparty}</div>
               <div className="row" style={{ margin: ".2rem 0 0" }}>
-                <span className="tag acc">{KIND[r.kind]}</span>
+                <span className="tag acc">{KIND[r.kind]}</span>{r.drafted_by?.startsWith("AI") && <span className="tag">{r.drafted_by}</span>}
                 {r.warnings.map((w: string) => <span key={w} className="tag bad">{w}</span>)}
                 {mode === "decided" && <span className={`tag ${r.status === "sent" ? "ok" : "bad"}`}>{r.status} by {r.decided_by}</span>}
                 <span className="muted">{fmtDate(r.at)}</span>

@@ -109,6 +109,12 @@ class ApprovalIn(BaseModel):
     approved_by: str
 
 
+class InvoiceIn(BaseModel):
+    approved_by: str
+    subject: str | None = None
+    body: str | None = None
+
+
 # ---- routes ---------------------------------------------------------------------------------------
 
 
@@ -175,8 +181,10 @@ def market_prices(request_id: int, session: Session = Depends(get_session)):
 
 
 @router.post("/requests/{request_id}/rfqs/draft")
-def draft(request_id: int, session: Session = Depends(get_session)):
-    guarded(svc.draft_rfqs, session, request_id)
+def draft(
+    request_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    guarded(svc.draft_rfqs, session, settings, request_id)
     return list_rfqs(request_id, session)
 
 
@@ -316,11 +324,23 @@ def order(
 @router.post("/orders/{po_id}/invoice-request")
 def invoice(
     po_id: int,
-    body: ApprovalIn,
+    body: InvoiceIn,
     session: Session = Depends(get_session),
     sender: MailSender = Depends(get_sender),
+    settings: Settings = Depends(get_settings),
 ):
-    return _dump(guarded(svc.request_invoice, session, sender, po_id, body.approved_by))
+    return _dump(
+        guarded(
+            svc.request_invoice, session, sender, po_id, body.approved_by, settings, body.subject, body.body
+        )
+    )
+
+
+@router.get("/orders/{po_id}/invoice-draft")
+def invoice_draft(
+    po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return guarded(svc.invoice_draft, session, settings, po_id)
 
 
 @router.get("/requests/{request_id}/price-events")

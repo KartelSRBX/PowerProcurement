@@ -10,7 +10,7 @@ const STATUS: Record<string, [string, string]> = {
   confirmed: ["request confirmed", "ok"], not_request: ["not a request", ""], draft: ["draft", "warn"],
   sent: ["sent", "ok"], rejected: ["rejected", "bad"],
 };
-const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", po: "purchase order", email: "customer email" };
+const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", po: "purchase order", email: "customer email", followup: "supplier follow-up", reminder: "customer reminder" };
 
 const tag = (s: string) => { const [t, c] = STATUS[s] ?? [s, ""]; return <span className={`tag ${c}`}>{t}</span>; };
 
@@ -111,6 +111,17 @@ export default function MailPage() {
   const cur = rows.find((m) => m.key === sel) ?? null;
 
   async function demo() { await api("/mail/demo-load", { method: "POST", json: {} }); load(); }
+  const [aiOn, setAiOn] = useState(false);
+  const [parseNote, setParseNote] = useState("");
+  useEffect(() => { api<any>("/config").then((c) => setAiOn(c.ai_provider === "anthropic")).catch(() => {}); }, []);
+  async function parseAll() {
+    setParseNote("Reading...");
+    try {
+      const r = await api<any>("/mail/parse-all", { method: "POST", json: { limit: 20 } });
+      setParseNote(`Read ${r.parsed + r.needs_review + r.not_request} email(s): ${r.parsed} parsed, ${r.needs_review} need your review, ${r.not_request} not requests${r.failed ? `, ${r.failed} failed` : ""}${r.left ? `; ${r.left} more waiting, press again` : ""}.`);
+      load();
+    } catch (e: any) { setParseNote(e.message); }
+  }
 
   return (
     <>
@@ -122,6 +133,9 @@ export default function MailPage() {
           ))}
           <div className="muted" style={{ marginTop: "1rem" }}>Outgoing emails are created only after a person approves; in the demo they arrive in Mailpit.</div>
           <button style={{ marginTop: ".8rem", width: "100%" }} onClick={demo}>Load 16 demo emails</button>
+          <button style={{ marginTop: ".5rem", width: "100%" }} onClick={parseAll} disabled={!aiOn} title={aiOn ? "" : "Add an API key in Settings"}>Parse all with AI</button>
+          {!aiOn && <div className="muted" style={{ marginTop: ".3rem" }}><Link href="/settings">Add a key</Link> to read the whole inbox at once.</div>}
+          {parseNote && <div className="muted" style={{ marginTop: ".3rem" }}>{parseNote}</div>}
         </div></div>
 
         <div className="pane">

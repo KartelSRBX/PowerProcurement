@@ -4,6 +4,8 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { api, eur } from "../../lib/api";
 import { usePerson } from "../../lib/person";
+import { AiOff, aiTag, useAi } from "../../lib/ai";
+import { CustomerReply, ExplainScores, Followups, InvoiceRequest, ReplyPanel } from "./Assist";
 
 export default function RequestPage() {
   const id = useParams<{ id: string }>().id;
@@ -14,12 +16,13 @@ export default function RequestPage() {
   const [ranked, setRanked] = useState<any[]>([]);
   const [markup, setMarkup] = useState(15);
   const [cur, setCur] = useState("EUR");
+  const ai = useAi();
 
   const refresh = useCallback(async () => {
-    const [pipeline, items, shortlist, rfqs, offers, quotes, orders, events, outcomes] = await Promise.all(
-      ["pipeline", "items", "shortlist", "rfqs", "offers", "quotes", "orders", "price-events", "outcomes"].map((p) => api(`/requests/${id}/${p}`)),
+    const [pipeline, items, shortlist, rfqs, offers, quotes, orders, events, outcomes, letters] = await Promise.all(
+      ["pipeline", "items", "shortlist", "rfqs", "offers", "quotes", "orders", "price-events", "outcomes", "letters"].map((p) => api(`/requests/${id}/${p}`)),
     );
-    setD({ pipeline, items, shortlist, rfqs, offers, quotes, orders, events, outcomes });
+    setD({ pipeline, items, shortlist, rfqs, offers, quotes, orders, events, outcomes, letters });
   }, [id]);
 
   useEffect(() => { refresh().catch((e) => setErr(e.message)); }, [refresh]);
@@ -30,6 +33,7 @@ export default function RequestPage() {
   }
   const post = (path: string, json: unknown = {}) => api(path, { method: "POST", json });
   const who = name.trim();
+  const ctx = { id, who, ai, d, act, post };
 
   if (!d.pipeline) return <p>{err || "Loading..."}</p>;
   const lastQuote = d.quotes.at(-1);
@@ -47,17 +51,17 @@ export default function RequestPage() {
 
       <section><h2>Steps 2-3 · Suppliers and target prices</h2>
         <button className="primary" onClick={() => act(() => post(`/requests/${id}/discover`))}>Find suppliers and prices</button>
-        <p className="muted">Prices come from synthetic price lists and are labelled unconfirmed.</p>
+        <p className="muted">Prices come from synthetic price lists and are labelled unconfirmed. {ai ? "AI may add suggestions; they arrive unticked." : <AiOff what="the pool comes from the rules alone." />}</p>
         {d.shortlist.length > 0 && <table><thead><tr><th>Ask?</th><th>Supplier</th><th>Why</th></tr></thead><tbody>
           {d.shortlist.map((s: any) => <tr key={s.id}>
             <td><input type="checkbox" checked={s.selected} onChange={(e) => act(() => post(`/requests/${id}/shortlist/${s.supplier_id}`, { selected: e.target.checked }))} /></td>
-            <td>{s.supplier} ({s.country})</td><td className="muted">{s.reason}</td></tr>)}</tbody></table>}
+            <td>{s.supplier} ({s.country})</td><td className="muted">{s.reason.startsWith("AI suggestion") && <span className="tag acc">AI</span>} {s.reason}</td></tr>)}</tbody></table>}
       </section>
 
       <section><h2>Step 4 · Letters to suppliers (nothing is sent until you approve)</h2>
         <button onClick={() => act(() => post(`/requests/${id}/rfqs/draft`))} disabled={d.shortlist.length === 0}>Draft letters</button>
         {d.rfqs.map((r: any) => <div className="letter" key={r.id}>
-          <div className="row"><b>{r.supplier}</b><span className="tag">{r.language}</span><span className="tag">{r.status}</span></div>
+          <div className="row"><b>{r.supplier}</b><span className="tag">{r.language}</span><span className="tag">{r.status}</span>{aiTag(r.drafted_by)}</div>
           {r.status === "draft" ? <>
             <textarea defaultValue={r.body} onBlur={(e) => e.target.value !== r.body && act(() => api(`/rfqs/${r.id}`, { method: "PATCH", json: { body: e.target.value } }))} />
             <div className="row">
@@ -68,6 +72,7 @@ export default function RequestPage() {
       </section>
 
       <section><h2>Step 5 · Offers and scoring</h2>
+        <ReplyPanel {...ctx} />
         <div className="row"><button onClick={() => act(() => post(`/requests/${id}/offers/simulate`))}>Simulate supplier answers (demo only)</button>
           <span className="muted">{d.offers.length} offer(s)</span></div>
         <div className="row">{Object.keys(w).map((k) => <label key={k}>{k.replace("_", " ")} {(w as any)[k]}
@@ -81,11 +86,14 @@ export default function RequestPage() {
         <div className="row"><label>Markup % <input type="number" style={{ width: "5rem" }} value={markup} onChange={(e) => setMarkup(Number(e.target.value))} /></label>
           <select value={cur} onChange={(e) => setCur(e.target.value)}><option>EUR</option><option>RSD</option><option>USD</option></select>
           <span className="muted">Scores are computed by code, not by AI. Demo exchange rates.</span></div>
+        <ExplainScores id={id} ai={ai} w={w} disabled={d.offers.length === 0} />
       </section>
+
+      <Followups {...ctx} />
 
       <section><h2>Steps 6-7 · Customer quote and outcome</h2>
         {d.quotes.map((q: any) => <div className="letter" key={q.id}>
-          <div className="row"><b>Quote #{q.id}: {eur(q.price)} {q.currency}</b><span className="tag">markup {(q.markup * 100).toFixed(1)}%</span><span className="tag">cost {eur(q.cost_eur)} EUR</span><span className="tag">{q.status}</span>
+          <div className="row"><b>Quote #{q.id}: {eur(q.price)} {q.currency}</b><span className="tag">markup {(q.markup * 100).toFixed(1)}%</span><span className="tag">cost {eur(q.cost_eur)} EUR</span><span className="tag">{q.status}</span>{aiTag(q.drafted_by)}
             {q.price / (q.currency === "EUR" ? 1 : q.currency === "RSD" ? 117 : 1.08) < q.cost_eur && <span className="err">below cost</span>}</div>
           {q.status === "draft" ? <>
             <textarea defaultValue={q.body} onBlur={(e) => e.target.value !== q.body && act(() => api(`/quotes/${q.id}`, { method: "PATCH", json: { body: e.target.value } }))} />
@@ -95,6 +103,7 @@ export default function RequestPage() {
         {sentQuote && <div className="row"><b>Customer answer:</b>
           {["accepted", "rejected", "silence"].map((k) => <button key={k} disabled={!who} onClick={() => act(() => post(`/quotes/${sentQuote.id}/outcome`, { kind: k, confirmed_by: who }))}>{k}</button>)}
           <button disabled={!who} onClick={() => { const p = Number(prompt(`Price named by the customer (${sentQuote.currency})`)); if (p) act(() => post(`/quotes/${sentQuote.id}/outcome`, { kind: "counter", price: p, confirmed_by: who })); }}>counter-offer</button></div>}
+        {sentQuote && <CustomerReply {...ctx} quote={sentQuote} />}
         {d.outcomes.map((o: any) => <div key={o.id} className="muted">Outcome: {o.kind}{o.price ? ` at ${o.price} ${o.currency}` : ""} (confirmed by {o.confirmed_by})</div>)}
       </section>
 
@@ -104,7 +113,7 @@ export default function RequestPage() {
         {d.orders.map((o: any) => <div className="letter" key={o.id}>
           <div className="row"><b>PO #{o.id}</b><span className="tag">cost {eur(o.total_eur)} EUR</span><span className="tag">budget checks: {o.budget_checks.within_po_limit && o.budget_checks.not_below_cost ? "passed" : "failed"}</span></div>
           {o.invoice_requested_by ? <span className="muted">Invoice requested by {o.invoice_requested_by}</span>
-            : <button disabled={!who} onClick={() => act(() => post(`/orders/${o.id}/invoice-request`, { approved_by: who }))}>Approve invoice request</button>}
+            : <InvoiceRequest po={o} who={who} act={act} post={post} />}
         </div>)}
       </section>
 

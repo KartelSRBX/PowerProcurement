@@ -1,12 +1,15 @@
 """The deal pipeline, steps 2-8. Every outward action takes a named person and goes through MailSender.
-Nothing here calls an AI model: letters come from templates and numbers from code."""
+Numbers come from code. Letters come from templates, or from the model when AI is on and its text passes
+the checks in app.assist.drafts; the AI-assisted steps live in app.assist."""
 
 import hashlib
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.assist.drafts import invoice_text, quote_text, rfq_text
+from app.assist.pool import augment_shortlist
 from app.config import Settings
 from app.currency import convert, to_eur
 from app.intake.schemas import ParsedRequest
@@ -26,10 +29,9 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
-from app.orders.templates import invoice_request_letter, po_letter
+from app.orders.templates import po_letter
 from app.pricing.service import fetch_target_prices, target_total_eur
-from app.quotes.templates import quote_letter
-from app.rfq.templates import ItemLine, pick_language, rfq_letter
+from app.rfq.templates import ItemLine, pick_language
 from app.scoring.scoring import OfferFacts, SupplierFacts, Weights, landed_cost, score_offers
 from app.suppliers.shortlist import build_shortlist, catalog_lines_for
 
@@ -123,8 +125,10 @@ def run_discovery(session: Session, settings: Settings, request_id: int) -> dict
     if not items or any(i.quantity is None for i in items):
         raise PipelineError("every item needs a quantity before suppliers and prices can be looked up")
     shortlist = build_shortlist(session, req)
+    ai = augment_shortlist(session, settings, req, items)
     targets = fetch_target_prices(session, settings, request_id)
     return {
+        "ai": ai,
         "shortlist": len(shortlist),
         "items_with_target": sum(v is not None for v in targets.values()),
         "target_total_eur": target_total_eur(session, request_id, targets),
@@ -146,7 +150,7 @@ def set_supplier_selected(session: Session, request_id: int, supplier_id: int, s
 # ---- Step 4: RFQ drafts and the approval queue ------------------------------------------------
 
 
-def draft_rfqs(session: Session, request_id: int) -> list[Rfq]:
+def draft_rfqs(session: Session, settings: Settings, request_id: int) -> list[Rfq]:
     req = get_request(session, request_id)
     items = items_of(session, request_id)
     existing = {r.supplier_id for r in session.scalars(select(Rfq).where(Rfq.request_id == request_id))}
@@ -161,10 +165,17 @@ def draft_rfqs(session: Session, request_id: int) -> list[Rfq]:
             continue
         sup = session.get(Supplier, entry.supplier_id)
         lang = pick_language(sup.languages)
-        subject, body = rfq_letter(
-            lang, sup.name, _lines(items), req.parsed.get("needed_by"), _ref(request_id)
+        subject, body, drafted_by = rfq_text(
+            session, settings, lang, sup.name, _lines(items), req.parsed.get("needed_by"), _ref(request_id)
         )
-        rfq = Rfq(request_id=request_id, supplier_id=sup.id, language=lang, subject=subject, body=body)
+        rfq = Rfq(
+            request_id=request_id,
+            supplier_id=sup.id,
+            language=lang,
+            subject=subject,
+            body=body,
+            drafted_by=drafted_by,
+        )
         session.add(rfq)
         created.append(rfq)
     if not created and not existing:
@@ -195,6 +206,7 @@ def decide_rfq(session: Session, sender: MailSender, rfq_id: int, approve: bool,
         sup = session.get(Supplier, rfq.supplier_id)
         rfq.sent_to = sender.send(OutboundMail(sup.email, rfq.subject, rfq.body, approved_by=by))
         rfq.status = "sent"
+        rfq.sent_at = datetime.now(UTC)
     else:
         rfq.status = "rejected"
     rfq.decided_by = by
@@ -377,8 +389,15 @@ def create_quote(
     cost_eur = landed_cost(to_eur(offer.total_price, offer.currency, settings), sup.country)
     price = convert(cost_eur * (1 + markup), "EUR", currency, settings)
     lang = _customer_language(req)
-    subject, body = quote_letter(
-        lang, _lines(items_of(session, request_id)), price, currency, offer.lead_time_days, _ref(request_id)
+    subject, body, drafted_by = quote_text(
+        session,
+        settings,
+        lang,
+        _lines(items_of(session, request_id)),
+        price,
+        currency,
+        offer.lead_time_days,
+        _ref(request_id),
     )
     quote = CustomerQuote(
         request_id=request_id,
@@ -390,6 +409,7 @@ def create_quote(
         language=lang,
         subject=subject,
         body=body,
+        drafted_by=drafted_by,
     )
     session.add(quote)
     session.add(
@@ -554,7 +574,34 @@ def create_po(
     return po
 
 
-def request_invoice(session: Session, sender: MailSender, po_id: int, approved_by: str) -> PurchaseOrder:
+def invoice_draft(session: Session, settings: Settings, po_id: int) -> dict:
+    """The invoice-request letter as it would be sent, for a person to read and edit first."""
+    po = session.get(PurchaseOrder, po_id)
+    if po is None:
+        raise LookupError("purchase order not found")
+    sup = session.get(Supplier, po.supplier_id)
+    offer = session.get(Offer, po.offer_id)
+    subject, body, drafted_by = invoice_text(
+        session,
+        settings,
+        pick_language(sup.languages),
+        sup.name,
+        _lines(items_of(session, po.request_id)),
+        f"{offer.total_price:,.2f} {offer.currency}",
+        _ref(po.request_id),
+    )
+    return {"to": f"{sup.name} <{sup.email}>", "subject": subject, "body": body, "drafted_by": drafted_by}
+
+
+def request_invoice(
+    session: Session,
+    sender: MailSender,
+    po_id: int,
+    approved_by: str,
+    settings: Settings | None = None,
+    subject: str | None = None,
+    body: str | None = None,
+) -> PurchaseOrder:
     by = _need_person(approved_by)
     po = session.get(PurchaseOrder, po_id)
     if po is None:
@@ -562,7 +609,9 @@ def request_invoice(session: Session, sender: MailSender, po_id: int, approved_b
     if po.invoice_requested_by:
         raise PipelineError("the invoice has already been requested")
     sup = session.get(Supplier, po.supplier_id)
-    subject, body = invoice_request_letter(pick_language(sup.languages), sup.name, _ref(po.request_id))
+    if not (subject and body):
+        draft = invoice_draft(session, settings or Settings(_env_file=None), po_id)
+        subject, body = draft["subject"], draft["body"]
     sender.send(OutboundMail(sup.email, subject, body, approved_by=by))
     po.invoice_requested_by = by
     _audit(session, "human", by, "invoice.requested", po_id=po_id)

@@ -173,6 +173,10 @@ class Rfq(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     decided_by: Mapped[str | None] = mapped_column(String(128))
     sent_to: Mapped[str | None] = mapped_column(String(32))
+    drafted_by: Mapped[str] = mapped_column(
+        String(120), nullable=False, default="template", server_default="template"
+    )
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -209,6 +213,9 @@ class CustomerQuote(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     decided_by: Mapped[str | None] = mapped_column(String(128))
     sent_to: Mapped[str | None] = mapped_column(String(32))
+    drafted_by: Mapped[str] = mapped_column(
+        String(120), nullable=False, default="template", server_default="template"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -393,3 +400,45 @@ class VaultLog(Base):
     entry_id: Mapped[int | None] = mapped_column(Integer)
     detail: Mapped[str | None] = mapped_column(String(300))
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class SupplierReply(Base):
+    """A supplier's answer as text, what was read from it, and the offer a person confirmed from it."""
+
+    __tablename__ = "supplier_replies"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey("customer_requests.id"), nullable=False)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    extracted: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    missing: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    read_by: Mapped[str] = mapped_column(String(120), nullable=False)  # model name or "manual"
+    status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="extracted"
+    )  # extracted|confirmed
+    entered_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    offer_id: Mapped[int | None] = mapped_column(ForeignKey("offers.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Letter(Base):
+    """Any other outgoing letter (follow-up to a supplier, reminder to a customer). Same rule as
+    every letter: nothing is sent until a named person approves it."""
+
+    __tablename__ = "letters"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey("customer_requests.id"), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # followup | reminder
+    supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"))
+    to_email: Mapped[str] = mapped_column(String(320), nullable=False)
+    language: Mapped[str] = mapped_column(String(2), nullable=False)
+    subject: Mapped[str] = mapped_column(String(300), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    reason: Mapped[str] = mapped_column(String(500), nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
+    drafted_by: Mapped[str] = mapped_column(String(120), nullable=False, default="template")
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    sent_to: Mapped[str | None] = mapped_column(String(32))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

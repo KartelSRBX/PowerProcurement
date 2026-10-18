@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     weight_external_risk: int = 15
     # Starting markup until analytics can recommend one (proposal). 0.15 = 15%.
     default_markup: float = 0.15
+    # A supplier that has not answered a sent letter after this many days gets a follow-up draft.
+    followup_after_days: int = 3
     # Upper limit for a single purchase order, EUR.
     po_budget_limit_eur: float = 50000
 

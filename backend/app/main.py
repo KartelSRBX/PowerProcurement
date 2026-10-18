@@ -5,6 +5,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.analytics.api import router as analytics_router
+from app.assist.api import router as assist_router
 from app.config import get_settings
 from app.crm.api import router as crm_router
 from app.db import get_session
@@ -37,6 +38,7 @@ app.include_router(crm_router)
 app.include_router(analytics_router)
 app.include_router(settings_router)
 app.include_router(vault_router)
+app.include_router(assist_router)
 
 
 @app.get("/health")

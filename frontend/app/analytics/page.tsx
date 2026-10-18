@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Narrative from "../components/Narrative";
 import { api } from "../lib/api";
 
 const LABELS: Record<string, string> = {
@@ -48,6 +49,7 @@ export default function Analytics() {
   return (
     <>
       <div className="kpis">{kpis.map(([l, v]) => <div className="kpi" key={l}><div className="v">{v}</div><div className="l">{l}</div></div>)}</div>
+      <Narrative topic="messages" days={days} />
       <div className="grid2">
         <section>
           <h2>Incoming emails per day <select style={{ float: "right" }} value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={14}>14 days</option><option value={30}>30 days</option><option value={90}>90 days</option></select></h2>

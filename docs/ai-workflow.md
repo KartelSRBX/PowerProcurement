@@ -201,3 +201,27 @@ recorded check, and a vault request approved by a second name and revealed once 
 
 **Not verified:** real supplier data (only synthetic profiles are seeded; real data stays out of the repository).
 
+
+## AI-assisted steps: only a key is needed (2026-10-18)
+
+**Asked by the human:** build everything in the AI section of the README that was still a template or a plan, so that pasting an
+Anthropic key is the only thing left to do. Calculations stay out.
+
+**Built by the AI:** the `run_task` helper and ten prompts, the assisted steps (supplier pool suggestions, AI letters with code checks,
+supplier-answer reading with code-computed totals, follow-ups, customer reminders and answer reading, invoice request preview,
+score and analytics explanations, bulk email parsing), two tables and columns (migration 0008), the UI for all of it, 16 tests.
+
+**Decided by the AI, open to change:** [ADR 0010](decisions/0010-ai-assisted-steps.md), in particular that follow-ups and reminders
+go through the approval queue and that the invoice request is now previewed before sending.
+
+**Problems found while testing:** a test expectation of mine was wrong arithmetic (the code was right); the "do not nag"
+comparison used strictly-later timestamps and failed within one second (fixed to later-or-equal); the invoice letter shows the
+supplier's currency, not EUR (test corrected).
+
+**Verified by running:** 99 tests pass on Postgres; migration 0008 goes up, down and up; in Chromium the whole path ran against a
+stand-in model (suggestion arrives unticked, AI-tagged letters, a supplier answer read and saved, gaps reported, scores explained,
+follow-ups approved from the queue, customer reply read and recorded, reminder drafted, invoice previewed and sent, bulk parse, both
+analytics summaries) and with the provider off every AI control was disabled with a hint and nothing returned an error.
+
+**Not verified:** any call to the live API. The stand-in is not the model; answer quality, prompt wording in Serbian, and cost per
+step are unknown until someone runs it with a key.

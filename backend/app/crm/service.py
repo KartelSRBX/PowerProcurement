@@ -17,6 +17,7 @@ from app.models import (
     CustomerQuote,
     CustomerRequest,
     InboxEmail,
+    Letter,
     Offer,
     Outcome,
     PurchaseOrder,
@@ -179,6 +180,23 @@ def mail_feed(session: Session, folder: str = "all", q: str = "", limit: int = 3
                     "status": qt.status,
                     "approved_by": qt.decided_by,
                     "request": {"request_id": qt.request_id},
+                }
+            )
+        for lt in session.scalars(select(Letter)):
+            sup = names.get(lt.supplier_id) if lt.supplier_id else None
+            items.append(
+                {
+                    "key": f"letter:{lt.id}",
+                    "direction": "out",
+                    "kind": lt.kind,
+                    "id": lt.id,
+                    "counterparty": f"{sup.name} <{sup.email}>" if sup else lt.to_email,
+                    "subject": lt.subject,
+                    "body": lt.body,
+                    "at": _iso(lt.created_at),
+                    "status": lt.status,
+                    "approved_by": lt.decided_by,
+                    "request": {"request_id": lt.request_id},
                 }
             )
         for po in session.scalars(select(PurchaseOrder)):
@@ -726,6 +744,27 @@ def approvals(session: Session, settings: Settings, status: str = "pending", lim
                 "decided_by": r.decided_by,
                 "at": _iso(r.created_at),
                 "warnings": ["supplier is marked sanctioned"] if sup.sanctioned else [],
+                "drafted_by": r.drafted_by,
+            }
+        )
+    for lt in session.scalars(select(Letter).where(Letter.status.in_(want))):
+        sup = suppliers.get(lt.supplier_id) if lt.supplier_id else None
+        items.append(
+            {
+                "key": f"letter:{lt.id}",
+                "kind": lt.kind,
+                "id": lt.id,
+                "request_id": lt.request_id,
+                "counterparty": f"{sup.name} <{sup.email}>" if sup else lt.to_email,
+                "subject": lt.subject,
+                "body": lt.body,
+                "language": lt.language,
+                "status": lt.status,
+                "decided_by": lt.decided_by,
+                "at": _iso(lt.created_at),
+                "warnings": ["supplier is marked sanctioned"] if sup and sup.sanctioned else [],
+                "drafted_by": lt.drafted_by,
+                "reason": lt.reason,
             }
         )
     for q in session.scalars(select(CustomerQuote).where(CustomerQuote.status.in_(want))):
@@ -746,6 +785,7 @@ def approvals(session: Session, settings: Settings, status: str = "pending", lim
                 "decided_by": q.decided_by,
                 "at": _iso(q.created_at),
                 "warnings": warnings,
+                "drafted_by": q.drafted_by,
                 "quote": {
                     "price": q.price,
                     "currency": q.currency,
