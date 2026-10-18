@@ -121,3 +121,21 @@ file imported, and the new article was found in Article matching.
 
 **Not done:** XLSX files, live distributor APIs, FX rate source, price history (an update overwrites the old price).
 
+## Phase 2 acceptance and phase 3 queue (2026-10-18)
+
+**Asked by the human:** "push, move on along the roadmap".
+
+**Built by the AI:** a test that runs discovery for demo requests in all three categories (electronics, IT hardware,
+other) and checks a shortlist of at least two suppliers, target prices for every item, no sanctioned supplier and every
+price labelled unconfirmed. This closes the phase 2 acceptance criterion on synthetic data. Then the Approvals tab: one queue
+of every supplier letter and customer quote waiting for a person, with editing, approve and reject, a decision history with
+the approver's name, a warning when a quote is priced below cost, and a count badge in the menu. Backend `GET /approvals`, 2 new tests.
+
+**Decided by the AI, open to change:** approving from the queue saves the person's edit first and then records the decision,
+so the sent text is exactly what was reviewed; there is no bulk approve on purpose.
+
+**Verified by running:** 58 tests pass against Postgres; in Chromium five drafts appeared in the queue, one was edited and approved, the count
+dropped to four and the decided tab showed the edited text with the approver.
+
+**Not done:** real price sources and an FX rate source (need the human's choice), AI-drafted letters (need a key).
+

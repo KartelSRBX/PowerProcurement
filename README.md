@@ -27,7 +27,7 @@ No `.env` is needed for the demo. Copy `.env.example` to `.env` to change settin
 ### The panel
 
 A small CRM with tabs (English UI): **Requests** (requests and the step-by-step pipeline), **Mail**
-(inbox and sent mail, create a request from an email), **Message analytics** (volumes, funnel, senders),
+(inbox and sent mail, create a request from an email), **Approvals** (one queue for every letter waiting for a person: edit, approve or reject; history of decisions), **Message analytics** (volumes, funnel, senders),
 **Suppliers** (supplier storage and price lists, editable, with CSV price-list import: validate, preview, then import all or nothing), **Article matching** (catalog search and
 matching of request items) and **Offer** (offer builder with a live margin preview).
 Type your name in the top bar first: every approval and edit is recorded under it.
@@ -83,8 +83,8 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | --- | --- | --- |
 | 0 | Scaffold: Docker, CI, database, AI adapter | `docker compose up` works, CI green (**done**) |
 | 1 | Intake and parsing (step 1) | Parsing accuracy measured on a gold set of sr/en emails (**harness done, live measurement pending**) |
-| 2 | Suppliers and prices (steps 2–3) | Shortlist and target prices for demo requests in three categories |
-| 3 | RFQ and approval queue (step 4) | Letters go through the approval queue into Mailpit |
+| 2 | Suppliers and prices (steps 2–3) | Shortlist and target prices for demo requests in three categories (**done on synthetic data; CSV price-list import added; live price sources and FX source pending**) |
+| 3 | RFQ and approval queue (step 4) | Letters go through the approval queue into Mailpit (**done: Approvals tab; letters are drafted from templates, AI drafting needs a key**) |
 | 4 | Offers and scoring (step 5) | Comparison table; scoring covered by tests |
 | 5 | Customer quote and outcome (steps 6–7) | Quote passes markup approval; outcome recorded |
 | 6 | Order and invoice request (step 8) | End-to-end: email, quote, PO, invoice request (**skeleton works without AI; email parsing still needs a key**) |

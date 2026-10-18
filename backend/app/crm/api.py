@@ -31,6 +31,15 @@ def demo_load(session: Session = Depends(get_session)):
     return {"added": svc.load_demo_inbox(session)}
 
 
+@router.get("/approvals")
+def approvals(
+    status: str = "pending",
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    return svc.approvals(session, settings, "pending" if status == "pending" else "decided")
+
+
 # ---- analytics --------------------------------------------------------------------------------
 
 

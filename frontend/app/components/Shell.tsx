@@ -9,6 +9,7 @@ import { PersonProvider, usePerson } from "../lib/person";
 const NAV = [
   { href: "/", ico: "☰", label: "Requests" },
   { href: "/mail", ico: "✉", label: "Mail" },
+  { href: "/approvals", ico: "✓", label: "Approvals" },
   { href: "/analytics", ico: "▥", label: "Message analytics" },
   { href: "/suppliers", ico: "⌂", label: "Suppliers" },
   { href: "/articles", ico: "⌕", label: "Article matching" },
@@ -38,6 +39,10 @@ function Top({ title }: { title: string }) {
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const [waiting, setWaiting] = useState(0);
+  useEffect(() => {
+    api<any[]>("/approvals").then((a) => setWaiting(a.length)).catch(() => setWaiting(0));
+  }, [path]);
   const active = (href: string) => (href === "/" ? path === "/" || path.startsWith("/requests") : path.startsWith(href));
   const current = NAV.find((n) => active(n.href));
   const narrow = path === "/" || path.startsWith("/requests");
@@ -49,6 +54,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           {NAV.map((n) => (
             <Link key={n.href} href={n.href} className={`nav-item ${active(n.href) ? "active" : ""}`}>
               <span className="nav-ico">{n.ico}</span>{n.label}
+              {n.href === "/approvals" && waiting > 0 && <span className="chip warn" style={{ marginLeft: "auto" }}>{waiting}</span>}
             </Link>
           ))}
           <div className="side-foot">Demo: synthetic data, email goes only to Mailpit. Every outgoing email is sent only after a person approves it.</div>

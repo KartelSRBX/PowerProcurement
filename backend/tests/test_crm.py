@@ -204,3 +204,52 @@ def test_csv_import_rejects_unusable_files(client):  # noqa: F811
     assert (
         c.post("/suppliers/9999/catalog/import", json={"csv": GOOD_CSV, "changed_by": "k"}).status_code == 404
     )
+
+
+def test_phase2_acceptance_shortlist_and_target_prices_in_three_categories(client):  # noqa: F811
+    """Plan, phase 2: shortlist and target prices for demo requests in three categories."""
+    c = client
+    cases = {
+        "electronics": [{"description": "STM32F407VGT6 microcontroller", "quantity": 500}],
+        "it_hardware": [{"description": "Dell Latitude 5450 laptop", "quantity": 5}],
+        "other": [{"description": "Ergonomic office chair", "quantity": 20}],
+    }
+    for category, items in cases.items():
+        rid = new_request(c, category=category, items=items)
+        disc = c.post(f"/requests/{rid}/discover").json()
+        assert disc["shortlist"] >= 2, category
+        assert disc["items_with_target"] == len(items) and disc["target_total_eur"] > 0, category
+        names = [s["supplier"] for s in c.get(f"/requests/{rid}/shortlist").json()]
+        assert "Vostok Parts Trading" not in names, category
+        prices = c.get(f"/requests/{rid}/market-prices").json()
+        assert prices and all(p["label"].startswith("unconfirmed") for p in prices), category
+
+
+def test_approval_queue_lists_drafts_then_history(client):  # noqa: F811
+    c = client
+    rid = new_request(c)
+    c.post(f"/requests/{rid}/discover")
+    drafts = c.post(f"/requests/{rid}/rfqs/draft").json()
+    queue = c.get("/approvals").json()
+    assert len(queue) == len(drafts) and all(q["kind"] == "rfq" and q["status"] == "draft" for q in queue)
+    assert c.get("/approvals", params={"status": "decided"}).json() == []
+    first = queue[0]
+    assert (
+        c.post(f"/rfqs/{first['id']}/decision", json={"approve": True, "decided_by": "kartel"}).status_code
+        == 200
+    )
+    assert len(c.get("/approvals").json()) == len(drafts) - 1
+    done = c.get("/approvals", params={"status": "decided"}).json()
+    assert [(d["key"], d["status"], d["decided_by"]) for d in done] == [(first["key"], "sent", "kartel")]
+    # a quote priced below cost is flagged in the queue before anyone approves it
+    for d in c.get(f"/requests/{rid}/rfqs").json():
+        if d["status"] == "draft":
+            c.post(f"/rfqs/{d['id']}/decision", json={"approve": True, "decided_by": "kartel"})
+    c.post(f"/requests/{rid}/offers/simulate")
+    best = next(r for r in c.post(f"/requests/{rid}/score").json() if not r["excluded"])
+    c.post(
+        f"/requests/{rid}/quotes",
+        json={"offer_id": best["offer_id"], "markup": -0.1, "currency": "EUR", "created_by": "kartel"},
+    )
+    quote = next(q for q in c.get("/approvals").json() if q["kind"] == "quote")
+    assert quote["warnings"] == ["price is below cost"] and quote["quote"]["markup"] == -0.1

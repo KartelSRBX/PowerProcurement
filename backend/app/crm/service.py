@@ -700,3 +700,60 @@ def import_price_list(
     session.commit()
     result["applied"] = True
     return result
+
+
+# ---- Approval queue ---------------------------------------------------------------------------
+
+
+def approvals(session: Session, settings: Settings, status: str = "pending", limit: int = 100) -> list[dict]:
+    """Every outgoing letter that waits for (or went through) a person's decision, newest first."""
+    pending = status == "pending"
+    want = ("draft",) if pending else ("sent", "rejected")
+    suppliers = {s.id: s for s in session.scalars(select(Supplier))}
+    items: list[dict] = []
+    for r in session.scalars(select(Rfq).where(Rfq.status.in_(want))):
+        sup = suppliers[r.supplier_id]
+        items.append(
+            {
+                "key": f"rfq:{r.id}",
+                "kind": "rfq",
+                "id": r.id,
+                "request_id": r.request_id,
+                "counterparty": f"{sup.name} <{sup.email}>",
+                "subject": r.subject,
+                "body": r.body,
+                "language": r.language,
+                "status": r.status,
+                "decided_by": r.decided_by,
+                "at": _iso(r.created_at),
+                "warnings": ["supplier is marked sanctioned"] if sup.sanctioned else [],
+            }
+        )
+    for q in session.scalars(select(CustomerQuote).where(CustomerQuote.status.in_(want))):
+        req = session.get(CustomerRequest, q.request_id)
+        price_eur = to_eur(q.price, q.currency, settings)
+        warnings = ["price is below cost"] if price_eur < q.cost_eur else []
+        items.append(
+            {
+                "key": f"quote:{q.id}",
+                "kind": "quote",
+                "id": q.id,
+                "request_id": q.request_id,
+                "counterparty": req.sender if req else "",
+                "subject": q.subject,
+                "body": q.body,
+                "language": q.language,
+                "status": q.status,
+                "decided_by": q.decided_by,
+                "at": _iso(q.created_at),
+                "warnings": warnings,
+                "quote": {
+                    "price": q.price,
+                    "currency": q.currency,
+                    "cost_eur": q.cost_eur,
+                    "markup": q.markup,
+                },
+            }
+        )
+    items.sort(key=lambda i: i["at"] or "", reverse=True)
+    return items[:limit]
