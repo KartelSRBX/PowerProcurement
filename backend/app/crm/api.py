@@ -9,6 +9,7 @@ from app.config import Settings, get_settings
 from app.crm import service as svc
 from app.db import get_session
 from app.pipeline.api import guarded
+from app.suppliers import profile
 
 router = APIRouter(tags=["crm"])
 
@@ -64,6 +65,9 @@ class SupplierIn(BaseModel):
     payment_terms_days: int = 0
     warranty_months: int = 0
     sanctioned: bool = False
+    brands: list[str] = Field(default_factory=list)
+    product_types: list[str] = Field(default_factory=list)
+    brand_tiers: dict[str, str] = Field(default_factory=dict)
     changed_by: str
 
 
@@ -90,8 +94,84 @@ class CatalogImportIn(BaseModel):
 
 
 @router.get("/suppliers/overview")
-def suppliers_overview(session: Session = Depends(get_session)):
-    return svc.list_suppliers(session)
+def suppliers_overview(
+    q: str = "",
+    country: str = "",
+    category: str = "",
+    brand: str = "",
+    tier: str = "",
+    check: str = "",
+    status: str = "",
+    sort: str = "name",
+    dir: str = "asc",
+    session: Session = Depends(get_session),
+):
+    return guarded(
+        svc.list_suppliers,
+        session,
+        q=q,
+        country=country,
+        category=category,
+        brand=brand,
+        tier=tier,
+        check=check,
+        status=status,
+        sort=sort,
+        direction=dir,
+    )
+
+
+@router.get("/suppliers/facets")
+def suppliers_facets(country: str = "", category: str = "", session: Session = Depends(get_session)):
+    return profile.facets(session, country, category)
+
+
+@router.get("/suppliers/checks")
+def supplier_checks(result: str = "", session: Session = Depends(get_session)):
+    return profile.checks_overview(session, result)
+
+
+class CheckIn(BaseModel):
+    result: str
+    checked_by: str
+    contact_details: str | None = None
+    note: str | None = None
+
+
+class DiscountIn(BaseModel):
+    brand: str
+    description: str
+    changed_by: str
+
+
+class WhoIn(BaseModel):
+    changed_by: str
+
+
+@router.post("/suppliers/{supplier_id}/checks")
+def add_check(supplier_id: int, body: CheckIn, session: Session = Depends(get_session)):
+    row = guarded(
+        profile.add_check,
+        session,
+        supplier_id,
+        body.result,
+        body.checked_by,
+        body.contact_details,
+        body.note,
+    )
+    return profile.check_dict(row)
+
+
+@router.post("/suppliers/{supplier_id}/discounts")
+def add_discount(supplier_id: int, body: DiscountIn, session: Session = Depends(get_session)):
+    row = guarded(profile.add_discount, session, supplier_id, body.brand, body.description, body.changed_by)
+    return {"id": row.id, "brand": row.brand, "description": row.description}
+
+
+@router.delete("/suppliers/discounts/{discount_id}")
+def remove_discount(discount_id: int, changed_by: str, session: Session = Depends(get_session)):
+    guarded(profile.remove_discount, session, discount_id, changed_by)
+    return {"ok": True}
 
 
 @router.get("/suppliers/{supplier_id}")

@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.models import CatalogPrice, Supplier
+from app.models import CatalogPrice, Supplier, SupplierDiscount
 
 # (name, country, categories, languages, age, vat, deals, framework, pay_days, warranty, sanctioned, flags)
 SUPPLIERS = [
@@ -135,6 +135,36 @@ PRODUCTS = [
     ("chair", "Ergonomic office chair", "other", 140.0),
 ]
 
+# keyword -> (brand, product type); only for the demo profiles
+BRANDS = {
+    "stm32f407": ("STMicroelectronics", "Microcontrollers"),
+    "100nf": ("Murata", "Passive components"),
+    "lm358dr": ("Texas Instruments", "Integrated circuits"),
+    "esp32": ("Espressif", "Modules and boards"),
+    "srd-05vdc": ("Songle", "Relays"),
+    "arduino uno": ("Arduino", "Modules and boards"),
+    "kondenzat": ("Panasonic", "Passive components"),
+    "otporni": ("Yageo", "Passive components"),
+    "raspberry pi 5": ("Raspberry Pi", "Modules and boards"),
+    "power supply": ("Mean Well", "Power supplies"),
+    "microsd": ("SanDisk", "Memory cards"),
+    "latitude 5450": ("Dell", "Laptops"),
+    "docking": ("Dell", "Accessories"),
+    "p2423d": ("Dell", "Monitors"),
+    "hdmi": ("Generic", "Cables"),
+    "m404dn": ("HP", "Printers"),
+    "cf259a": ("HP", "Printing supplies"),
+    "870 evo": ("Samsung", "Storage"),
+    "sata": ("Generic", "Cables"),
+    "probook 450": ("HP", "Laptops"),
+    "smart-ups": ("APC", "UPS"),
+    "netzteil": ("Mean Well", "Power supplies"),
+    "switch": ("Cisco", "Networking"),
+    "chair": ("Ergo", "Furniture"),
+}
+TIER_ORDER = ("vendor", "distributor", "sub_distributor", "reseller")
+PAYMENT_TYPES = ("prepayment", "on_delivery", "deferred", "credit")
+
 LEAD_DAYS = {
     "RS": (3, 7),
     "HR": (4, 8),
@@ -152,9 +182,47 @@ def _h(*parts: str) -> int:
     return int(hashlib.sha256("|".join(parts).encode()).hexdigest()[:8], 16)
 
 
+def fill_profiles(session: Session) -> int:
+    """Give demo suppliers a profile (brands, tiers, discounts) derived from their price lists.
+    Only touches suppliers whose profile is still empty, so it is safe to run on every start."""
+    done = 0
+    for sup in session.scalars(select(Supplier).where(Supplier.partner_status.is_(None))):
+        lines = list(session.scalars(select(CatalogPrice).where(CatalogPrice.supplier_id == sup.id)))
+        if not lines or sup.brands:
+            continue
+        brands: list[str] = []
+        types: list[str] = []
+        for line in lines:
+            brand, ptype = BRANDS.get(line.keyword, ("Other", "Other"))
+            if brand not in brands:
+                brands.append(brand)
+            if ptype not in types:
+                types.append(ptype)
+        sup.brands = sorted(brands)
+        sup.product_types = sorted(types)
+        sup.brand_tiers = {b: TIER_ORDER[_h(sup.name, b, "tier") % 4] for b in sup.brands}
+        sup.stock_delivery_days = min(line.lead_time_days for line in lines)
+        sup.payment_type = PAYMENT_TYPES[_h(sup.name, "pay") % 4]
+        sup.has_credit_line = sup.framework_contract and _h(sup.name, "credit") % 2 == 0
+        sup.credit_line_note = "limit agreed in the framework contract" if sup.has_credit_line else None
+        sup.contract_note = "framework contract signed" if sup.framework_contract else None
+        sup.partner_status = (
+            "preferred" if sup.deals_count >= 20 else "new" if sup.age_years < 3 else "approved"
+        )
+        sup.website = f"https://www.{sup.name.lower().split()[0]}.example"
+        for b in sup.brands:
+            if _h(sup.name, b, "disc") % 2 == 0:
+                pct = 3 + _h(sup.name, b, "pct") % 8
+                session.add(SupplierDiscount(supplier_id=sup.id, brand=b, description=f"{pct}% from 100 pcs"))
+        done += 1
+    session.commit()
+    return done
+
+
 def seed(session: Session, settings: Settings, today: date | None = None) -> int:
     """Insert suppliers and price lists once. Returns the number of suppliers inserted."""
     if session.scalar(select(Supplier.id).limit(1)) is not None:
+        fill_profiles(session)
         return 0
     today = today or date.today()
     for name, country, cats, langs, age, vat, deals, fw, pay, war, sanc, flags in SUPPLIERS:
@@ -196,6 +264,7 @@ def seed(session: Session, settings: Settings, today: date | None = None) -> int
                 )
             )
     session.commit()
+    fill_profiles(session)
     return len(SUPPLIERS)
 
 

@@ -25,6 +25,7 @@ from app.models import (
 )
 from app.pipeline.service import PipelineError, get_request, items_of
 from app.scoring.scoring import landed_cost
+from app.suppliers import profile
 from app.suppliers.shortlist import catalog_lines_for
 
 
@@ -293,6 +294,7 @@ SUPPLIER_FIELDS = (
     "warranty_months",
     "sanctioned",
     "flags",
+    *profile.PROFILE_FIELDS,
 )
 
 
@@ -300,16 +302,8 @@ def _supplier_dict(s: Supplier) -> dict:
     return {c.name: getattr(s, c.name) for c in s.__table__.columns}
 
 
-def list_suppliers(session: Session) -> list[dict]:
-    lines = Counter(c.supplier_id for c in session.scalars(select(CatalogPrice)))
-    offers = Counter(o.supplier_id for o in session.scalars(select(Offer)))
-    out = []
-    for s in session.scalars(select(Supplier).order_by(Supplier.name)):
-        d = _supplier_dict(s)
-        d["catalog_lines"] = lines.get(s.id, 0)
-        d["offers"] = offers.get(s.id, 0)
-        out.append(d)
-    return out
+def list_suppliers(session: Session, **filters) -> list[dict]:
+    return profile.overview(session, **filters)
 
 
 def supplier_detail(session: Session, supplier_id: int, settings: Settings) -> dict:
@@ -346,6 +340,9 @@ def supplier_detail(session: Session, supplier_id: int, settings: Settings) -> d
         "purchase_orders": len(pos),
         "purchase_total_eur": round(sum(p.total_eur for p in pos), 2),
     }
+    d["discounts"] = profile.discounts_of(session, s.id)
+    d["checks"] = profile.check_history(session, s.id)
+    d["check_result"] = d["checks"][0]["result"] if d["checks"] else "unchecked"
     return d
 
 
@@ -359,6 +356,7 @@ def create_supplier(session: Session, data: dict, changed_by: str) -> Supplier:
     country = data["country"].strip().upper()
     if len(country) != 2:
         raise ValueError("country must be a 2-letter code")
+    data = profile.clean_profile(data)
     row = Supplier(**{**data, "name": name, "country": country, "flags": data.get("flags") or []})
     session.add(row)
     session.flush()
@@ -372,6 +370,7 @@ def update_supplier(session: Session, supplier_id: int, changes: dict, changed_b
     row = session.get(Supplier, supplier_id)
     if row is None:
         raise LookupError("supplier not found")
+    changes = profile.clean_profile(changes)
     for key, value in changes.items():
         if key not in SUPPLIER_FIELDS:
             raise ValueError(f"unknown field: {key}")

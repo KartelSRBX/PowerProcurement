@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.intake.evaluate import normalize
 from app.models import CatalogPrice, CustomerRequest, RequestItem, ShortlistEntry, Supplier
+from app.suppliers.profile import latest_checks
 
 MAX_SELECTED = 5
 
@@ -26,10 +27,14 @@ def build_shortlist(session: Session, request: CustomerRequest) -> list[Shortlis
     for item in items:
         for supplier_id in {c.supplier_id for c in catalog_lines_for(session, item)}:
             coverage[supplier_id] = coverage.get(supplier_id, 0) + 1
+    checks = latest_checks(session)
     candidates = []
     for sup in session.scalars(select(Supplier)):
         if sup.sanctioned or category not in sup.categories or sup.id not in coverage:
             continue
+        check = checks.get(sup.id)
+        if check is not None and check.result == "not_working":
+            continue  # the newest due-diligence check says this supplier does not work
         candidates.append((sup, coverage[sup.id]))
     candidates.sort(key=lambda sc: (-sc[1], -sc[0].deals_count, sc[0].name))
     entries = []
@@ -41,7 +46,12 @@ def build_shortlist(session: Session, request: CustomerRequest) -> list[Shortlis
                 covered_items=covered,
                 rank=rank,
                 selected=rank <= MAX_SELECTED,
-                reason=f"covers {covered}/{len(items)} items; {sup.deals_count} past deals; {sup.country}",
+                reason=f"covers {covered}/{len(items)} items; {sup.deals_count} past deals; {sup.country}"
+                + (
+                    "; check under review"
+                    if checks.get(sup.id) and checks[sup.id].result == "under_review"
+                    else ""
+                ),
             )
         )
     session.add_all(entries)

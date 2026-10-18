@@ -57,9 +57,11 @@ If a port is taken, stop the program using 3000, 8000 or 8025 first.
 
 A small CRM with tabs (English UI): **Requests** (requests and the step-by-step pipeline), **Mail**
 (inbox and sent mail, create a request from an email), **Approvals** (one queue for every letter waiting for a person: edit, approve or reject; history of decisions), **Message analytics** (volumes, funnel, senders), **Pricing analytics** (win rate by markup, suggested markup per customer),
-**Suppliers** (supplier storage and price lists, editable, with CSV price-list import: validate, preview, then import all or nothing), **Article matching** (catalog search and
-matching of request items) and **Offer** (offer builder with a live margin preview) and **Settings** (your Anthropic key, exchange-rate source).
-Type your name in the top bar first: every approval and edit is recorded under it.
+**Suppliers** (supplier profiles: brands, role per brand, discounts, payment and credit terms, partner status; cascading filters and sortable columns; price lists with CSV import: validate, preview, then import all or nothing), **Supplier checks** (is the supplier still working: a history of calls, the newest counts, and a supplier marked "not working" drops out of new shortlists), **Access vault** (portal logins stored encrypted; a login is shown only after a second person approves, once), **Article matching** (catalog search and
+matching of request items) **Offer** (offer builder with a live margin preview), **Calculator** (reserved, "Unique to the project") and **Settings** (your Anthropic key, exchange-rate source).
+Type your name in the top bar first: every approval and edit is recorded under it. The name is not a sign-in: the vault's two-person rule is a process aid, so run the app on a machine you trust ([ADR 0009](docs/decisions/0009-profiles-checks-vault.md)).
+
+![Supplier profile with discounts and checks](docs/img/suppliers.png)
 
 ### Try the flow (about two minutes)
 

@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, eur } from "../lib/api";
 import { usePerson } from "../lib/person";
+import { CHECK_LABEL, CHECK_TAG, ChecksPanel, ProfilePanel, STATUSES, TIERS } from "./Profile";
 
 const blank = { name: "", country: "RS", email: "", categories: "electronics", languages: "sr,en", age_years: 0, deals_count: 0, payment_terms_days: 0, warranty_months: 12, vat_verified: false, framework_contract: false };
 const today = new Date().toISOString().slice(0, 10);
@@ -15,6 +16,13 @@ export default function Suppliers() {
   const [q, setQ] = useState("");
   const [country, setCountry] = useState("");
   const [category, setCategory] = useState("");
+  const [brand, setBrand] = useState("");
+  const [tier, setTier] = useState("");
+  const [check, setCheck] = useState("");
+  const [status, setStatus] = useState("");
+  const [sort, setSort] = useState("name");
+  const [dir, setDir] = useState("asc");
+  const [facets, setFacets] = useState<any>({ countries: [], categories: [], brands: [], tiers: [], statuses: [], checks: [] });
   const [sel, setSel] = useState<number | null>(null);
   const [d, setD] = useState<any>(null);
   const [adding, setAdding] = useState(false);
@@ -24,8 +32,13 @@ export default function Suppliers() {
   const [csv, setCsv] = useState("");
   const [prev, setPrev] = useState<any>(null);
 
-  const load = useCallback(() => api<any[]>("/suppliers/overview").then(setRows).catch((e) => setErr(e.message)), []);
-  useEffect(() => { load(); }, [load]);
+  const load = useCallback(() => {
+    const p = new URLSearchParams({ q, country, category, brand, tier, check, status, sort, dir });
+    const fp = new URLSearchParams({ country, category });
+    return Promise.all([api<any[]>(`/suppliers/overview?${p}`), api<any>(`/suppliers/facets?${fp}`)])
+      .then(([r, f]) => { setRows(r); setFacets(f); }).catch((e) => setErr(e.message));
+  }, [q, country, category, brand, tier, check, status, sort, dir]);
+  useEffect(() => { const t = setTimeout(load, 150); return () => clearTimeout(t); }, [load]);
   const open = useCallback((id: number) => { setCsv(""); setPrev(null); setSel(id); setAdding(false); api(`/suppliers/${id}`).then(setD).catch((e) => setErr(e.message)); }, []);
 
   async function run(fn: () => Promise<unknown>, reopen?: number) {
@@ -34,10 +47,14 @@ export default function Suppliers() {
   }
   const patch = (changes: any) => run(() => api(`/suppliers/${sel}`, { method: "PATCH", json: { changes, changed_by: person } }), sel!);
 
-  const countries = useMemo(() => [...new Set(rows.map((r) => r.country))].sort(), [rows]);
-  const cats = useMemo(() => [...new Set(rows.flatMap((r) => r.categories))].sort() as string[], [rows]);
-  const shown = rows.filter((r) =>
-    (!q || `${r.name} ${r.email}`.toLowerCase().includes(q.toLowerCase())) && (!country || r.country === country) && (!category || r.categories.includes(category)));
+  const shown = rows;
+  const sortBy = (key: string) => { if (sort === key) setDir(dir === "asc" ? "desc" : "asc"); else { setSort(key); setDir("asc"); } };
+  const Th = ({ k, children }: { k: string; children: React.ReactNode }) => (
+    <th onClick={() => sortBy(k)} style={{ cursor: "pointer", userSelect: "none" }} aria-sort={sort === k ? (dir === "asc" ? "ascending" : "descending") : "none"}>
+      {children}{sort === k ? (dir === "asc" ? " ▲" : " ▼") : ""}
+    </th>
+  );
+  const nameOf = (v: string) => v.replace("_", " ");
 
   return (
     <>
@@ -46,19 +63,28 @@ export default function Suppliers() {
         <div className="pane">
           <div className="pane-h">
             <div className="row" style={{ margin: 0 }}>
-              <input placeholder="Search by name or email" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: 1 }} />
-              <select value={country} onChange={(e) => setCountry(e.target.value)}><option value="">all countries</option>{countries.map((c) => <option key={c}>{c}</option>)}</select>
-              <select value={category} onChange={(e) => setCategory(e.target.value)}><option value="">all categories</option>{cats.map((c) => <option key={c}>{c}</option>)}</select>
+              <input placeholder="Search name, email, brand, product type" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: 1 }} />
               <button className="primary" onClick={() => { setAdding(true); setSel(null); setD(null); }}>+ Supplier</button>
             </div>
-            <div className="muted">{shown.length} of {rows.length}</div>
+            <div className="row" style={{ margin: ".4rem 0 0" }}>
+              <select value={country} onChange={(e) => { setCountry(e.target.value); setCategory(""); setBrand(""); }}><option value="">all countries</option>{facets.countries.map((c: any) => <option key={c.value} value={c.value}>{c.value} ({c.count})</option>)}</select>
+              <select value={category} onChange={(e) => { setCategory(e.target.value); setBrand(""); }}><option value="">all categories</option>{facets.categories.map((c: any) => <option key={c.value} value={c.value}>{c.value} ({c.count})</option>)}</select>
+              <select value={brand} onChange={(e) => setBrand(e.target.value)}><option value="">all brands</option>{facets.brands.map((c: any) => <option key={c.value} value={c.value}>{c.value} ({c.count})</option>)}</select>
+              <select value={tier} onChange={(e) => setTier(e.target.value)}><option value="">any role</option>{TIERS.map((t) => <option key={t} value={t}>{nameOf(t)}</option>)}</select>
+              <select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">any status</option>{STATUSES.map((t) => <option key={t} value={t}>{nameOf(t)}</option>)}</select>
+              <select value={check} onChange={(e) => setCheck(e.target.value)}><option value="">any check</option>{Object.keys(CHECK_LABEL).map((t) => <option key={t} value={t}>{CHECK_LABEL[t]}</option>)}</select>
+              {(country || category || brand || tier || status || check || q) && <button onClick={() => { setQ(""); setCountry(""); setCategory(""); setBrand(""); setTier(""); setStatus(""); setCheck(""); }}>Clear</button>}
+            </div>
+            <div className="muted">{shown.length} suppliers · click a column title to sort</div>
           </div>
           <table>
-            <thead><tr><th>Supplier</th><th>Country</th><th>Deals</th><th>Payment, days</th><th>Price lines</th></tr></thead>
+            <thead><tr><Th k="name">Supplier</Th><Th k="country">Country</Th><Th k="partner_status">Status</Th><Th k="check">Check</Th><Th k="deals_count">Deals</Th><Th k="payment_terms_days">Payment, days</Th><Th k="stock_delivery_days">Stock, days</Th><Th k="brands">Brands</Th><Th k="catalog_lines">Price lines</Th></tr></thead>
             <tbody>{shown.map((r) => (
               <tr key={r.id} className={`click ${r.id === sel ? "sel" : ""}`} onClick={() => open(r.id)}>
                 <td>{r.name} {r.sanctioned && <span className="tag bad">sanctioned</span>} {r.flags.length > 0 && <span className="tag warn">flags: {r.flags.length}</span>}</td>
-                <td>{r.country}</td><td className="num">{r.deals_count}</td><td className="num">{r.payment_terms_days}</td><td className="num">{r.catalog_lines}</td>
+                <td>{r.country}</td><td>{r.partner_status ? nameOf(r.partner_status) : <span className="muted">–</span>}</td>
+                <td><span className={`tag ${CHECK_TAG[r.check_result]}`}>{CHECK_LABEL[r.check_result]}</span></td>
+                <td className="num">{r.deals_count}</td><td className="num">{r.payment_terms_days}</td><td className="num">{r.stock_delivery_days ?? "–"}</td><td className="num">{r.brands.length}</td><td className="num">{r.catalog_lines}</td>
               </tr>))}</tbody>
           </table>
         </div>
@@ -106,6 +132,8 @@ export default function Suppliers() {
                 <button disabled={!person.trim()} onClick={() => patch({ vat_verified: !d.vat_verified })}>{d.vat_verified ? "remove VAT mark" : "mark VAT ID verified"}</button>
                 <button className={d.sanctioned ? "" : "danger"} disabled={!person.trim()} onClick={() => confirm(d.sanctioned ? "Remove the sanctions mark?" : "Mark this supplier as sanctioned? It will disappear from matching and mailings.") && patch({ sanctioned: !d.sanctioned })}>{d.sanctioned ? "remove sanctions mark" : "mark: sanctioned"}</button>
               </div>
+              <ProfilePanel d={d} person={person} run={run} reopen={d.id} />
+              <ChecksPanel d={d} person={person} run={run} reopen={d.id} />
               <h2 style={{ marginTop: "1rem" }}>Price list ({d.catalog.length})</h2>
               <table>
                 <thead><tr><th>Article / key</th><th>Price</th><th>≈ EUR</th><th>MOQ</th><th>Lead time, days</th><th>Until</th></tr></thead>

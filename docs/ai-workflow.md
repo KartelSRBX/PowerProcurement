@@ -185,3 +185,19 @@ well-formed fake key was saved, never appeared in the page, was stored encrypted
 
 **Not verified:** a successful call with a real key (none available here), and a live NBS fetch: this environment blocks that
 host. The response format was read from the live service and the parser is tested against that format only.
+
+## Supplier profiles, checks, access vault, sorting (2026-10-18)
+
+**Asked by the human:** look at the first procurement tool, adapt four things from it (supplier profiles, supplier checks,
+access vault, supplier sorting), add nothing else, and keep a "Calculator" tab labelled "Unique to the project".
+
+**Built by the AI:** profile columns and discounts, check history with shortlist exclusion, cascading filters with server-side
+sorting, an encrypted vault with two-person reveal and a log, three tabs and an upgraded Suppliers tab, migration 0007, 10 tests.
+
+**Decided by the AI, open to change:** [ADR 0009](decisions/0009-profiles-checks-vault.md), including the honest limit that names are not sign-ins.
+
+**Verified by running:** 83 tests pass on Postgres; migration 0007 goes up, down and up; in Chromium sorting, cascading filters, a
+recorded check, and a vault request approved by a second name and revealed once all worked, and the list API never contained the password.
+
+**Not verified:** real supplier data (only synthetic profiles are seeded; real data stays out of the repository).
+

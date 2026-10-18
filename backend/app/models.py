@@ -83,6 +83,23 @@ class Supplier(Base):
     sanctioned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Manual flags set by a person: label, criterion (reliability or external_risk), penalty points
     flags: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    # Profile (filled by people or an import; every field is optional)
+    brands: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
+    product_types: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list, server_default="[]")
+    # brand -> vendor | distributor | sub_distributor | reseller
+    brand_tiers: Mapped[dict[str, str]] = mapped_column(
+        JSON, nullable=False, default=dict, server_default="{}"
+    )
+    stock_delivery_days: Mapped[int | None] = mapped_column(Integer)
+    payment_type: Mapped[str | None] = mapped_column(
+        String(32)
+    )  # prepayment | on_delivery | deferred | credit
+    contract_note: Mapped[str | None] = mapped_column(String(300))
+    has_credit_line: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    credit_line_note: Mapped[str | None] = mapped_column(String(300))
+    rebates: Mapped[str | None] = mapped_column(String(300))
+    partner_status: Mapped[str | None] = mapped_column(String(16))  # new | approved | preferred | on_hold
+    website: Mapped[str | None] = mapped_column(String(300))
 
 
 class CatalogPrice(Base):
@@ -298,3 +315,81 @@ class FxRate(Base):
     fetched_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+
+class SupplierDiscount(Base):
+    """A discount a supplier gives on one brand, in words (for example "5% from 100 pcs")."""
+
+    __tablename__ = "supplier_discounts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
+    brand: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str] = mapped_column(String(300), nullable=False)
+
+
+class SupplierCheck(Base):
+    """One due-diligence check of a supplier. The newest one is the supplier's current status."""
+
+    __tablename__ = "supplier_checks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
+    result: Mapped[str] = mapped_column(String(16), nullable=False)  # working | not_working | under_review
+    checked_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    contact_details: Mapped[str | None] = mapped_column(String(300))
+    note: Mapped[str | None] = mapped_column(String(500))
+    checked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class VaultEntry(Base):
+    """A login for a supplier portal or another resource. Login and password are stored encrypted."""
+
+    __tablename__ = "vault_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    category: Mapped[str] = mapped_column(String(64), nullable=False)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    site_url: Mapped[str | None] = mapped_column(String(300))
+    login_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    password_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    comments: Mapped[str | None] = mapped_column(String(500))
+    supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"))
+    updated_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class VaultRequest(Base):
+    """A request to see one entry's login and password. A second person approves it; it can be used once."""
+
+    __tablename__ = "vault_requests"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    entry_id: Mapped[int] = mapped_column(ForeignKey("vault_entries.id"), nullable=False)
+    requested_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reason: Mapped[str] = mapped_column(String(300), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    decision_comment: Mapped[str | None] = mapped_column(String(300))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    revealed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class VaultLog(Base):
+    """Append-only: who opened the vault, saw a secret, added, changed or removed an entry."""
+
+    __tablename__ = "vault_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    event: Mapped[str] = mapped_column(String(24), nullable=False)
+    person: Mapped[str] = mapped_column(String(128), nullable=False)
+    entry_id: Mapped[int | None] = mapped_column(Integer)
+    detail: Mapped[str | None] = mapped_column(String(300))
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -13,8 +13,11 @@ const NAV = [
   { href: "/analytics", ico: "▥", label: "Message analytics" },
   { href: "/pricing", ico: "%", label: "Pricing analytics" },
   { href: "/suppliers", ico: "⌂", label: "Suppliers" },
+  { href: "/checks", ico: "✔", label: "Supplier checks" },
+  { href: "/vault", ico: "🔒", label: "Access vault" },
   { href: "/articles", ico: "⌕", label: "Article matching" },
   { href: "/quote", ico: "€", label: "Offer" },
+  { href: "/calculator", ico: "∑", label: "Calculator" },
   { href: "/settings", ico: "⚙", label: "Settings" },
 ];
 
