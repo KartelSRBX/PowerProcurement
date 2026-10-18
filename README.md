@@ -19,17 +19,18 @@ that leaves the system.** Scoring, prices and margins are plain deterministic co
 ## Contents
 
 1. [What it does](#what-it-does)
-2. [Install and run](#install-and-run)
-3. [First five minutes](#first-five-minutes)
-4. [The panel, tab by tab](#the-panel-tab-by-tab)
-5. [How the numbers are computed](#how-the-numbers-are-computed)
-6. [Safe by default](#safe-by-default)
-7. [Turning on the AI](#turning-on-the-ai)
-8. [Configuration reference](#configuration-reference)
-9. [Architecture and repository layout](#architecture-and-repository-layout)
-10. [Develop and test](#develop-and-test)
-11. [Troubleshooting](#troubleshooting)
-12. [Roadmap](#roadmap) · [License](#license)
+2. [What the AI is for](#what-the-ai-is-for)
+3. [Install and run](#install-and-run)
+4. [First five minutes](#first-five-minutes)
+5. [The panel, tab by tab](#the-panel-tab-by-tab)
+6. [How the numbers are computed](#how-the-numbers-are-computed)
+7. [Safe by default](#safe-by-default)
+8. [Turning on the AI](#turning-on-the-ai)
+9. [Configuration reference](#configuration-reference)
+10. [Architecture and repository layout](#architecture-and-repository-layout)
+11. [Develop and test](#develop-and-test)
+12. [Troubleshooting](#troubleshooting)
+13. [Roadmap](#roadmap) · [License](#license)
 
 ## What it does
 
@@ -50,6 +51,140 @@ that whole path in one place, in eight steps:
 
 On top of that sit a mailbox, one approval queue, analytics, supplier profiles with due-diligence checks, an
 encrypted access vault and a settings page where you enter your own API key.
+
+## What the AI is for
+
+A procurement desk spends most of its day on reading, matching, writing and chasing. That is where the AI works.
+It is used as an assistant for **language and unstructured text** and nowhere else: it reads what people wrote,
+proposes structure, drafts letters and explains results. It does **not** decide prices, scores or markups, does
+not send anything and does not approve anything. Those stay in plain code and with a named person.
+
+Every place below says what the AI does, what a person still does, and **what exists today**:
+**Built** means it is in the code and you can use it; **Template today** means the step already works with a fixed
+template or rule and the AI version is the planned upgrade behind the same interface; **Planned** means designed, not coded.
+
+| # | Job | What the AI does | What stays with code and people | Today |
+| --- | --- | --- | --- | --- |
+| 1 | Analytics of received requests | Classifies each email, tags language and category, scores its own confidence, later explains trends in words | Counting, funnels and forecasts are transparent code; a person decides what to do with them | Built (tagging, needs a key; the poller is a command, not yet a button); explanations Planned |
+| 2 | Understanding the request | Turns free text into items, quantities, budget, deadline, country; asks questions where it is unsure | A person confirms the request before anything is sent | Built (needs a key, accuracy not measured yet) |
+| 3 | Defining the supplier pool | Matches request items to supplier catalogs by meaning, explains "why this supplier" | Filters (category, sanctions, checks) and ranking are code; a person edits the shortlist | Template today (keyword rules); AI matching Planned |
+| 4 | Preparing the supplier mailing | Drafts each letter in the supplier's language, checks tone and completeness | A person approves, edits or rejects every letter | Template today (sr and en); AI drafting Planned |
+| 5 | Collecting feedback | Reads supplier answers (text, PDF, Excel) into comparable terms, raises risk flags, explains the score | Scoring and weights are code; a person picks the supplier | Template today (demo simulator); AI extraction Planned |
+| 6 | Secondary mailing when something is wrong | Spots incomplete or unusable answers and silent suppliers, drafts a precise follow-up | A person approves the follow-up like any letter | Planned |
+| 7 | Invoice requests and the rest of the paperwork | Drafts invoice requests, order confirmations and reminders; reads the customer's reply (accepted, counter, rejected, silence) | A person approves each letter and records the outcome | Template today (invoice request letter); AI drafting Planned |
+| 8 | Calculations (future) | Suggests customs codes from descriptions, reads supplier proforma and invoice fields, explains a calculation | The calculation itself is deterministic code | Planned (the **Calculator** tab is reserved) |
+
+### 1. Analytics of received requests
+
+Incoming email is classified as it is read, before anyone looks at it: *is this a request at all* (newsletters, payment
+confirmations and thank-you notes are not), in which language, for which category, with what confidence. The
+mailbox reader (`cd backend && uv run python -m app.intake.poll`, from IMAP or a folder of `.eml` files) does this for every new
+message, and **Parse with AI** does it for one email from the panel. That tagging feeds **Message analytics** (volumes per day, the funnel from email to order, languages, categories, top
+senders, average AI confidence) and keeps the queue free of noise.
+
+The AI does not produce the statistics: they are counted from database records, and the markup forecast in
+**Pricing analytics** is a transparent model whose inputs you can see. In the plan the AI's only job there is to put
+the numbers into words ("win rate drops fast above 25% for this customer"), never to change them.
+
+### 2. Understanding the request
+
+This is the one AI step that is **built today**. One prompt (`backend/app/ai/prompts/intake/v1.md`) reads the email
+and returns a strictly typed result (`backend/app/intake/schemas.py`): is it a request, language, customer, category,
+items with quantity, unit and part number, budget with currency, needed-by date, delivery country, a list of
+questions and a confidence between 0 and 1.
+
+The prompt is written to avoid the usual mistakes:
+
+- **Never guess.** A missing or vague quantity, price, budget or date is left empty and becomes a question for the
+  customer instead of an invented number.
+- **Only the new text.** Quoted earlier messages are ignored.
+- **Serbian, English, other.** Latin and Cyrillic script both work; European number format (`1.234,50`) and relative
+  dates ("in two weeks", "end of the month") are resolved against the date the email arrived.
+- **Part numbers stay as written** and are kept separate from the description.
+- **Low confidence goes to a person.** Below `AI_CONFIDENCE_THRESHOLD` (0.75 by default) the email is stored as *needs review*
+  instead of moving on, and a person **always** confirms the request before any supplier is contacted.
+
+Use it in **Mail → Parse with AI** (needs your key, see [Turning on the AI](#turning-on-the-ai)). Its accuracy is
+measured on a gold set of 16 emails with `python -m app.intake.evaluate --live`; **no figure is published until that
+run has been made**.
+
+### 3. Defining the supplier pool
+
+Today the pool is built by rules you can read in `backend/app/suppliers/shortlist.py`: the supplier must serve the
+request's category, must not be sanctioned, must not have a newest check of *not working*, and must have a price line
+whose key appears in the item text. Suppliers are ranked by how many items they cover, then by past deals, and up to
+five are preselected; a person can tick or untick any of them.
+
+What the rules cannot do is understand that "100nF 0603 capacitor" and "MLCC 0.1 µF, 0603, X7R" are the same part, or
+that a request for "a rack UPS" belongs with a supplier of power equipment that never wrote the word "UPS". That is
+the AI's job here: **semantic matching** between request items and supplier catalogs and product types, and a short
+**"why this supplier"** explanation next to each candidate. The AI proposes candidates; the filters (sanctions,
+checks, category) still run after it, so the AI can widen the search but cannot put a sanctioned or failed supplier on the list.
+
+### 4. Preparing the supplier mailing
+
+For every shortlisted supplier the system prepares a request-for-quotation letter in **that supplier's language**
+(Serbian or English today) with the items, the data we need back (unit price and currency, minimum order, lead time,
+payment terms, warranty, validity) and the right subject with the request number. Letters are drafted from templates
+today. The AI version writes a more natural letter that fits the supplier and the items and checks the draft for
+tone and completeness before it reaches you.
+
+Either way nothing is sent: the drafts wait in **Approvals**, a person edits the text and approves or rejects each
+one, and only then does it go out (to Mailpit in the demo).
+
+### 5. Collecting feedback
+
+Suppliers answer in free text, PDFs and Excel sheets, in different currencies and layouts. The AI's job is to read
+each answer and fill the same fields for every supplier: unit price, currency, MOQ, lead time, payment terms,
+warranty, validity, and anything unusual (substitutes, partial coverage, price valid only until Friday). It also
+raises **risk flags** with a source (an unverified tax ID, reported customs delays) and writes two or three sentences
+explaining each supplier's score from the numbers.
+
+The numbers themselves come from code: the comparison table, the five scoring criteria and your weight sliders
+(see [How the numbers are computed](#how-the-numbers-are-computed)). In the demo, **Simulate supplier answers**
+stands in for real replies so the rest of the flow can be shown without any real supplier.
+
+The same reading skill is used on the customer's side (step 7): classify their reply as *accepted, counter-offer,
+rejected* or *silence*, pull out the price they named and the reason for a refusal, and let a person confirm the record.
+
+### 6. Secondary mailing when something is not right
+
+Not built yet. The design: after the answers arrive, the AI marks each one that is **unusable as it stands**:
+a missing MOQ, lead time, validity or currency; a price far above the target; an item that was ignored; or no reply
+after the agreed number of days. For each it drafts a **short, specific follow-up** in the supplier's language that
+asks only for what is missing ("please confirm the lead time for item 2 and whether the price includes delivery"),
+instead of a generic reminder. The follow-up goes into the same **Approvals** queue as every other letter and
+leaves only after a person approves it.
+
+### 7. Invoice requests and everything around the order
+
+After the customer accepts and a person approves the purchase order (budget and below-cost checks passed), the
+system prepares the **invoice request** to the supplier. Today that is a template letter; the AI version drafts it in
+the supplier's language with the order details. The same drafting skill covers the rest of the paperwork: an order
+confirmation, a reminder to a customer who stayed silent, a question about delivery. Reading the customer's answer
+to a quote is described in step 5 above.
+
+Each of these letters is a draft in the approval queue, never a message sent on its own.
+
+### 8. In the future: calculations
+
+The **Calculator** tab is reserved for the project's own landed-cost calculator. The plan for the AI there is
+narrow on purpose: suggest the **customs tariff code** from a product description, read the fields of a supplier's
+proforma or invoice (price, quantity, weight, origin), and explain a finished calculation in words. Duties,
+freight, VAT and exchange rates are then computed by deterministic code from a rate table, so the same inputs always
+give the same result and the result can be checked line by line.
+
+### Ground rules for every AI step
+
+- **Structured answers only.** Each step returns a typed object with a confidence value, not free text that code has to guess at.
+- **Uncertainty goes to a person.** Low confidence, missing data and conflicts become questions and review items.
+- **No numbers from the AI.** Prices, scores, margins, budgets and limits are code; the AI extracts, drafts and explains.
+- **No action without approval.** Sending a letter, quoting a customer and placing an order each need a named human.
+- **Explainable and reproducible.** Prompts are versioned files; calls go through one adapter; tests and CI replay
+  recorded answers and fail loudly on an unrecorded input, so CI never spends money or depends on a live model.
+- **Optional and swappable.** Without a key the app runs on templates and rules. The model is a setting
+  (`AI_MODEL`), and everything that talks to the outside world sits behind an adapter.
+- **You control the cost.** The AI only runs when you press **Parse with AI**; calls are billed to your own key.
 
 ## Install and run
 
