@@ -21,6 +21,25 @@ const NAV = [
   { href: "/settings", ico: "⚙", label: "Settings" },
 ];
 
+function ThemeSwitch() {
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
+  useEffect(() => {
+    const set = document.documentElement.dataset.theme;
+    setTheme(set === "light" || set === "dark" ? set : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  }, []);
+  const flip = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("pp_theme", next); } catch { /* storage blocked */ }
+  };
+  return (
+    <button className="chip theme-switch" onClick={flip} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`} title="Switch theme">
+      {theme === "dark" ? "☾ Dark" : "☀ Light"}
+    </button>
+  );
+}
+
 function Top({ title }: { title: string }) {
   const { person, setPerson } = usePerson();
   const [health, setHealth] = useState<any>(null);
@@ -37,6 +56,7 @@ function Top({ title }: { title: string }) {
       <span className={`chip ${down ? "bad" : "ok"}`}>{down ? "server unreachable" : "server online"}</span>
       {health && <Link className={`chip ${health.ai_provider === "mock" ? "warn" : "ok"}`} href="/settings">AI: {health.ai_provider === "mock" ? "off (mock)" : health.ai_provider}</Link>}
       {health && <span className="chip warn">mail: {health.mail_mode}</span>}
+      <ThemeSwitch />
       <a className="chip" href="http://localhost:8025" target="_blank" rel="noreferrer">Mailpit ↗</a>
       <label className="person">Working as:
         <input placeholder="your name (needed for approvals)" value={person} onChange={(e) => setPerson(e.target.value)} />

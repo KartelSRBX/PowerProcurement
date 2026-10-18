@@ -5,12 +5,18 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: light) {
-  :root {
+  :root:not([data-theme="dark"]) {
     color-scheme: light;
     --bg: #f2f4fa; --panel: #ffffff; --panel2: #eef1f9; --line: #d3d9ea; --text: #14203d; --muted: #5a6990;
     --accent: #0a7fa5; --accent2: #5b3fd6; --ok: #138a5a; --warn: #a96b00; --bad: #c92f2f;
   }
 }
+:root[data-theme="light"] {
+    color-scheme: light;
+    --bg: #f2f4fa; --panel: #ffffff; --panel2: #eef1f9; --line: #d3d9ea; --text: #14203d; --muted: #5a6990;
+    --accent: #0a7fa5; --accent2: #5b3fd6; --ok: #138a5a; --warn: #a96b00; --bad: #c92f2f;
+}
+:root[data-theme="dark"] { color-scheme: dark; }
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.45; background: var(--bg); color: var(--text); font-size: 14px; }
@@ -105,3 +111,5 @@ textarea { width: 100%; min-height: 7rem; }
 }
 
 .ok-note { color: var(--ok); margin: .5rem 0; }
+
+.theme-switch { padding: .2rem .6rem; border-radius: 99px; font-size: .72rem; color: var(--muted); }
