@@ -10,6 +10,12 @@ approves every action that leaves the system. Scoring and pricing are plain dete
 > extraction) have their interfaces and a gold set but are **not measured yet**; they need an API key.
 > See the roadmap below.
 
+![Demo tour: email to request, suppliers, approval queue, quote, analytics](docs/img/demo.gif)
+
+| Mail to request | Quote with markup hint | Pricing analytics |
+| --- | --- | --- |
+| ![Mail](docs/img/mail.png) | ![Quote](docs/img/quote.png) | ![Pricing](docs/img/pricing.png) |
+
 ## Run it
 
 ```bash

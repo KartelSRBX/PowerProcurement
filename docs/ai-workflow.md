@@ -156,3 +156,14 @@ numbers; it jumped around between seeds, so it was replaced by a fitted curve.
 history gave 12.5% for the price-sensitive customer and 31% for the insensitive one (planted optimum is close to both).
 
 **Not done:** real quote history import, the Offer hint was checked by types and the API but not clicked through in the browser because demo requests come from other senders than the synthetic customers.
+
+## Phase 8 start: README visuals (2026-10-18)
+
+**Asked by the human:** "push, keep going".
+
+**Built by the AI:** a scripted browser tour on a freshly seeded database (demo email, request, supplier shortlist,
+letter drafts, approval queue, offer, analytics), a 10-frame demo GIF (about 0.6 MB) and three screenshots in the README.
+
+**Verified by running:** the tour ran end to end on Postgres with the mock AI; frames were looked at before they went in.
+
+**Not done:** deploy to a server, public demo access, a short written walkthrough.
