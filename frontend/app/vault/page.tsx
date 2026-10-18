@@ -55,7 +55,7 @@ export default function Vault() {
 
   return (
     <>
-      <div className="err" style={{ background: "transparent", border: "1px solid var(--warn, #c90)", color: "inherit" }}>
+      <div className="warn-note">
         Names here are not sign-ins. The two-person approval is a process aid, not a lock: run the app on a trusted machine only.
         Logins and passwords are stored encrypted and are shown only after a second person approves, once, within 15 minutes.
       </div>

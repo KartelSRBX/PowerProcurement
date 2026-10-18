@@ -113,3 +113,4 @@ textarea { width: 100%; min-height: 7rem; }
 .ok-note { color: var(--ok); margin: .5rem 0; }
 
 .theme-switch { padding: .2rem .6rem; border-radius: 99px; font-size: .72rem; color: var(--muted); }
+.warn-note { border: 1px solid var(--warn); border-radius: 8px; padding: .6rem .8rem; margin: 0 0 1rem; background: var(--panel); }

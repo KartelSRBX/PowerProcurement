@@ -1,4 +1,4 @@
-# Architecture (phase 0)
+# Architecture
 
 ```
 Browser ──> frontend (Next.js) ──> backend (FastAPI) ──> Postgres
@@ -21,6 +21,17 @@ price sources and risk checks.
 | No mail without a named approver; demo mode sends only to Mailpit | `app/mail/sender.py` |
 | Every change records who made it (`system`, `human`, `client`) | `audit_log` table |
 
+## Modules
+
+| Module | Role |
+| --- | --- |
+| `app/intake` | Email to structured request, gold set, evaluation |
+| `app/suppliers`, `app/crm` | Shortlist, supplier profiles, checks, sorting, price lists |
+| `app/pricing`, `app/scoring`, `app/quotes`, `app/orders` | Target prices, scoring, markup and quotes, purchase orders |
+| `app/rfq`, `app/mail` | Letters, approval queue, the single mail sender, mailbox |
+| `app/analytics` | Message analytics and markup analysis |
+| `app/vault`, `app/runtime` | Encrypted access vault; runtime settings, secret encryption, exchange rates |
+
 ## Not built yet
 
-Intake, suppliers, pricing, RFQ, scoring, quotes, orders, analytics. See the roadmap in the README.
+Roles and sign-in, a detailed landed-cost calculator, live price sources. See the roadmap in the README.
