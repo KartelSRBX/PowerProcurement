@@ -6,6 +6,7 @@ import { usePerson } from "../lib/person";
 
 const blank = { name: "", country: "RS", email: "", categories: "electronics", languages: "sr,en", age_years: 0, deals_count: 0, payment_terms_days: 0, warranty_months: 12, vat_verified: false, framework_contract: false };
 const today = new Date().toISOString().slice(0, 10);
+const CSV_TEMPLATE = "keyword,description,unit_price,currency,moq,lead_time_days,valid_until\nlm358,LM358 dual op-amp,0.21,EUR,100,5,2027-12-31\n";
 const blankLine = { keyword: "", description: "", unit_price: 0, currency: "EUR", moq: 1, lead_time_days: 7, valid_until: `${new Date().getFullYear() + 1}-12-31` };
 
 export default function Suppliers() {
@@ -20,10 +21,12 @@ export default function Suppliers() {
   const [form, setForm] = useState<any>(blank);
   const [line, setLine] = useState<any>(blankLine);
   const [err, setErr] = useState("");
+  const [csv, setCsv] = useState("");
+  const [prev, setPrev] = useState<any>(null);
 
   const load = useCallback(() => api<any[]>("/suppliers/overview").then(setRows).catch((e) => setErr(e.message)), []);
   useEffect(() => { load(); }, [load]);
-  const open = useCallback((id: number) => { setSel(id); setAdding(false); api(`/suppliers/${id}`).then(setD).catch((e) => setErr(e.message)); }, []);
+  const open = useCallback((id: number) => { setCsv(""); setPrev(null); setSel(id); setAdding(false); api(`/suppliers/${id}`).then(setD).catch((e) => setErr(e.message)); }, []);
 
   async function run(fn: () => Promise<unknown>, reopen?: number) {
     setErr("");
@@ -110,6 +113,27 @@ export default function Suppliers() {
                   <tr key={c.id}><td>{c.description}<div className="muted">{c.keyword} · {c.source}</div></td><td className="num">{c.unit_price} {c.currency}</td><td className="num">{eur(c.price_eur)}</td><td className="num">{c.moq}</td><td className="num">{c.lead_time_days}</td>
                     <td>{c.valid_until} {c.expired && <span className="tag bad">expired</span>}</td></tr>))}</tbody>
               </table>
+              <div className="letter"><b>Import a price list (CSV)</b>
+                <p className="muted">Columns: keyword, description, unit_price, currency (EUR/RSD/USD), moq (optional), lead_time_days, valid_until (YYYY-MM-DD). Comma, semicolon or tab separated; decimal comma is fine. A keyword the supplier already has is updated. If any row is invalid nothing is imported.</p>
+                <div className="row">
+                  <input type="file" accept=".csv,.txt,text/csv" onChange={async (e) => { const f = e.target.files?.[0]; if (f) { setCsv(await f.text()); setPrev(null); } }} />
+                  <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(CSV_TEMPLATE)}`} download="price-list-template.csv">download template</a>
+                </div>
+                <textarea placeholder="…or paste CSV here" value={csv} onChange={(e) => { setCsv(e.target.value); setPrev(null); }} />
+                <div className="row">
+                  <button disabled={!csv.trim() || !person.trim()} onClick={() => run(async () => setPrev(await api(`/suppliers/${sel}/catalog/import`, { method: "POST", json: { csv, changed_by: person, dry_run: true } })))}>Validate</button>
+                  <button className="primary" disabled={!prev || prev.invalid > 0 || prev.applied} onClick={() => run(async () => { await api(`/suppliers/${sel}/catalog/import`, { method: "POST", json: { csv, changed_by: person, dry_run: false } }); setCsv(""); setPrev(null); }, sel!)}>{prev && prev.invalid > 0 ? "Fix errors first" : `Import ${prev ? prev.to_add + prev.to_update : 0} rows`}</button>
+                  {prev && <span className={prev.invalid ? "err" : "ok-text"}>{prev.total} rows: {prev.to_add} new, {prev.to_update} updates, {prev.invalid} invalid</span>}
+                </div>
+                {prev && (
+                  <table>
+                    <thead><tr><th>Line</th><th>Key</th><th>Price</th><th>MOQ</th><th>Lead time</th><th>Valid until</th><th>Result</th></tr></thead>
+                    <tbody>{prev.rows.map((r: any) => (
+                      <tr key={r.line}><td className="num">{r.line}</td><td>{r.data.keyword}</td><td className="num">{r.data.unit_price} {r.data.currency}</td><td className="num">{r.data.moq}</td><td className="num">{r.data.lead_time_days}</td><td>{r.data.valid_until}</td>
+                        <td>{r.ok ? <span className={`tag ${r.action === "add" ? "ok" : "acc"}`}>{r.action}</span> : <span className="err">{r.errors.join("; ")}</span>}</td></tr>))}</tbody>
+                  </table>
+                )}
+              </div>
               <div className="letter"><b>Add a price line</b>
                 <div className="row"><input placeholder="key (e.g. lm358)" value={line.keyword} onChange={(e) => setLine({ ...line, keyword: e.target.value })} />
                   <input placeholder="description" style={{ flex: 1 }} value={line.description} onChange={(e) => setLine({ ...line, description: e.target.value })} /></div>

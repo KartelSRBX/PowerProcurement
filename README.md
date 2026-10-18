@@ -28,7 +28,7 @@ No `.env` is needed for the demo. Copy `.env.example` to `.env` to change settin
 
 A small CRM with tabs (English UI): **Requests** (requests and the step-by-step pipeline), **Mail**
 (inbox and sent mail, create a request from an email), **Message analytics** (volumes, funnel, senders),
-**Suppliers** (supplier storage and price lists, editable), **Article matching** (catalog search and
+**Suppliers** (supplier storage and price lists, editable, with CSV price-list import: validate, preview, then import all or nothing), **Article matching** (catalog search and
 matching of request items) and **Offer** (offer builder with a live margin preview).
 Type your name in the top bar first: every approval and edit is recorded under it.
 

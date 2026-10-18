@@ -74,6 +74,12 @@ class CatalogLineIn(BaseModel):
     changed_by: str
 
 
+class CatalogImportIn(BaseModel):
+    csv: str
+    changed_by: str
+    dry_run: bool = True
+
+
 @router.get("/suppliers/overview")
 def suppliers_overview(session: Session = Depends(get_session)):
     return svc.list_suppliers(session)
@@ -105,6 +111,11 @@ def add_catalog_line(supplier_id: int, body: CatalogLineIn, session: Session = D
         svc.add_catalog_line, session, supplier_id, body.model_dump(exclude={"changed_by"}), body.changed_by
     )
     return {"id": row.id}
+
+
+@router.post("/suppliers/{supplier_id}/catalog/import")
+def import_catalog(supplier_id: int, body: CatalogImportIn, session: Session = Depends(get_session)):
+    return guarded(svc.import_price_list, session, supplier_id, body.csv, body.changed_by, body.dry_run)
 
 
 # ---- articles and quote preview ---------------------------------------------------------------

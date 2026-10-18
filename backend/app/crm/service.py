@@ -530,3 +530,173 @@ def public_config(settings: Settings) -> dict:
         "ai_provider": settings.ai_provider,
         "mail_real_send_enabled": settings.mail_real_send_enabled,
     }
+
+
+# ---- Price-list import ------------------------------------------------------------------------
+
+MAX_IMPORT_ROWS = 5000
+MAX_IMPORT_BYTES = 1_000_000
+CSV_COLUMNS = ("keyword", "description", "unit_price", "currency", "moq", "lead_time_days", "valid_until")
+_ALIASES = {
+    "keyword": ("keyword", "key", "article", "part_number", "part", "sku"),
+    "description": ("description", "name", "title"),
+    "unit_price": ("unit_price", "price", "unit price"),
+    "currency": ("currency", "cur"),
+    "moq": ("moq", "min_order", "min_qty"),
+    "lead_time_days": ("lead_time_days", "lead_time", "leadtime", "lead time"),
+    "valid_until": ("valid_until", "valid_to", "valid until", "expires"),
+}
+
+
+def _number(text: str) -> float:
+    return float(text.strip().replace(" ", "").replace(",", "."))
+
+
+def _cell_reader(raw: list[str], index: dict[str, int]):
+    def cell(field: str) -> str:
+        return raw[index[field]].strip() if field in index and index[field] < len(raw) else ""
+
+    return cell
+
+
+def parse_price_csv(text: str, today: date | None = None) -> list[dict]:
+    """Validate a price-list CSV. Returns one dict per data row: line, ok, errors, data.
+    Nothing is written. Accepts comma, semicolon or tab separators and a decimal comma."""
+    import csv
+    import io
+
+    today = today or date.today()
+    if len(text.encode("utf-8")) > MAX_IMPORT_BYTES:
+        raise ValueError("file is larger than 1 MB")
+    text = text.lstrip("﻿")
+    sample = text[:2000]
+    delimiter = max(",;\t", key=sample.count) if any(d in sample for d in ",;\t") else ","
+    reader = csv.reader(io.StringIO(text), delimiter=delimiter)
+    try:
+        header = [h.strip().lower() for h in next(reader)]
+    except StopIteration:
+        raise ValueError("the file is empty") from None
+    index: dict[str, int] = {}
+    for field, names in _ALIASES.items():
+        for name in names:
+            if name in header:
+                index[field] = header.index(name)
+                break
+    missing = [
+        f
+        for f in ("keyword", "description", "unit_price", "currency", "lead_time_days", "valid_until")
+        if f not in index
+    ]
+    if missing:
+        raise ValueError(f"missing columns: {', '.join(missing)} (found: {', '.join(header)})")
+    rows: list[dict] = []
+    for line, raw in enumerate(reader, start=2):
+        if not any(c.strip() for c in raw):
+            continue
+        if len(rows) >= MAX_IMPORT_ROWS:
+            raise ValueError(f"more than {MAX_IMPORT_ROWS} rows")
+        cell = _cell_reader(raw, index)
+        errors: list[str] = []
+        data: dict = {"keyword": cell("keyword").lower(), "description": cell("description")}
+        if not data["keyword"]:
+            errors.append("keyword is empty")
+        if not data["description"]:
+            errors.append("description is empty")
+        try:
+            data["unit_price"] = _number(cell("unit_price"))
+            if data["unit_price"] <= 0:
+                errors.append("price must be positive")
+        except ValueError:
+            errors.append(f"price is not a number: {cell('unit_price')!r}")
+        data["currency"] = cell("currency").upper()
+        if data["currency"] not in ("RSD", "EUR", "USD"):
+            errors.append(f"currency must be RSD, EUR or USD, got {cell('currency')!r}")
+        try:
+            data["moq"] = int(_number(cell("moq"))) if cell("moq") else 1
+            if data["moq"] < 1:
+                errors.append("MOQ must be at least 1")
+        except ValueError:
+            errors.append(f"MOQ is not a number: {cell('moq')!r}")
+        try:
+            data["lead_time_days"] = int(_number(cell("lead_time_days")))
+            if data["lead_time_days"] < 0:
+                errors.append("lead time cannot be negative")
+        except ValueError:
+            errors.append(f"lead time is not a number: {cell('lead_time_days')!r}")
+        try:
+            data["valid_until"] = date.fromisoformat(cell("valid_until"))
+            if data["valid_until"] < today:
+                errors.append(f"already expired ({data['valid_until']})")
+        except ValueError:
+            errors.append(f"valid_until must be YYYY-MM-DD, got {cell('valid_until')!r}")
+        rows.append({"line": line, "ok": not errors, "errors": errors, "data": data})
+    if not rows:
+        raise ValueError("no data rows found")
+    seen: dict[str, int] = {}
+    for r in rows:
+        key = r["data"]["keyword"]
+        if key in seen and r["ok"]:
+            r["ok"] = False
+            r["errors"].append(f"duplicate keyword, first seen on line {seen[key]}")
+        elif key:
+            seen.setdefault(key, r["line"])
+    return rows
+
+
+def import_price_list(
+    session: Session, supplier_id: int, text: str, changed_by: str, dry_run: bool = True
+) -> dict:
+    """Validate a CSV and, unless dry_run, apply it atomically: if any row is invalid nothing is
+    written. A row whose keyword the supplier already has updates that line (price refresh)."""
+    by = _need_person(changed_by)
+    if session.get(Supplier, supplier_id) is None:
+        raise LookupError("supplier not found")
+    rows = parse_price_csv(text)
+    errors = [r for r in rows if not r["ok"]]
+    existing = {
+        c.keyword: c
+        for c in session.scalars(select(CatalogPrice).where(CatalogPrice.supplier_id == supplier_id))
+    }
+    for r in rows:
+        r["action"] = "update" if r["data"]["keyword"] in existing else "add"
+        r["data"] = {k: (v.isoformat() if isinstance(v, date) else v) for k, v in r["data"].items()}
+    result = {
+        "rows": rows,
+        "total": len(rows),
+        "invalid": len(errors),
+        "to_add": sum(1 for r in rows if r["ok"] and r["action"] == "add"),
+        "to_update": sum(1 for r in rows if r["ok"] and r["action"] == "update"),
+        "applied": False,
+    }
+    if dry_run:
+        return result
+    if errors:
+        raise PipelineError(f"{len(errors)} row(s) are invalid; fix the file, nothing was imported")
+    for r in rows:
+        d = r["data"]
+        valid_until = date.fromisoformat(d["valid_until"])
+        line = existing.get(d["keyword"])
+        if line is None:
+            session.add(
+                CatalogPrice(
+                    supplier_id=supplier_id,
+                    source="csv-import",
+                    valid_until=valid_until,
+                    **{k: v for k, v in d.items() if k != "valid_until"},
+                )
+            )
+        else:
+            for k, v in d.items():
+                setattr(line, k, valid_until if k == "valid_until" else v)
+            line.source = "csv-import"
+    _audit(
+        session,
+        by,
+        "catalog.csv_imported",
+        supplier_id=supplier_id,
+        added=result["to_add"],
+        updated=result["to_update"],
+    )
+    session.commit()
+    result["applied"] = True
+    return result

@@ -103,3 +103,21 @@ matching → supplier letters → offers → quote draft → approved quote → 
 
 **Not done:** login, real inbound IMAP, anything that needs a live model.
 
+## Phase 2 start: price-list import from CSV (2026-10-18)
+
+**Asked by the human:** "move on along the roadmap". The AI proposed starting phase 2 with the main price channel from
+the plan (supplier price lists), because it needs no API key and no source decisions.
+
+**Built by the AI:** `POST /suppliers/{id}/catalog/import` (validate and preview, then apply), CSV parser with header aliases,
+comma/semicolon/tab separators and decimal comma, per-row errors, duplicate keys in one file refused, expired
+dates refused, a keyword the supplier already has is updated, apply is all-or-nothing and audited,
+import panel in the Suppliers tab, 3 new tests.
+
+**Decided by the AI, open to change:** an expired `valid_until` is an error (the pipeline ignores expired prices anyway);
+file limit 1 MB and 5000 rows; rows are keyed by `keyword`, matching how article matching works today.
+
+**Verified by running:** 56 tests pass against Postgres; in Chromium an invalid file showed per-row errors with import disabled, a corrected
+file imported, and the new article was found in Article matching.
+
+**Not done:** XLSX files, live distributor APIs, FX rate source, price history (an update overwrites the old price).
+

@@ -125,3 +125,82 @@ def test_quote_preview_matches_the_real_quote(client):  # noqa: F811
     ).json()
     assert below["below_cost"] is True
     assert c.get("/config").json()["default_markup"] == 0.15
+
+
+GOOD_CSV = (
+    "keyword,description,unit_price,currency,moq,lead_time_days,valid_until\n"
+    "lm358,LM358 dual op-amp,0.21,EUR,100,5,2099-12-31\n"
+    "NE555, NE555 timer ,0.18,eur,100,4,2099-12-31\n"
+)
+
+
+def _new_supplier(c):
+    r = c.post(
+        "/suppliers",
+        json={"name": "CSV Parts", "country": "RS", "email": "a@b.example", "changed_by": "kartel"},
+    )
+    return r.json()["id"]
+
+
+def test_csv_import_preview_writes_nothing_and_apply_is_audited(client):  # noqa: F811
+    c = client
+    sid = _new_supplier(c)
+    url = f"/suppliers/{sid}/catalog/import"
+    prev = c.post(url, json={"csv": GOOD_CSV, "changed_by": "kartel", "dry_run": True}).json()
+    assert prev["total"] == 2 and prev["invalid"] == 0 and prev["to_add"] == 2 and not prev["applied"]
+    assert c.get(f"/suppliers/{sid}").json()["catalog"] == []
+    assert c.post(url, json={"csv": GOOD_CSV, "changed_by": " ", "dry_run": False}).status_code == 409
+    done = c.post(url, json={"csv": GOOD_CSV, "changed_by": "kartel", "dry_run": False}).json()
+    assert done["applied"] is True
+    cat = {r["keyword"]: r for r in c.get(f"/suppliers/{sid}").json()["catalog"]}
+    assert set(cat) == {"lm358", "ne555"} and cat["ne555"]["currency"] == "EUR"
+    assert cat["lm358"]["source"] == "csv-import"
+    # a second file with the same keyword refreshes the price instead of duplicating the line
+    again = GOOD_CSV.replace("0.21", "0.25")
+    r = c.post(url, json={"csv": again, "changed_by": "kartel", "dry_run": False}).json()
+    assert r["to_update"] == 2 and r["to_add"] == 0
+    cat = c.get(f"/suppliers/{sid}").json()["catalog"]
+    assert len(cat) == 2 and next(x for x in cat if x["keyword"] == "lm358")["unit_price"] == 0.25
+
+
+def test_csv_import_is_all_or_nothing_and_explains_each_error(client):  # noqa: F811
+    c = client
+    sid = _new_supplier(c)
+    url = f"/suppliers/{sid}/catalog/import"
+    bad = (
+        "keyword;description;price;currency;lead_time;valid_until\n"
+        "ok1;Fine part;1,5;EUR;3;2099-01-01\n"
+        "ok1;Same key again;1,5;EUR;3;2099-01-01\n"
+        ";No key;2;EUR;3;2099-01-01\n"
+        "x3;Bad price;abc;EUR;3;2099-01-01\n"
+        "x4;Bad cur;1;GBP;3;2099-01-01\n"
+        "x5;Old;1;EUR;3;2001-01-01\n"
+    )
+    prev = c.post(url, json={"csv": bad, "changed_by": "kartel", "dry_run": True}).json()
+    assert prev["total"] == 6 and prev["invalid"] == 5 and prev["rows"][0]["data"]["unit_price"] == 1.5
+    problems = " ".join(e for r in prev["rows"] for e in r["errors"])
+    for word in (
+        "duplicate keyword",
+        "keyword is empty",
+        "not a number",
+        "currency must be",
+        "already expired",
+    ):
+        assert word in problems
+    assert c.post(url, json={"csv": bad, "changed_by": "kartel", "dry_run": False}).status_code == 409
+    assert c.get(f"/suppliers/{sid}").json()["catalog"] == []
+
+
+def test_csv_import_rejects_unusable_files(client):  # noqa: F811
+    c = client
+    sid = _new_supplier(c)
+    url = f"/suppliers/{sid}/catalog/import"
+    for text in (
+        "",
+        "keyword,description\nx,y\n",
+        "keyword,description,unit_price,currency,lead_time_days,valid_until\n",
+    ):
+        assert c.post(url, json={"csv": text, "changed_by": "kartel"}).status_code == 422
+    assert (
+        c.post("/suppliers/9999/catalog/import", json={"csv": GOOD_CSV, "changed_by": "k"}).status_code == 404
+    )
