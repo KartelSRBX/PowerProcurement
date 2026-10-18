@@ -225,3 +225,20 @@ analytics summaries) and with the provider off every AI control was disabled wit
 
 **Not verified:** any call to the live API. The stand-in is not the model; answer quality, prompt wording in Serbian, and cost per
 step are unknown until someone runs it with a key.
+
+## Supplier files, order letters, new demo GIF (2026-10-18)
+
+**Asked by the human:** read PDF and Excel from suppliers, add order confirmation and delivery question letters, rebuild the demo GIF.
+
+**Built by the AI:** the file reader and upload endpoint (`pypdf`, `openpyxl` added for this), two prompts and templates, two letter
+kinds with migration 0009, the UI (file chooser with the text shown, two buttons under each purchase order, new queue filters), 12
+tests, an 11-frame GIF recorded in the dark theme with captions.
+
+**Decided by the AI, open to change:** [ADR 0011](decisions/0011-supplier-files-and-order-letters.md): no OCR, upload as base64 JSON, one
+confirmation per order.
+
+**Verified by running:** 111 tests pass on Postgres; migration 0009 up, down and up; in Chromium an `.xlsx` was chosen, read, shown as text
+and saved as an offer, both order letters appeared in the approval queue and the confirmation was approved.
+
+**Not verified:** any call to the live API; real supplier PDFs and Excel sheets (only generated ones); the GIF and screenshots use a scripted
+stand-in model.

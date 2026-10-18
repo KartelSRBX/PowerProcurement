@@ -7,7 +7,12 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.assist.drafts import followup_text, reminder_text
+from app.assist.drafts import (
+    delivery_question_text,
+    followup_text,
+    order_confirmation_text,
+    reminder_text,
+)
 from app.config import Settings
 from app.mail.sender import MailSender, OutboundMail
 from app.models import (
@@ -16,6 +21,7 @@ from app.models import (
     Letter,
     Offer,
     Outcome,
+    PurchaseOrder,
     Rfq,
     Supplier,
     SupplierReply,
@@ -169,6 +175,87 @@ def draft_reminder(session: Session, settings: Settings, quote_id: int) -> Lette
         subject=subject,
         body=body,
         reason="the customer has not answered the quote",
+        drafted_by=by,
+    )
+    session.add(letter)
+    session.commit()
+    return letter
+
+
+def _order(session: Session, po_id: int) -> PurchaseOrder:
+    po = session.get(PurchaseOrder, po_id)
+    if po is None:
+        raise LookupError("purchase order not found")
+    return po
+
+
+def draft_order_confirmation(session: Session, settings: Settings, po_id: int) -> Letter:
+    """Confirmation to the customer once the order is placed: items, the quoted price, the lead time."""
+    po = _order(session, po_id)
+    if session.scalar(
+        select(Letter).where(
+            Letter.order_id == po_id, Letter.kind == "confirmation", Letter.status.in_(["draft", "sent"])
+        )
+    ):
+        raise PipelineError("an order confirmation for this order is already written")
+    quote = session.scalars(
+        select(CustomerQuote)
+        .where(CustomerQuote.request_id == po.request_id, CustomerQuote.status == "sent")
+        .order_by(CustomerQuote.id.desc())
+    ).first()
+    if quote is None:
+        raise PipelineError("no quote was sent to the customer for this request")
+    offer = session.get(Offer, po.offer_id)
+    req = get_request(session, po.request_id)
+    lang = _customer_language(req)
+    subject, body, by = order_confirmation_text(
+        session,
+        settings,
+        lang,
+        _lines(items_of(session, po.request_id)),
+        quote.price,
+        quote.currency,
+        offer.lead_time_days,
+        _ref(po.request_id),
+    )
+    letter = Letter(
+        request_id=po.request_id,
+        order_id=po_id,
+        kind="confirmation",
+        to_email=req.sender,
+        language=lang,
+        subject=subject,
+        body=body,
+        reason=f"order #{po_id} placed after the customer accepted the quote",
+        drafted_by=by,
+    )
+    session.add(letter)
+    session.commit()
+    return letter
+
+
+def draft_delivery_question(session: Session, settings: Settings, po_id: int) -> Letter:
+    """A question to the supplier about dispatch date, tracking and shipping documents."""
+    po = _order(session, po_id)
+    if session.scalar(
+        select(Letter).where(Letter.order_id == po_id, Letter.kind == "delivery", Letter.status == "draft")
+    ):
+        raise PipelineError("a delivery question for this order is already waiting for approval")
+    sup = session.get(Supplier, po.supplier_id)
+    lang = pick_language(sup.languages)
+    subject, body, by = delivery_question_text(
+        session, settings, lang, sup.name, _lines(items_of(session, po.request_id)), _ref(po.request_id)
+    )
+    letter = Letter(
+        request_id=po.request_id,
+        order_id=po_id,
+        kind="delivery",
+        supplier_id=sup.id,
+        to_email=sup.email,
+        language=lang,
+        subject=subject,
+        body=body,
+        reason=f"delivery of order #{po_id}",
         drafted_by=by,
     )
     session.add(letter)

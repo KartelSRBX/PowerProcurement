@@ -14,7 +14,9 @@ that leaves the system.** Scoring, prices and margins are plain deterministic co
 > drafting, extraction) have their interfaces, a gold set and an in-app key field, but their accuracy is
 > **not published until a live run has been made** (see [Parsing accuracy](#parsing-accuracy)).
 
-![Demo tour: email to request, suppliers, approval queue, quote, analytics](docs/img/demo.gif)
+![Demo tour: email, request, suppliers, letters, approval queue, a supplier's Excel answer, follow-ups, scoring, quote, order letters, analytics](docs/img/demo.gif)
+
+*The tour was recorded with a scripted stand-in for the AI (no live API call), so it shows the flow and the controls, not real model quality.*
 
 ## Contents
 
@@ -71,9 +73,9 @@ been run against the live API, so read the first real answers critically.
 | 2 | Understanding the request | Turns free text into items, quantities, budget, deadline, country; asks questions where it is unsure | A person confirms the request before anything is sent | Built (accuracy not measured yet) |
 | 3 | Defining the supplier pool | Suggests suppliers the rules did not pick (by meaning, not keywords) and says why each candidate fits | Filters (category, sanctions, checks) are code and still apply; suggestions arrive **unticked**; a person ticks | Built |
 | 4 | Preparing the supplier mailing | Drafts each letter in the supplier's language; also drafts the customer quote text | Code checks the draft (every item and quantity, the exact price) and falls back to the template; a person approves | Built |
-| 5 | Collecting feedback | Reads a pasted supplier answer into prices, lead time, MOQ, terms and gaps; explains the score table in words | **Code adds up the total**, warns about gaps; a person checks and saves the offer; scoring is code | Built (paste text; PDF and Excel attachments Planned) |
+| 5 | Collecting feedback | Reads a supplier answer (pasted, or a PDF / Excel / CSV / text file) into prices, lead time, MOQ, terms and gaps; explains the score table in words | **Code adds up the total**, warns about gaps; a person checks and saves the offer; scoring is code | Built (scanned PDFs without a text layer are not read) |
 | 6 | Secondary mailing when something is wrong | Writes a precise follow-up for a silent supplier or an answer with gaps | Code decides **who** needs one; the letter waits in **Approvals** | Built |
-| 7 | Invoice requests and the rest of the paperwork | Drafts the invoice request, a customer reminder, and reads the customer's reply into a proposed outcome | A person edits and approves each letter and records the outcome | Built |
+| 7 | Invoice requests and the rest of the paperwork | Drafts the invoice request, the order confirmation to the customer, a delivery question to the supplier and a customer reminder; reads the customer's reply into a proposed outcome | A person edits and approves each letter and records the outcome | Built |
 | 8 | Calculations (future) | Suggests customs codes from descriptions, reads supplier proforma and invoice fields, explains a calculation | The calculation itself is deterministic code | Planned (the **Calculator** tab is reserved) |
 
 ### 1. Analytics of received requests
@@ -149,7 +151,7 @@ one, and only then does it go out (to Mailpit in the demo).
 ### 5. Collecting feedback
 
 Suppliers answer in free text, in different currencies and layouts. In **Step 5 · Offers and scoring → Enter a supplier's answer** you pick the supplier,
-paste their reply and press **Read with AI**. The model fills a typed form: unit price and currency per item, minimum order,
+paste their reply, or choose the file they sent (PDF, Excel `.xlsx`, CSV or text), and press **Read with AI**. The model fills a typed form: unit price and currency per item, minimum order,
 lead time, payment terms, warranty, validity, anything unusual (substitutes, partial coverage), and what is **missing**.
 Then **code** takes over: it multiplies price × quantity per item, adds the total, checks that every item has a price and
 that the minimum order fits, and shows warnings (for example when prices come in two currencies the total is left empty
@@ -162,7 +164,16 @@ The model is shown the numbers code computed and can describe but not change the
 your weight sliders stay code (see [How the numbers are computed](#how-the-numbers-are-computed)). In the demo, **Simulate
 supplier answers** still stands in for real replies so the rest of the flow can be shown without any real supplier.
 
-The same reading skill is used on the customer's side (step 7). PDF and Excel attachments are not read yet: paste the text.
+**Files.** The app first turns the file into plain text and shows it to you under *Text read from the file*, so you can see
+exactly what the model was given. PDF: the text layer of the first 30 pages. Excel: up to 5 sheets, 300 rows and 30 columns each,
+read as values (a formula that was never calculated is empty). CSV and text in UTF-8 or Windows-1250. Limits: 5 MB, about
+19,000 characters of text. Not read: scans and photos (no text layer, there is no OCR), password-protected files, old `.xls`
+(save as `.xlsx`). In each case the app says why and you paste the text or type the numbers instead. With a key set, the file's
+text is sent to the Claude API like any pasted answer.
+
+![A supplier's Excel file read into the offer form](docs/img/ui/ai-file-upload.png)
+
+The same reading skill is used on the customer's side (step 7).
 
 ### 6. Secondary mailing when something is not right
 
@@ -184,6 +195,13 @@ as every other letter and leave only after a person approves them.
 - **Invoice request.** After the customer accepts and a person approves the purchase order (budget and below-cost checks
   passed), **Prepare invoice request** shows the letter to the supplier (the order's items and total, drafted by the model
   or the template). You edit it and press **Approve and send to supplier**; it is not sent before that.
+- **Order confirmation.** After the purchase order, **Draft order confirmation to the customer** writes the confirmation
+  with the items, the exact price from the quote that was sent and the supplier's lead time; code rejects a draft that changes
+  the price. It waits in Approvals. One per order.
+- **Delivery question.** **Ask the supplier about delivery** asks for the dispatch date, carrier, tracking number and shipping
+  documents. It waits in Approvals; you can ask again later once the first one is sent.
+
+![Order letters waiting for approval](docs/img/ui/ai-order-letters.png)
 
 ### 8. In the future: calculations
 
@@ -207,7 +225,7 @@ give the same result and the result can be checked line by line.
 - **Optional and swappable.** Without a key the app runs on templates and rules. The model is a setting
   (`AI_MODEL`), and everything that talks to the outside world sits behind an adapter.
 - **You control the cost.** With a key set, the model is called only by these actions: Find suppliers and prices, Draft
-  letters, Quote this (quote text), Read with AI, Explain, Draft follow-ups, Draft a reminder, Prepare invoice request, Parse
+  letters, Quote this (quote text), Read with AI, Explain, Draft follow-ups, Draft a reminder, Prepare invoice request, Draft order confirmation, Ask the supplier about delivery, a supplier file read, Parse
   with AI and Parse all with AI. Calls are billed to your own key; with the provider on `mock` none of them calls anything.
 
 ## Install and run
@@ -289,10 +307,10 @@ quantity are accepted but block supplier lookup until you fill the quantity in.
 | Items | Review what was extracted | The confirmed item list |
 | **Steps 2-3 · Suppliers and target prices** | **Find suppliers and prices**; untick any supplier you do not want to ask | A shortlist with a reason per supplier ("covers 2/2 items; 40 past deals; RS"), at most five preselected. With a key, extra suppliers suggested by the AI appear with an **AI** tag, unticked |
 | **Step 4 · Letters** | **Draft letters**, edit the text, **Approve and send to Mailpit** or **Reject** | One letter per supplier in that supplier's language (Serbian, English), status `draft`, `sent` or `rejected`, with a tag showing who wrote it (**AI · model**, **template**) |
-| **Step 5 · Offers and scoring** | **Enter a supplier's answer**: pick the supplier, paste their reply, **Read with AI**, check the form, **Save as offer** (without a key you type the numbers). Or **Simulate supplier answers (demo only)**. Then move the five weight sliders and **Score**; **Explain in words** | An offer per supplier; a ranked table with every criterion, landed cost in EUR and lead time; **Quote this** on a row |
+| **Step 5 · Offers and scoring** | **Enter a supplier's answer**: pick the supplier, paste their reply or choose a PDF / Excel / CSV file, **Read with AI**, check the form, **Save as offer** (without a key you type the numbers). Or **Simulate supplier answers (demo only)**. Then move the five weight sliders and **Score**; **Explain in words** | An offer per supplier; a ranked table with every criterion, landed cost in EUR and lead time; **Quote this** on a row |
 | **Follow-ups to suppliers** | Set how many silent days count (optional), **Who needs a follow-up?**, **Draft follow-ups** | Letters for silent suppliers and incomplete answers; they wait in **Approvals** |
 | **Steps 6-7 · Quote and outcome** | Set *Markup %* and the currency, approve the quote, then record the customer's answer: with the buttons, or paste their reply and **Read with AI**, then **Record this answer**. **Draft a reminder** if they stay silent | Quote with price, markup and cost tags; outcome `accepted`, `rejected`, `silence` or `counter-offer` (with the price they named) |
-| **Step 8 · Order** | **Approve purchase order**, then **Prepare invoice request**, edit the text, **Approve and send to supplier** | PO with its budget checks; the invoice request letter |
+| **Step 8 · Order** | **Approve purchase order**, then **Prepare invoice request**, edit the text, **Approve and send to supplier**; **Draft order confirmation to the customer**; **Ask the supplier about delivery** | PO with its budget checks; the invoice request; two more letters in Approvals |
 | Price journal | Read only | Every price event: supplier cost, quote draft, quote sent, with who did it |
 
 ![Suppliers and target prices](docs/img/ui/step-suppliers.png)
@@ -308,7 +326,7 @@ quantity are accepted but block supplier lookup until you fill the quantity in.
 **The AI steps on this page.** The screenshots below were taken with a scripted stand-in model (note the `demo-stub` tag),
 not the live API, so they show the layout and the controls, not real model quality.
 
-A supplier's answer pasted and read: the form is editable, the missing item is named, nothing is an offer until you save it.
+A supplier's answer pasted (or a file chosen) and read: the form is editable, the missing item is named, nothing is an offer until you save it.
 
 ![Supplier answer read, with a gap](docs/img/ui/ai-supplier-answer.png)
 
@@ -353,9 +371,9 @@ who approved it.
 
 ### Approvals
 
-One queue for every letter waiting for a person: supplier letters (RFQs), customer quotes, supplier follow-ups and customer
-reminders. **Waiting for approval** and **Decided** tabs, filter by *All / supplier RFQ / customer quote / supplier follow-up /
-customer reminder*. A tag shows when the first version was written by the AI.
+One queue for every letter waiting for a person: supplier letters (RFQs), customer quotes, supplier follow-ups, customer
+reminders, order confirmations and delivery questions. **Waiting for approval** and **Decided** tabs, filter by *All / supplier RFQ / customer quote / supplier follow-up /
+customer reminder / order confirmation / delivery question*. A tag shows when the first version was written by the AI.
 
 ![Approvals with follow-up letters](docs/img/ui/ai-approvals-queue.png)
 
@@ -649,7 +667,7 @@ Browser ──> frontend (Next.js) ──/api──> backend (FastAPI) ──> P
 | `backend/app/vault/`, `runtime/` | Encrypted access vault; runtime settings, secret encryption, exchange rates |
 | `backend/app/ai/` | The AI adapter, versioned prompts, the one `run_task` helper every assisted step calls |
 | `backend/app/assist/` | The assisted steps: supplier pool, letter drafts and their checks, supplier replies, follow-ups, explanations |
-| `backend/migrations/` | Alembic migrations (0001 to 0008) |
+| `backend/migrations/` | Alembic migrations (0001 to 0009) |
 | `docs/` | [Architecture](docs/architecture.md), [how the AI was directed](docs/ai-workflow.md), [decision records](docs/decisions/) |
 
 Everything that talks to the outside world sits behind an adapter so it can be swapped or faked without touching
@@ -678,7 +696,7 @@ uv run alembic upgrade head && uv run pytest        # integration tests need DAT
 cd ../frontend && npm ci && npm run lint && npm run build
 ```
 
-The backend suite has 99 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, and the AI steps with a scripted model).
+The backend suite has 111 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, and the AI steps, file reading and order letters with a scripted model).
 What a run looks like (real output, Postgres 16; the AI steps are tested with a scripted model, not the live API):
 
 ![AI-assisted steps: 16 tests](docs/img/tests/ai-steps-tests.png)

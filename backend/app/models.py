@@ -423,14 +423,16 @@ class SupplierReply(Base):
 
 
 class Letter(Base):
-    """Any other outgoing letter (follow-up to a supplier, reminder to a customer). Same rule as
+    """Any other outgoing letter (follow-up or delivery question to a supplier, reminder or order
+    confirmation to a customer). Same rule as
     every letter: nothing is sent until a named person approves it."""
 
     __tablename__ = "letters"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     request_id: Mapped[int] = mapped_column(ForeignKey("customer_requests.id"), nullable=False)
-    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # followup | reminder
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # followup|reminder|confirmation|delivery
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("purchase_orders.id"))
     supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"))
     to_email: Mapped[str] = mapped_column(String(320), nullable=False)
     language: Mapped[str] = mapped_column(String(2), nullable=False)

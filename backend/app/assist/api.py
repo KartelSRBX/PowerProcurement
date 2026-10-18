@@ -1,14 +1,18 @@
+import base64
+import binascii
+
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.assist import followups, insight, replies
+from app.assist import files, followups, insight, replies
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.mail.sender import MailSender
 from app.models import Letter, Supplier
 from app.pipeline.api import WeightsIn, _dump, get_sender, guarded
+from app.pipeline.service import PipelineError
 from app.scoring.scoring import Weights
 
 router = APIRouter(tags=["assist"])
@@ -17,6 +21,13 @@ router = APIRouter(tags=["assist"])
 class ReplyIn(BaseModel):
     supplier_id: int
     text: str
+    entered_by: str
+
+
+class ReplyFileIn(BaseModel):
+    supplier_id: int
+    filename: str
+    content_base64: str
     entered_by: str
 
 
@@ -68,6 +79,24 @@ def add_reply(
     return guarded(
         replies.extract_reply, session, settings, request_id, body.supplier_id, body.text, body.entered_by
     )
+
+
+@router.post("/requests/{request_id}/replies/file")
+def add_reply_file(
+    request_id: int,
+    body: ReplyFileIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    def read():
+        try:
+            data = base64.b64decode(body.content_base64, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise PipelineError("the file could not be decoded") from exc
+        text = files.extract_text(body.filename, data)
+        return replies.extract_reply(session, settings, request_id, body.supplier_id, text, body.entered_by)
+
+    return guarded(read)
 
 
 @router.get("/requests/{request_id}/replies")
@@ -148,6 +177,21 @@ def reminder(
     quote_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
 ):
     return followups.letter_dict(guarded(followups.draft_reminder, session, settings, quote_id))
+
+
+@router.post("/orders/{po_id}/customer-confirmation")
+def customer_confirmation(
+    po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return followups.letter_dict(guarded(followups.draft_order_confirmation, session, settings, po_id))
+
+
+@router.post("/orders/{po_id}/delivery-question")
+def delivery_question(
+    po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    letter = guarded(followups.draft_delivery_question, session, settings, po_id)
+    return followups.letter_dict(letter, session.get(Supplier, letter.supplier_id).name)
 
 
 @router.post("/quotes/{quote_id}/customer-reply/read")

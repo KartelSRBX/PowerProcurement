@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, eur } from "../../lib/api";
 import { usePerson } from "../../lib/person";
 import { AiOff, aiTag, useAi } from "../../lib/ai";
-import { CustomerReply, ExplainScores, Followups, InvoiceRequest, ReplyPanel } from "./Assist";
+import { CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
 
 export default function RequestPage() {
   const id = useParams<{ id: string }>().id;
@@ -114,6 +114,7 @@ export default function RequestPage() {
           <div className="row"><b>PO #{o.id}</b><span className="tag">cost {eur(o.total_eur)} EUR</span><span className="tag">budget checks: {o.budget_checks.within_po_limit && o.budget_checks.not_below_cost ? "passed" : "failed"}</span></div>
           {o.invoice_requested_by ? <span className="muted">Invoice requested by {o.invoice_requested_by}</span>
             : <InvoiceRequest po={o} who={who} act={act} post={post} />}
+          <OrderLetters {...ctx} po={o} />
         </div>)}
       </section>
 

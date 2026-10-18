@@ -15,11 +15,20 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
   const [rep, setRep] = useState<any>(null);
   const [form, setForm] = useState({ total_price: "", currency: "EUR", lead_time_days: "", covers_all_items: true, moq_ok: true });
   const [msg, setMsg] = useState("");
+  const [file, setFile] = useState<File | null>(null);
 
+  const toBase64 = (f: File) => new Promise<string>((ok, no) => {
+    const fr = new FileReader();
+    fr.onload = () => ok(String(fr.result).split(",")[1] ?? "");
+    fr.onerror = () => no(new Error("the file could not be read in the browser"));
+    fr.readAsDataURL(f);
+  });
   async function read() {
     setMsg("");
     await act(async () => {
-      const r = await post(`/requests/${id}/replies`, { supplier_id: Number(sid), text, entered_by: who });
+      const r = file
+        ? await post(`/requests/${id}/replies/file`, { supplier_id: Number(sid), filename: file.name, content_base64: await toBase64(file), entered_by: who })
+        : await post(`/requests/${id}/replies`, { supplier_id: Number(sid), text, entered_by: who });
       const p = r.proposal ?? {};
       setRep(r);
       setForm({ total_price: p.total_price ?? "", currency: p.currency ?? "EUR", lead_time_days: p.lead_time_days ?? "", covers_all_items: p.covers_all_items ?? true, moq_ok: p.moq_ok ?? true });
@@ -29,7 +38,7 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
   async function save() {
     await act(async () => {
       await post(`/replies/${rep.id}/confirm`, { confirmed_by: who, total_price: Number(form.total_price), currency: form.currency, lead_time_days: Number(form.lead_time_days), covers_all_items: form.covers_all_items, moq_ok: form.moq_ok });
-      setRep(null); setText(""); setMsg("Saved as an offer."); 
+      setRep(null); setText(""); setFile(null); setMsg("Saved as an offer.");
     });
   }
   const set = (k: string, v: any) => setForm({ ...form, [k]: v });
@@ -41,12 +50,15 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
         <div className="row"><select value={sid} onChange={(e) => { setSid(e.target.value ? Number(e.target.value) : ""); setRep(null); }}>
           <option value="">Which supplier answered?</option>
           {asked.map((r: any) => <option key={r.supplier_id} value={r.supplier_id}>{r.supplier}</option>)}</select></div>
-        <textarea placeholder="Paste the supplier's email here" value={text} onChange={(e) => setText(e.target.value)} />
-        <div className="row"><button className="primary" disabled={!who || !sid || !text.trim()} onClick={read}>{ai ? "Read with AI" : "Continue"}</button>
+        <textarea placeholder="Paste the supplier's email here" value={text} onChange={(e) => { setText(e.target.value); setFile(null); }} disabled={!!file} />
+        <div className="row"><label>or a file (PDF, Excel .xlsx, CSV, text) <input type="file" accept=".pdf,.xlsx,.xlsm,.csv,.txt" onChange={(e) => setFile(e.target.files?.[0] ?? null)} /></label>
+          {file && <button onClick={() => setFile(null)}>Remove {file.name}</button>}</div>
+        <div className="row"><button className="primary" disabled={!who || !sid || (!file && !text.trim())} onClick={read}>{ai ? "Read with AI" : "Continue"}</button>
           {!who && <span className="muted">Enter your name at the top first.</span>}</div>
       </>}
       {msg && <p className="muted">{msg}</p>}
       {rep && <>
+        {rep.text?.startsWith("[File:") && <details><summary className="muted">Text read from the file (check it against the file)</summary><pre className="muted" style={{ whiteSpace: "pre-wrap", maxHeight: "14rem", overflow: "auto" }}>{rep.text}</pre></details>}
         {rep.warnings?.map((w: string) => <div key={w} className="err">{w}</div>)}
         {rep.problems?.map((w: string) => <div key={w} className="warn-note">{w}</div>)}
         {rep.missing?.length > 0 && <p className="muted">Still missing from the answer: {rep.missing.join("; ")}. The follow-up section below can ask for it.</p>}
@@ -152,3 +164,20 @@ export function InvoiceRequest({ po, who, act, post }: { po: any; who: string; a
   </div>;
 }
 
+
+/** After the purchase order: a confirmation to the customer and a delivery question to the supplier. */
+export function OrderLetters({ po, who, ai, d, act, post }: Ctx & { po: any }) {
+  const mine: any[] = d.letters.filter((l: any) => l.order_id === po.id);
+  const label = (k: string) => (k === "confirmation" ? "order confirmation to the customer" : "delivery question to the supplier");
+  return (
+    <div>
+      <div className="row">
+        <button onClick={() => act(() => post(`/orders/${po.id}/customer-confirmation`))}>Draft order confirmation to the customer</button>
+        <button onClick={() => act(() => post(`/orders/${po.id}/delivery-question`))}>Ask the supplier about delivery</button>
+        {ai === false && <AiOff what="the letters use plain templates." />}
+      </div>
+      {mine.map((l) => <div className="row" key={l.id}><span className="tag">{label(l.kind)}</span><span className="tag">{l.status}</span>{aiTag(l.drafted_by)}
+        {l.status === "draft" && <Link href="/approvals">waiting in the approval queue</Link>}</div>)}
+    </div>
+  );
+}

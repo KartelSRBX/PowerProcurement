@@ -36,7 +36,6 @@ therefore untested against real answers. Run the app once with a key and read th
 
 ## Not done
 
-- PDF and Excel attachments of supplier answers (paste the text instead).
-- Order confirmation letters and delivery questions (only the invoice request, reminders and follow-ups exist).
+- Scanned PDFs and photos (no OCR); see [ADR 0011](0011-supplier-files-and-order-letters.md) for what files are read.
 - Calculations and customs codes (the Calculator tab stays a placeholder).
 - Measuring the quality of any step except parsing (`python -m app.intake.evaluate --live`).

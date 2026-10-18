@@ -209,6 +209,64 @@ def reminder_text(
     return subject, body, by
 
 
+def order_confirmation_text(
+    session: Session,
+    settings: Settings,
+    lang: str,
+    items: list[ItemLine],
+    price: float,
+    currency: str,
+    lead_days: int,
+    ref: str,
+) -> tuple[str, str, str]:
+    price_text = f"{price:,.2f} {currency}"
+    subject, body, by = _ai_letter(
+        session,
+        settings,
+        "order_confirmation_draft",
+        {
+            "language_name": LANGUAGE_NAME.get(lang, "English"),
+            "sender_name": SENDER_NAME,
+            "ref": ref,
+            "price_text": price_text,
+            "lead_days": str(lead_days),
+            "items": items_text(items),
+        },
+        ref,
+        [price_text, str(lead_days), *[i.description for i in items]],
+    )
+    if subject is None:
+        subject, body = _confirmation_template(lang, items, price_text, lead_days, ref)
+    return subject, body, by
+
+
+def delivery_question_text(
+    session: Session,
+    settings: Settings,
+    lang: str,
+    supplier_name: str,
+    items: list[ItemLine],
+    ref: str,
+) -> tuple[str, str, str]:
+    subject, body, by = _ai_letter(
+        session,
+        settings,
+        "delivery_question_draft",
+        {
+            "language_name": LANGUAGE_NAME.get(lang, "English"),
+            "sender_name": SENDER_NAME,
+            "supplier_name": supplier_name,
+            "ref": ref,
+            "items": items_text(items),
+        },
+        ref,
+        [ref, *[i.description for i in items]],
+    )
+    if subject is None:
+        subject, body = _delivery_template(lang, supplier_name, items, ref)
+    return subject, body, by
+
+
 def _lines(items: list[ItemLine]) -> str:
     return "\n".join(f"- {fmt_qty(i.quantity)} x {i.description}" for i in items)
 
@@ -243,4 +301,41 @@ def _reminder_template(lang: str, items: list[ItemLine], price_text: str, ref: s
         "Dear customer,\n\na quick reminder about our quotation:\n"
         f"{_lines(items)}\n\nTotal price: {price_text}\n\n"
         f"We are happy to answer any questions.\n\nKind regards,\n{SENDER_NAME} (demo)",
+    )
+
+
+def _confirmation_template(
+    lang: str, items: list[ItemLine], price_text: str, lead_days: int, ref: str
+) -> tuple[str, str]:
+    if lang == "sr":
+        return (
+            f"Potvrda narudžbine [{ref}]",
+            f"Poštovani,\n\nhvala vam na prihvatanju ponude. Potvrđujemo narudžbinu:\n{_lines(items)}\n\n"
+            f"Ukupna cena: {price_text}\nOčekivani rok isporuke: {lead_days} dana.\n\n"
+            f"Obavestićemo vas ako dođe do promene.\n\nSrdačan pozdrav,\n{SENDER_NAME} (demo)",
+        )
+    return (
+        f"Order confirmation [{ref}]",
+        "Dear customer,\n\nthank you for accepting our quotation. We confirm your order:\n"
+        f"{_lines(items)}\n\n"
+        f"Total price: {price_text}\nExpected delivery: {lead_days} days.\n\n"
+        f"We will let you know if anything changes.\n\nKind regards,\n{SENDER_NAME} (demo)",
+    )
+
+
+def _delivery_template(lang: str, supplier_name: str, items: list[ItemLine], ref: str) -> tuple[str, str]:
+    if lang == "sr":
+        return (
+            f"Isporuka narudžbenice [{ref}]",
+            f"Poštovani ({supplier_name}),\n\npitanje se odnosi na narudžbenicu {ref}:\n{_lines(items)}\n\n"
+            "Molimo vas da nam potvrdite datum otpreme, prevoznika i broj za praćenje pošiljke, kao i "
+            "otpremne dokumente (paking lista, faktura, sertifikat o poreklu ako je potreban). "
+            f"Obavestite nas odmah o eventualnom kašnjenju.\n\nSrdačan pozdrav,\n{SENDER_NAME} (demo)",
+        )
+    return (
+        f"Delivery of purchase order [{ref}]",
+        f"Dear {supplier_name},\n\nthis is about purchase order {ref}:\n{_lines(items)}\n\n"
+        "Could you please confirm the dispatch date, the carrier and the tracking number, and send the "
+        "shipping documents (packing list, commercial invoice, certificate of origin if applicable)? "
+        f"Please tell us at once about any delay.\n\nKind regards,\n{SENDER_NAME} (demo)",
     )

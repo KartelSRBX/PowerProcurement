@@ -10,7 +10,7 @@ const STATUS: Record<string, [string, string]> = {
   confirmed: ["request confirmed", "ok"], not_request: ["not a request", ""], draft: ["draft", "warn"],
   sent: ["sent", "ok"], rejected: ["rejected", "bad"],
 };
-const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", po: "purchase order", email: "customer email", followup: "supplier follow-up", reminder: "customer reminder" };
+const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", po: "purchase order", email: "customer email", followup: "supplier follow-up", reminder: "customer reminder", confirmation: "order confirmation", delivery: "delivery question" };
 
 const tag = (s: string) => { const [t, c] = STATUS[s] ?? [s, ""]; return <span className={`tag ${c}`}>{t}</span>; };
 

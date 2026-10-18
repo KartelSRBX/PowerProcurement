@@ -5,13 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import { api, eur, fmtDate } from "../lib/api";
 import { usePerson } from "../lib/person";
 
-const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", followup: "supplier follow-up", reminder: "customer reminder" };
+const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", followup: "supplier follow-up", reminder: "customer reminder", confirmation: "order confirmation", delivery: "delivery question" };
 
 export default function Approvals() {
   const { person } = usePerson();
   const who = person.trim();
   const [mode, setMode] = useState<"pending" | "decided">("pending");
-  const [kind, setKind] = useState<"all" | "rfq" | "quote" | "followup" | "reminder">("all");
+  const [kind, setKind] = useState<string>("all");
   const [rows, setRows] = useState<any[]>([]);
   const [sel, setSel] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -48,7 +48,7 @@ export default function Approvals() {
       <div className="split two">
         <div className="pane">
           <div className="pane-h row" style={{ margin: 0 }}>
-            {(["all", "rfq", "quote", "followup", "reminder"] as const).map((k) => (
+            {(["all", "rfq", "quote", "followup", "reminder", "confirmation", "delivery"] as const).map((k) => (
               <button key={k} className={kind === k ? "primary" : ""} onClick={() => setKind(k)}>{k === "all" ? "All" : KIND[k]}</button>
             ))}
             <span className="muted">{shown.length} letter(s)</span>
