@@ -305,6 +305,27 @@ quantity are accepted but block supplier lookup until you fill the quantity in.
 
 ![Purchase order and invoice request](docs/img/ui/step-order.png)
 
+**The AI steps on this page.** The screenshots below were taken with a scripted stand-in model (note the `demo-stub` tag),
+not the live API, so they show the layout and the controls, not real model quality.
+
+A supplier's answer pasted and read: the form is editable, the missing item is named, nothing is an offer until you save it.
+
+![Supplier answer read, with a gap](docs/img/ui/ai-supplier-answer.png)
+
+The score table with **Explain in words** (the explanation never changes the ranking):
+
+![Score table explained in words](docs/img/ui/ai-explain-scores.png)
+
+Follow-up letters for silent suppliers; they wait in **Approvals**:
+
+![Follow-ups to suppliers](docs/img/ui/ai-followups.png)
+
+The customer's reply read into a proposed outcome, and the invoice request shown for editing before it is sent:
+
+![Customer reply read by AI](docs/img/ui/ai-customer-reply.png)
+
+![Invoice request preview](docs/img/ui/ai-invoice-request.png)
+
 Notes: a supplier on the sanctions list, or one whose offer does not cover every item, is **excluded** and cannot
 be quoted. A quote priced below cost is flagged *below cost* and cannot become an order.
 
@@ -325,6 +346,8 @@ For an incoming email that has no request yet you get the **Create a request fro
 - With AI off, the item list is drafted by a simple text rule. **Check and fix it**, pick category, language and
   *needed by*, then **Confirm as request**.
 
+![Parse all with AI in the Mail tab](docs/img/ui/ai-mail-parse-all.png)
+
 For an email that already has a request: **Open pipeline**, **Match articles**, **To the offer**. Sent mail shows
 who approved it.
 
@@ -333,6 +356,8 @@ who approved it.
 One queue for every letter waiting for a person: supplier letters (RFQs), customer quotes, supplier follow-ups and customer
 reminders. **Waiting for approval** and **Decided** tabs, filter by *All / supplier RFQ / customer quote / supplier follow-up /
 customer reminder*. A tag shows when the first version was written by the AI.
+
+![Approvals with follow-up letters](docs/img/ui/ai-approvals-queue.png)
 
 ![Approvals queue](docs/img/ui/approvals.png)
 
@@ -654,6 +679,12 @@ cd ../frontend && npm ci && npm run lint && npm run build
 ```
 
 The backend suite has 99 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, and the AI steps with a scripted model).
+What a run looks like (real output, Postgres 16; the AI steps are tested with a scripted model, not the live API):
+
+![AI-assisted steps: 16 tests](docs/img/tests/ai-steps-tests.png)
+
+![Full suite, lint, types, migration](docs/img/tests/full-checks.png)
+
 To see mail from a local run, start [Mailpit](https://mailpit.axllent.org/) on ports 8025 and 1025.
 
 ## Troubleshooting
