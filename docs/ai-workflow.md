@@ -242,3 +242,17 @@ and saved as an offer, both order letters appeared in the approval queue and the
 
 **Not verified:** any call to the live API; real supplier PDFs and Excel sheets (only generated ones); the GIF and screenshots use a scripted
 stand-in model.
+
+## Review and fixes before release 0.1.0 (2026-10-18)
+
+**Asked by the human:** polish what exists, check for bugs, prepare a release and a LinkedIn post.
+
+**Built by the AI:** a second AI session reviewed the code read-only and reported 12 findings; the AI fixed the ones it could confirm:
+double sending (letters claimed before sending), duplicate purchase orders (migration 0010), amount checks on AI letters, lost
+shortlist ticks, offers rewritten after a quote, counter-offer currency, a hard-coded rate in the UI, file-reader errors; 6 new tests,
+`CHANGELOG.md`.
+
+**Verified by running:** 117 tests pass on Postgres; migration 0010 up, down and up; type check and lint clean.
+
+**Not verified:** any call to the live API; the review itself is an AI reading code, so it can miss things. No sign-in exists, so the
+approver name is a label, not proof of identity.

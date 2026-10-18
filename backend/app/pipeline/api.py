@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
+from app.currency import to_eur
 from app.db import get_session
 from app.intake.schemas import ParsedRequest
 from app.mail.sender import MailSender, SendRefused
@@ -266,9 +267,12 @@ def create_quote(
 
 
 @router.get("/requests/{request_id}/quotes")
-def quotes(request_id: int, session: Session = Depends(get_session)):
+def quotes(
+    request_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
     return [
-        _dump(q) for q in session.scalars(select(CustomerQuote).where(CustomerQuote.request_id == request_id))
+        _dump(q) | {"price_eur": round(to_eur(q.price, q.currency, settings), 2)}
+        for q in session.scalars(select(CustomerQuote).where(CustomerQuote.request_id == request_id))
     ]
 
 

@@ -22,6 +22,10 @@ def catalog_lines_for(session: Session, item: RequestItem) -> list[CatalogPrice]
 def build_shortlist(session: Session, request: CustomerRequest) -> list[ShortlistEntry]:
     items = list(session.scalars(select(RequestItem).where(RequestItem.request_id == request.id)))
     category = request.parsed["category"]
+    chosen_before = {
+        e.supplier_id: e.selected
+        for e in session.scalars(select(ShortlistEntry).where(ShortlistEntry.request_id == request.id))
+    }  # running discovery again must not undo a person's ticks
     session.execute(delete(ShortlistEntry).where(ShortlistEntry.request_id == request.id))
     coverage: dict[int, int] = {}
     for item in items:
@@ -45,7 +49,7 @@ def build_shortlist(session: Session, request: CustomerRequest) -> list[Shortlis
                 supplier_id=sup.id,
                 covered_items=covered,
                 rank=rank,
-                selected=rank <= MAX_SELECTED,
+                selected=chosen_before.get(sup.id, rank <= MAX_SELECTED),
                 reason=f"covers {covered}/{len(items)} items; {sup.deals_count} past deals; {sup.country}"
                 + (
                     "; check under review"

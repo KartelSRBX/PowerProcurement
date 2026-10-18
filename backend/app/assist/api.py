@@ -89,6 +89,8 @@ def add_reply_file(
     settings: Settings = Depends(get_settings),
 ):
     def read():
+        if len(body.content_base64) > files.MAX_BYTES * 4 // 3 + 16:
+            raise PipelineError(f"the file is larger than {files.MAX_BYTES // 1_000_000} MB")
         try:
             data = base64.b64decode(body.content_base64, validate=True)
         except (binascii.Error, ValueError) as exc:

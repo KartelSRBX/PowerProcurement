@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, eur } from "../../lib/api";
 import { usePerson } from "../../lib/person";
 import { AiOff, aiTag, useAi } from "../../lib/ai";
@@ -27,9 +27,12 @@ export default function RequestPage() {
 
   useEffect(() => { refresh().catch((e) => setErr(e.message)); }, [refresh]);
 
+  const busy = useRef(false);  // a double click must not send or record twice
   async function act(fn: () => Promise<unknown>) {
+    if (busy.current) return;
+    busy.current = true;
     setErr("");
-    try { await fn(); await refresh(); } catch (e: any) { setErr(e.message); }
+    try { await fn(); await refresh(); } catch (e: any) { setErr(e.message); } finally { busy.current = false; }
   }
   const post = (path: string, json: unknown = {}) => api(path, { method: "POST", json });
   const who = name.trim();
@@ -94,7 +97,7 @@ export default function RequestPage() {
       <section><h2>Steps 6-7 · Customer quote and outcome</h2>
         {d.quotes.map((q: any) => <div className="letter" key={q.id}>
           <div className="row"><b>Quote #{q.id}: {eur(q.price)} {q.currency}</b><span className="tag">markup {(q.markup * 100).toFixed(1)}%</span><span className="tag">cost {eur(q.cost_eur)} EUR</span><span className="tag">{q.status}</span>{aiTag(q.drafted_by)}
-            {q.price / (q.currency === "EUR" ? 1 : q.currency === "RSD" ? 117 : 1.08) < q.cost_eur && <span className="err">below cost</span>}</div>
+            {q.price_eur < q.cost_eur && <span className="err">below cost</span>}</div>
           {q.status === "draft" ? <>
             <textarea defaultValue={q.body} onBlur={(e) => e.target.value !== q.body && act(() => api(`/quotes/${q.id}`, { method: "PATCH", json: { body: e.target.value } }))} />
             <div className="row"><button className="primary" disabled={!who} onClick={() => act(() => post(`/quotes/${q.id}/decision`, { approve: true, decided_by: who }))}>Approve and send to customer (Mailpit)</button>

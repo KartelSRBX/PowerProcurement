@@ -667,7 +667,7 @@ Browser ──> frontend (Next.js) ──/api──> backend (FastAPI) ──> P
 | `backend/app/vault/`, `runtime/` | Encrypted access vault; runtime settings, secret encryption, exchange rates |
 | `backend/app/ai/` | The AI adapter, versioned prompts, the one `run_task` helper every assisted step calls |
 | `backend/app/assist/` | The assisted steps: supplier pool, letter drafts and their checks, supplier replies, follow-ups, explanations |
-| `backend/migrations/` | Alembic migrations (0001 to 0009) |
+| `backend/migrations/` | Alembic migrations (0001 to 0010) |
 | `docs/` | [Architecture](docs/architecture.md), [how the AI was directed](docs/ai-workflow.md), [decision records](docs/decisions/) |
 
 Everything that talks to the outside world sits behind an adapter so it can be swapped or faked without touching
@@ -696,7 +696,7 @@ uv run alembic upgrade head && uv run pytest        # integration tests need DAT
 cd ../frontend && npm ci && npm run lint && npm run build
 ```
 
-The backend suite has 111 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, and the AI steps, file reading and order letters with a scripted model).
+The backend suite has 117 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, the AI steps, file reading, order letters and the pre-release fixes, with a scripted model).
 What a run looks like (real output, Postgres 16; the AI steps are tested with a scripted model, not the live API):
 
 ![AI-assisted steps: 16 tests](docs/img/tests/ai-steps-tests.png)

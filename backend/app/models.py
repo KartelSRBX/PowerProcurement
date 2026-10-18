@@ -251,7 +251,7 @@ class PurchaseOrder(Base):
     __tablename__ = "purchase_orders"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    request_id: Mapped[int] = mapped_column(ForeignKey("customer_requests.id"), nullable=False)
+    request_id: Mapped[int] = mapped_column(ForeignKey("customer_requests.id"), nullable=False, unique=True)
     offer_id: Mapped[int] = mapped_column(ForeignKey("offers.id"), nullable=False)
     supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
     total_eur: Mapped[float] = mapped_column(Float, nullable=False)

@@ -43,7 +43,9 @@ def _pdf(data: bytes) -> str:
                 "this PDF is password protected; open it, save a copy without a password, or paste the text"
             )
         pages = [(p.extract_text() or "").strip() for p in reader.pages[:MAX_PAGES]]
-    except PyPdfError as exc:
+    except PipelineError:
+        raise
+    except (PyPdfError, ValueError, KeyError, RecursionError, OSError) as exc:
         raise PipelineError("this PDF could not be read; paste the text instead") from exc
     text = "\n\n".join(p for p in pages if p)
     if not text:
@@ -99,13 +101,16 @@ def _csv(data: bytes) -> str:
     except csv.Error:
         dialect = csv.excel
     rows = []
-    for n, row in enumerate(csv.reader(io.StringIO(text), dialect)):
-        if n >= MAX_ROWS:
-            rows.append("[more rows not read]")
-            break
-        cells = [c.strip() for c in row[:MAX_COLS]]
-        if any(cells):
-            rows.append(" | ".join(cells))
+    try:
+        for n, row in enumerate(csv.reader(io.StringIO(text), dialect)):
+            if n >= MAX_ROWS:
+                rows.append("[more rows not read]")
+                break
+            cells = [c.strip() for c in row[:MAX_COLS]]
+            if any(cells):
+                rows.append(" | ".join(cells))
+    except csv.Error as exc:
+        raise PipelineError("this CSV could not be read; paste the text instead") from exc
     return "\n".join(rows)
 
 

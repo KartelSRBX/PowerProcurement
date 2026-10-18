@@ -5,7 +5,8 @@ the checks in app.assist.drafts; the AI-assisted steps live in app.assist."""
 import hashlib
 from datetime import UTC, date, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.assist.drafts import invoice_text, quote_text, rfq_text
@@ -195,6 +196,31 @@ def edit_rfq(session: Session, rfq_id: int, subject: str | None, body: str | Non
     return rfq
 
 
+def claim_draft(session: Session, model, row_id: int) -> None:
+    """Take a draft out of 'draft' before sending, so two clicks or requests cannot both send it."""
+    taken = session.execute(
+        update(model).where(model.id == row_id, model.status == "draft").values(status="sending")
+    )
+    session.commit()
+    if taken.rowcount != 1:
+        raise PipelineError("this letter is already being handled")
+
+
+def release_draft(session: Session, row) -> None:
+    """The send failed: put the draft back so the person can try again."""
+    session.rollback()
+    session.execute(update(type(row)).where(type(row).id == row.id).values(status="draft"))
+    session.commit()
+
+
+def send_claimed(session: Session, sender: MailSender, row, mail: OutboundMail) -> str:
+    try:
+        return sender.send(mail)
+    except Exception:
+        release_draft(session, row)
+        raise
+
+
 def decide_rfq(session: Session, sender: MailSender, rfq_id: int, approve: bool, decided_by: str) -> Rfq:
     by = _need_person(decided_by)
     rfq = session.get(Rfq, rfq_id)
@@ -202,9 +228,13 @@ def decide_rfq(session: Session, sender: MailSender, rfq_id: int, approve: bool,
         raise LookupError("rfq not found")
     if rfq.status != "draft":
         raise PipelineError(f"this letter is already {rfq.status}")
+    claim_draft(session, Rfq, rfq_id)
+    session.refresh(rfq)
     if approve:
         sup = session.get(Supplier, rfq.supplier_id)
-        rfq.sent_to = sender.send(OutboundMail(sup.email, rfq.subject, rfq.body, approved_by=by))
+        rfq.sent_to = send_claimed(
+            session, sender, rfq, OutboundMail(sup.email, rfq.subject, rfq.body, approved_by=by)
+        )
         rfq.status = "sent"
         rfq.sent_at = datetime.now(UTC)
     else:
@@ -445,8 +475,12 @@ def decide_quote(
     if quote.status != "draft":
         raise PipelineError(f"this quote is already {quote.status}")
     req = get_request(session, quote.request_id)
+    claim_draft(session, CustomerQuote, quote_id)
+    session.refresh(quote)
     if approve:
-        quote.sent_to = sender.send(OutboundMail(req.sender, quote.subject, quote.body, approved_by=by))
+        quote.sent_to = send_claimed(
+            session, sender, quote, OutboundMail(req.sender, quote.subject, quote.body, approved_by=by)
+        )
         quote.status = "sent"
         session.add(
             PriceEvent(
@@ -558,7 +592,6 @@ def create_po(
         offer.currency,
         _ref(request_id),
     )
-    sender.send(OutboundMail(sup.email, subject, body, approved_by=by))
     po = PurchaseOrder(
         request_id=request_id,
         offer_id=offer.id,
@@ -569,6 +602,12 @@ def create_po(
         approved_by=by,
     )
     session.add(po)
+    try:
+        session.flush()  # a second order for the same request fails here, before any mail is sent
+    except IntegrityError as exc:
+        session.rollback()
+        raise PipelineError("a purchase order already exists for this request") from exc
+    sender.send(OutboundMail(sup.email, subject, body, approved_by=by))
     _audit(session, "human", by, "po.approved", request_id=req.id, checks=checks)
     session.commit()
     return po
@@ -609,11 +648,31 @@ def request_invoice(
     if po.invoice_requested_by:
         raise PipelineError("the invoice has already been requested")
     sup = session.get(Supplier, po.supplier_id)
-    if not (subject and body):
+    if (subject is None) != (body is None):
+        raise PipelineError("send the subject and the text together")
+    if subject is None:
         draft = invoice_draft(session, settings or Settings(_env_file=None), po_id)
         subject, body = draft["subject"], draft["body"]
-    sender.send(OutboundMail(sup.email, subject, body, approved_by=by))
-    po.invoice_requested_by = by
+    if not (subject.strip() and body.strip()):
+        raise PipelineError("the subject and the text of the letter cannot be empty")
+    taken = session.execute(
+        update(PurchaseOrder)
+        .where(PurchaseOrder.id == po_id, PurchaseOrder.invoice_requested_by.is_(None))
+        .values(invoice_requested_by=by)
+    )
+    session.commit()
+    if taken.rowcount != 1:
+        raise PipelineError("the invoice has already been requested")
+    try:
+        sender.send(OutboundMail(sup.email, subject, body, approved_by=by))
+    except Exception:
+        session.rollback()
+        session.execute(
+            update(PurchaseOrder).where(PurchaseOrder.id == po_id).values(invoice_requested_by=None)
+        )
+        session.commit()
+        raise
+    session.refresh(po)
     _audit(session, "human", by, "invoice.requested", po_id=po_id)
     session.commit()
     return po

@@ -26,16 +26,39 @@ def items_text(items: list[ItemLine]) -> str:
     )
 
 
-def _check(subject: str, body: str, ref: str, must_contain: list[str]) -> str | None:
-    """Why this AI text cannot be used, or None when it is fine."""
+_MONEY = re.compile(
+    r"(?<![\w.,])(\d[\d.,\s]*\d|\d)\s*(?:EUR|RSD|USD|€|\$|din\b|dinar)|(?:EUR|RSD|USD|€|\$)\s*(\d[\d.,]*\d|\d)",
+    re.IGNORECASE,
+)
+
+
+def _digits(text: str) -> str:
+    return re.sub(r"\D", "", text)
+
+
+def _has(low: str, needle: str) -> bool:
+    """Substring test, but a number must stand alone: '5' is not found inside '15' or '2,500'."""
+    n = needle.casefold().strip()
+    if n and re.fullmatch(r"[\d.,]+(\s?[a-z€$]+)?", n):
+        return re.search(r"(?<![\d.,])" + re.escape(n) + r"(?![\d]|[.,]\d)", low) is not None
+    return n in low
+
+
+def _check(subject: str, body: str, ref: str, must_contain: list[str], amounts: list[str]) -> str | None:
+    """Why this AI text cannot be used, or None when it is fine. `amounts` are the only money figures
+    the letter may state (the exact ones code computed); any other amount rejects the draft."""
     if len(body.strip()) < 40:
         return "the text is too short"
     if _PLACEHOLDER.search(subject + body):
         return "the text still contains a placeholder"
     low = body.casefold()
     for needle in must_contain:
-        if needle.casefold() not in low:
+        if not _has(low, needle):
             return f"the text does not contain “{needle}”"
+    allowed = {_digits(a) for a in amounts}
+    for m in _MONEY.finditer(body):
+        if _digits(m.group(1) or m.group(2)) not in allowed:
+            return f"the text states an amount that was not given: {m.group(0).strip()}"
     return None
 
 
@@ -46,6 +69,7 @@ def _ai_letter(
     variables: dict[str, str],
     ref: str,
     must_contain: list[str],
+    amounts: list[str],
 ) -> tuple[str, str, str] | tuple[None, None, str]:
     """(subject, body, drafted_by) from the model, or (None, None, drafted_by) to use the template."""
     if not ai_enabled(settings):
@@ -54,7 +78,8 @@ def _ai_letter(
     if result is None:
         return None, None, "template · AI unavailable" if note else "template"
     subject, body = result.parsed.subject.strip(), result.parsed.body.strip()
-    problem = _check(subject, body, ref, must_contain)
+    problem = _check(subject, body, ref, must_contain, amounts)
+    subject = subject[:280]
     if problem:
         return None, None, "template · AI draft rejected"
     if f"[{ref}]" not in subject:
@@ -85,6 +110,7 @@ def rfq_text(
         },
         ref,
         [x for i in items for x in (i.description, fmt_qty(i.quantity))],
+        [],
     )
     if subject is None:
         subject, body = rfq_letter(lang, supplier_name, items, needed_by, ref)
@@ -116,6 +142,7 @@ def quote_text(
         },
         ref,
         [price_text, str(lead_days), *[i.description for i in items]],
+        [price_text],
     )
     if subject is None:
         subject, body = quote_letter(lang, items, price, currency, lead_days, ref)
@@ -145,6 +172,7 @@ def invoice_text(
         },
         ref,
         [ref, *([total_text] if total_text else []), *[i.description for i in items]],
+        [total_text] if total_text else [],
     )
     if subject is None:
         subject, body = invoice_request_letter(lang, supplier_name, ref)
@@ -174,6 +202,7 @@ def followup_text(
         },
         ref,
         [],
+        [],
     )
     if subject is None:
         subject, body = _followup_template(lang, supplier_name, items, needs, ref)
@@ -202,6 +231,7 @@ def reminder_text(
             "items": items_text(items),
         },
         ref,
+        [price_text],
         [price_text],
     )
     if subject is None:
@@ -234,6 +264,7 @@ def order_confirmation_text(
         },
         ref,
         [price_text, str(lead_days), *[i.description for i in items]],
+        [price_text],
     )
     if subject is None:
         subject, body = _confirmation_template(lang, items, price_text, lead_days, ref)
@@ -261,6 +292,7 @@ def delivery_question_text(
         },
         ref,
         [ref, *[i.description for i in items]],
+        [],
     )
     if subject is None:
         subject, body = _delivery_template(lang, supplier_name, items, ref)

@@ -89,7 +89,8 @@ def augment_shortlist(
     for why in result.parsed.explanations:
         entry = by_id.get(why.supplier_id)
         if entry is not None and why.reason.strip():
-            entry.reason = f"{entry.reason} | AI: {why.reason.strip()}"[:300]
+            base = entry.reason.split(" | AI:")[0]  # a second run replaces the earlier AI note
+            entry.reason = f"{base} | AI: {why.reason.strip()}"[:300]
     allowed = {s.id for s in candidates}
     rank = max((e.rank for e in entries), default=0)
     added = 0

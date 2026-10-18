@@ -139,7 +139,7 @@ export function CustomerReply({ quote, who, ai, d, act, post }: Ctx & { quote: a
         <button disabled={!ai || answered} onClick={() => act(async () => { await post(`/quotes/${quote.id}/reminder`); setMsg("Reminder drafted. It waits in the approval queue."); })}>Draft a reminder</button>
         {msg && <span className="muted">{msg}</span>}</div>
       {read && <div className="row"><span>AI reads it as <b>{KIND[read.kind]}</b>{read.price ? ` at ${read.price} ${read.currency}` : ""}{read.reason ? ` (${read.reason})` : ""}.</span>
-        {read.kind !== "unclear" && <button className="primary" disabled={!who} onClick={() => act(async () => { await post(`/quotes/${quote.id}/outcome`, { kind: read.kind, ...(read.kind === "counter" ? { price: read.price } : {}), confirmed_by: who }); setRead(null); setText(""); })}>Record this answer</button>}
+        {read.kind !== "unclear" && <button className="primary" disabled={!who} onClick={() => act(async () => { await post(`/quotes/${quote.id}/outcome`, { kind: read.kind, ...(read.kind === "counter" ? { price: read.price, currency: read.currency } : {}), confirmed_by: who }); setRead(null); setText(""); })}>Record this answer</button>}
         <span className="muted">Nothing is recorded until you press the button.</span></div>}
       {reminders.map((l) => <div key={l.id} className="muted">Reminder: {l.status}{aiTag(l.drafted_by)}</div>)}
     </div>

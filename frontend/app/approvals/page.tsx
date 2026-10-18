@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, eur, fmtDate } from "../lib/api";
 import { usePerson } from "../lib/person";
 
@@ -27,15 +27,17 @@ export default function Approvals() {
   useEffect(() => { setText(cur?.body ?? ""); }, [cur?.key]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const base = (r: any) => (r.kind === "rfq" ? `/rfqs/${r.id}` : r.kind === "quote" ? `/quotes/${r.id}` : `/letters/${r.id}`);
+  const busy = useRef(false);  // a double click must not send twice
   async function decide(approve: boolean) {
-    if (!cur) return;
+    if (!cur || busy.current) return;
+    busy.current = true;
     setErr("");
     try {
       if (text !== cur.body) await api(base(cur), { method: "PATCH", json: { body: text } });
       await api(`${base(cur)}/decision`, { method: "POST", json: { approve, decided_by: who } });
       setSel(null);
       await load();
-    } catch (e: any) { setErr(e.message); }
+    } catch (e: any) { setErr(e.message); } finally { busy.current = false; }
   }
 
   return (

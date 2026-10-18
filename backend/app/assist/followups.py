@@ -32,8 +32,10 @@ from app.pipeline.service import (
     _lines,
     _need_person,
     _ref,
+    claim_draft,
     get_request,
     items_of,
+    send_claimed,
 )
 from app.rfq.templates import pick_language
 
@@ -53,6 +55,8 @@ def candidates(
     """Suppliers that need a follow-up now, each with the list of things to ask for."""
     days = settings.followup_after_days if silent_days is None else silent_days
     now = datetime.now(UTC)
+    if session.scalar(select(PurchaseOrder.id).where(PurchaseOrder.request_id == request_id).limit(1)):
+        return []  # the order is placed: no more chasing for quotations
     suppliers = {s.id: s for s in session.scalars(select(Supplier))}
     sent: dict[int, Rfq] = {}
     for r in session.scalars(
@@ -283,9 +287,14 @@ def decide_letter(
         raise LookupError("letter not found")
     if letter.status != "draft":
         raise PipelineError(f"this letter is already {letter.status}")
+    claim_draft(session, Letter, letter_id)
+    session.refresh(letter)
     if approve:
-        letter.sent_to = sender.send(
-            OutboundMail(letter.to_email, letter.subject, letter.body, approved_by=by)
+        letter.sent_to = send_claimed(
+            session,
+            sender,
+            letter,
+            OutboundMail(letter.to_email, letter.subject, letter.body, approved_by=by),
         )
         letter.status = "sent"
     else:
