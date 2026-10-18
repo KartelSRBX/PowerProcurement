@@ -139,3 +139,20 @@ dropped to four and the decided tab showed the edited text with the approver.
 
 **Not done:** real price sources and an FX rate source (need the human's choice), AI-drafted letters (need a key).
 
+
+## Phase 7: markup analytics (2026-10-18)
+
+**Asked by the human:** "push and keep going".
+
+**Built by the AI:** synthetic quote history with planted customer price sensitivity (600 quotes, 7 customers), live quotes
+joined in once an outcome is recorded, win rate by 5% markup bucket, a logistic fit and a suggested markup with the basis
+(customer, category or all quotes) and its sample size. A Pricing analytics tab with two charts and a customer table, and a hint
+with a "Use" button in the Offer tab. Migration 0005, `GET /analytics/pricing`, `GET /analytics/markup-suggestion`, `POST /analytics/demo-history`, 4 tests.
+
+**Decided by the AI, open to change:** [ADR 0007](decisions/0007-markup-analytics.md). The first version took the best bucket by raw
+numbers; it jumped around between seeds, so it was replaced by a fitted curve.
+
+**Verified by running:** 62 tests pass against Postgres, migration 0005 upgrades and downgrades; in Chromium the loaded
+history gave 12.5% for the price-sensitive customer and 31% for the insensitive one (planted optimum is close to both).
+
+**Not done:** real quote history import, the Offer hint was checked by types and the API but not clicked through in the browser because demo requests come from other senders than the synthetic customers.

@@ -11,6 +11,7 @@ const NAV = [
   { href: "/mail", ico: "✉", label: "Mail" },
   { href: "/approvals", ico: "✓", label: "Approvals" },
   { href: "/analytics", ico: "▥", label: "Message analytics" },
+  { href: "/pricing", ico: "%", label: "Pricing analytics" },
   { href: "/suppliers", ico: "⌂", label: "Suppliers" },
   { href: "/articles", ico: "⌕", label: "Article matching" },
   { href: "/quote", ico: "€", label: "Offer" },

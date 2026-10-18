@@ -251,3 +251,21 @@ class InboxEmail(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     source: Mapped[str] = mapped_column(String(16), nullable=False)  # imap | eml | demo
+
+
+class QuoteHistory(Base):
+    """One past customer quote with its outcome, for markup analytics. Rows come from a synthetic
+    generator or an import; quotes made in this system are read from customer_quotes/outcomes."""
+
+    __tablename__ = "quote_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    customer: Mapped[str] = mapped_column(String(320), nullable=False)
+    category: Mapped[str] = mapped_column(String(32), nullable=False)
+    cost_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    markup: Mapped[float] = mapped_column(Float, nullable=False)
+    price_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    outcome: Mapped[str] = mapped_column(String(16), nullable=False)  # accepted|counter|rejected|silence
+    counter_price_eur: Mapped[float | None] = mapped_column(Float)
+    quoted_at: Mapped[date] = mapped_column(Date, nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)  # synthetic | import

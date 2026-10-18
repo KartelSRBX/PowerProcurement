@@ -18,6 +18,7 @@ function Inner() {
   const [markup, setMarkup] = useState(15);
   const [cur, setCur] = useState("EUR");
   const [prev, setPrev] = useState<any>(null);
+  const [hint, setHint] = useState<any>(null);
   const [err, setErr] = useState("");
 
   const refresh = useCallback(async () => {
@@ -31,6 +32,12 @@ function Inner() {
   useEffect(() => {
     api("/config").then((c: any) => setMarkup(Math.round(c.default_markup * 100))).catch(() => {});
   }, []);
+  useEffect(() => {
+    const r = reqs.find((x) => String(x.id) === rid);
+    if (!r) { setHint(null); return; }
+    const q = new URLSearchParams({ customer: r.sender, category: r.parsed?.category ?? "" });
+    api(`/analytics/markup-suggestion?${q}`).then(setHint).catch(() => setHint(null));
+  }, [rid, reqs]);
   useEffect(() => {
     if (!rid || offerId == null) { setPrev(null); return; }
     const t = setTimeout(() => api(`/requests/${rid}/quote-preview?offer_id=${offerId}&markup=${markup / 100}&currency=${cur}`).then(setPrev).catch((e) => setErr(e.message)), 150);
@@ -84,6 +91,11 @@ function Inner() {
               <input type="range" min={-10} max={60} value={markup} onChange={(e) => setMarkup(Number(e.target.value))} />
               <select value={cur} onChange={(e) => setCur(e.target.value)}><option>EUR</option><option>RSD</option><option>USD</option></select>
             </div>
+            {hint && hint.markup != null && (
+              <p className="muted">History suggests about {(hint.markup * 100).toFixed(1)}% (expected win rate {(hint.win_rate * 100).toFixed(0)}%, based on {hint.basis}, {hint.n_segment} quotes).{" "}
+                <button onClick={() => setMarkup(Math.round(hint.markup * 1000) / 10)}>Use {(hint.markup * 100).toFixed(1)}%</button>{" "}
+                <Link href="/pricing">details</Link></p>
+            )}
             {!prev && <p className="muted">Pick a supplier offer on the left.</p>}
             {prev && (
               <>

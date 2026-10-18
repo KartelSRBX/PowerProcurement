@@ -27,7 +27,7 @@ No `.env` is needed for the demo. Copy `.env.example` to `.env` to change settin
 ### The panel
 
 A small CRM with tabs (English UI): **Requests** (requests and the step-by-step pipeline), **Mail**
-(inbox and sent mail, create a request from an email), **Approvals** (one queue for every letter waiting for a person: edit, approve or reject; history of decisions), **Message analytics** (volumes, funnel, senders),
+(inbox and sent mail, create a request from an email), **Approvals** (one queue for every letter waiting for a person: edit, approve or reject; history of decisions), **Message analytics** (volumes, funnel, senders), **Pricing analytics** (win rate by markup, suggested markup per customer),
 **Suppliers** (supplier storage and price lists, editable, with CSV price-list import: validate, preview, then import all or nothing), **Article matching** (catalog search and
 matching of request items) and **Offer** (offer builder with a live margin preview).
 Type your name in the top bar first: every approval and edit is recorded under it.
@@ -88,7 +88,7 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | 4 | Offers and scoring (step 5) | Comparison table; scoring covered by tests |
 | 5 | Customer quote and outcome (steps 6–7) | Quote passes markup approval; outcome recorded |
 | 6 | Order and invoice request (step 8) | End-to-end: email, quote, PO, invoice request (**skeleton works without AI; email parsing still needs a key**) |
-| 7 | Analytics and markup | Test recovers patterns planted in the synthetic data |
+| 7 | Analytics and markup | Test recovers patterns planted in the synthetic data (**done: Pricing analytics tab, markup hint in Offer; real outcomes will replace synthetic ones**) |
 | 8 | Publication | README, demo GIF, AI work log; runs in a minute |
 
 More: [architecture](docs/architecture.md) · [how AI was directed](docs/ai-workflow.md) ·
