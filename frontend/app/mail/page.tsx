@@ -37,6 +37,18 @@ function RequestFromMail({ mail, onDone }: { mail: any; onDone: () => void }) {
   const [language, setLanguage] = useState("en");
   const [neededBy, setNeededBy] = useState("");
   const [err, setErr] = useState("");
+  const [ai, setAi] = useState<string>("mock");
+  const [parsed, setParsed] = useState<any>(null);
+  useEffect(() => { api<any>("/config").then((c) => setAi(c.ai_provider)).catch(() => {}); }, []);
+  async function parseWithAi() {
+    setErr("");
+    try {
+      const r = await api<any>("/requests/intake", { method: "POST", json: {
+        message_id: mail.message_id, sender: mail.counterparty, subject: mail.subject, body: mail.body, received_at: mail.at,
+      } });
+      setParsed(r); onDone();
+    } catch (e: any) { setErr(e.message); }
+  }
   async function create() {
     setErr("");
     try {
@@ -54,7 +66,18 @@ function RequestFromMail({ mail, onDone }: { mail: any; onDone: () => void }) {
   return (
     <div className="letter">
       <b>Create a request from this email</b>
-      <p className="muted">Automatic email parsing arrives with an AI key. For now the item list is drafted by a simple text rule (not AI): check and fix it, one item per line, like “500 x name”.</p>
+      {ai === "anthropic" ? (
+        <div className="row">
+          <button className="primary" onClick={parseWithAi} disabled={!!parsed}>Parse with AI</button>
+          <span className="muted">Sends this email’s text to the Claude API (billed to your key). A person still confirms the result.</span>
+        </div>
+      ) : (
+        <p className="muted">AI parsing is off. <Link href="/settings">Add your API key in Settings</Link> to turn it on. Until then the item list is drafted by a simple text rule (not AI): check and fix it, one item per line, like “500 x name”.</p>
+      )}
+      {parsed && (
+        <p>AI read this as {parsed.parsed?.is_request === false ? "not a request" : `${parsed.parsed?.items?.length ?? 0} item(s)`}, confidence {Math.round((parsed.confidence ?? 0) * 100)}%.{" "}
+          <Link href={`/requests/${parsed.id}`}>Open request #{parsed.id} to review and confirm</Link></p>
+      )}
       <textarea value={items} onChange={(e) => setItems(e.target.value)} placeholder="500 x STM32F407VGT6" />
       <div className="row">
         <select value={category} onChange={(e) => setCategory(e.target.value)}><option value="electronics">electronics</option><option value="it_hardware">IT-hardware</option><option value="other">other</option></select>

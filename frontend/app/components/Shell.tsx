@@ -15,6 +15,7 @@ const NAV = [
   { href: "/suppliers", ico: "⌂", label: "Suppliers" },
   { href: "/articles", ico: "⌕", label: "Article matching" },
   { href: "/quote", ico: "€", label: "Offer" },
+  { href: "/settings", ico: "⚙", label: "Settings" },
 ];
 
 function Top({ title }: { title: string }) {
@@ -22,13 +23,16 @@ function Top({ title }: { title: string }) {
   const [health, setHealth] = useState<any>(null);
   const [down, setDown] = useState(false);
   useEffect(() => {
-    api("/health/ready").then((h) => { setHealth(h); setDown(false); }).catch(() => setDown(true));
+    const load = () => api("/health/ready").then((h) => { setHealth(h); setDown(false); }).catch(() => setDown(true));
+    load();
+    window.addEventListener("pp-settings", load);
+    return () => window.removeEventListener("pp-settings", load);
   }, []);
   return (
     <header className="hud-top">
       <span className="title">{title}</span>
       <span className={`chip ${down ? "bad" : "ok"}`}>{down ? "server unreachable" : "server online"}</span>
-      {health && <span className={`chip ${health.ai_provider === "mock" ? "warn" : "ok"}`}>AI: {health.ai_provider === "mock" ? "off (mock)" : health.ai_provider}</span>}
+      {health && <Link className={`chip ${health.ai_provider === "mock" ? "warn" : "ok"}`} href="/settings">AI: {health.ai_provider === "mock" ? "off (mock)" : health.ai_provider}</Link>}
       {health && <span className="chip warn">mail: {health.mail_mode}</span>}
       <a className="chip" href="http://localhost:8025" target="_blank" rel="noreferrer">Mailpit ↗</a>
       <label className="person">Working as:

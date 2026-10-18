@@ -16,11 +16,18 @@ approves every action that leaves the system. Scoring and pricing are plain dete
 | --- | --- | --- |
 | ![Mail](docs/img/mail.png) | ![Quote](docs/img/quote.png) | ![Pricing](docs/img/pricing.png) |
 
-## Run it
+## Install it on your machine
+
+You need [Docker](https://docs.docker.com/get-docker/) with Compose and about 2 GB of free disk. Nothing else.
 
 ```bash
+git clone https://github.com/KartelSRBX/PowerProcurement.git
+cd PowerProcurement
 docker compose up --build
 ```
+
+The first start builds the images (a few minutes) and fills the database with synthetic demo suppliers.
+When the log says the frontend is healthy, open the panel:
 
 | What | Where |
 | --- | --- |
@@ -28,14 +35,30 @@ docker compose up --build
 | API health | http://localhost:8000/health/ready |
 | Demo inbox (Mailpit) | http://localhost:8025 |
 
-No `.env` is needed for the demo. Copy `.env.example` to `.env` to change settings.
+No `.env` file is needed. Everything works at once on templates and synthetic data, with no AI and no outside accounts.
+Nothing leaves your machine: all outgoing mail goes to Mailpit.
+
+**Turn on the AI (optional).** Open **Settings** in the panel, choose provider `anthropic`, paste your own
+[Anthropic API key](https://console.anthropic.com/) and press **Test key**. Mail then offers **Parse with AI**.
+The key is stored encrypted on the server (in the database; the encryption key lives in the `appdata` volume),
+is never shown again and never goes back to the browser. Calls are billed to your key, so set a spend limit in the
+Anthropic console first. Keys can also be given through `.env` (see `.env.example`); a key saved in Settings wins.
+
+![Settings tab: API key and exchange-rate source](docs/img/settings.png)
+
+**Exchange rates.** In **Settings** choose *National Bank of Serbia* to use its daily middle rates (fetched through the
+public mirror kurs.resenje.org about every six hours, every fetched rate is kept) or enter rates by hand.
+
+Stop with `Ctrl+C`; `docker compose down` removes the containers and keeps your data,
+`docker compose down -v` also wipes the database and the saved key (a fresh start).
+If a port is taken, stop the program using 3000, 8000 or 8025 first.
 
 ### The panel
 
 A small CRM with tabs (English UI): **Requests** (requests and the step-by-step pipeline), **Mail**
 (inbox and sent mail, create a request from an email), **Approvals** (one queue for every letter waiting for a person: edit, approve or reject; history of decisions), **Message analytics** (volumes, funnel, senders), **Pricing analytics** (win rate by markup, suggested markup per customer),
 **Suppliers** (supplier storage and price lists, editable, with CSV price-list import: validate, preview, then import all or nothing), **Article matching** (catalog search and
-matching of request items) and **Offer** (offer builder with a live margin preview).
+matching of request items) and **Offer** (offer builder with a live margin preview) and **Settings** (your Anthropic key, exchange-rate source).
 Type your name in the top bar first: every approval and edit is recorded under it.
 
 ### Try the flow (about two minutes)
@@ -62,6 +85,19 @@ and when the agreed price is below cost.
 
 ## Develop
 
+Without Docker for the app itself (needs Python 3.12+, [uv](https://docs.astral.sh/uv/), Node 22, and a Postgres):
+
+```bash
+docker run -d --name pp-db -e POSTGRES_USER=pp -e POSTGRES_PASSWORD=pp -e POSTGRES_DB=pp -p 5432:5432 postgres:16-alpine
+cd backend && uv sync
+export DATABASE_URL=postgresql+psycopg://pp:pp@localhost:5432/pp
+uv run alembic upgrade head && uv run python -m app.seed
+uv run uvicorn app.main:app --port 8000          # API
+cd ../frontend && npm ci && BACKEND_URL=http://localhost:8000 npm run dev   # panel on :3000
+```
+
+Checks (the same as CI):
+
 ```bash
 cd backend
 uv sync
@@ -72,7 +108,8 @@ cd ../frontend && npm ci && npm run lint && npm run build
 ## Parsing accuracy
 
 16 synthetic gold emails (English, Serbian Latin/Cyrillic, German, non-requests) live in
-`backend/app/intake/gold/`. To measure the real model (spends a few cents, needs `ANTHROPIC_API_KEY`):
+`backend/app/intake/gold/`. To measure the real model (spends a few cents, needs `ANTHROPIC_API_KEY` in the
+environment or `.env`; keys saved in the Settings tab are used by the app, not by this command):
 
 ```bash
 cd backend && AI_PROVIDER=anthropic uv run python -m app.intake.evaluate --live
@@ -89,7 +126,7 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | --- | --- | --- |
 | 0 | Scaffold: Docker, CI, database, AI adapter | `docker compose up` works, CI green (**done**) |
 | 1 | Intake and parsing (step 1) | Parsing accuracy measured on a gold set of sr/en emails (**harness done, live measurement pending**) |
-| 2 | Suppliers and prices (steps 2–3) | Shortlist and target prices for demo requests in three categories (**done on synthetic data; CSV price-list import added; live price sources and FX source pending**) |
+| 2 | Suppliers and prices (steps 2–3) | Shortlist and target prices for demo requests in three categories (**done on synthetic data; CSV price-list import added; exchange rates from the National Bank of Serbia; live price sources pending**) |
 | 3 | RFQ and approval queue (step 4) | Letters go through the approval queue into Mailpit (**done: Approvals tab; letters are drafted from templates, AI drafting needs a key**) |
 | 4 | Offers and scoring (step 5) | Comparison table; scoring covered by tests |
 | 5 | Customer quote and outcome (steps 6–7) | Quote passes markup approval; outcome recorded |

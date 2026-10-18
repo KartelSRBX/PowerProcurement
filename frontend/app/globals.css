@@ -103,3 +103,5 @@ textarea { width: 100%; min-height: 7rem; }
   .quote-grid { grid-template-columns: minmax(0, 1fr); }
   .pane { max-height: 70vh; }
 }
+
+.ok-note { color: var(--ok); margin: .5rem 0; }

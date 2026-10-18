@@ -269,3 +269,32 @@ class QuoteHistory(Base):
     counter_price_eur: Mapped[float | None] = mapped_column(Float)
     quoted_at: Mapped[date] = mapped_column(Date, nullable=False)
     source: Mapped[str] = mapped_column(String(16), nullable=False)  # synthetic | import
+
+
+class AppSetting(Base):
+    """A setting saved from the Settings tab. Secret values are stored encrypted."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    secret: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    updated_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class FxRate(Base):
+    """One fetched exchange-rate snapshot (units per 1 EUR), kept so a past quote can be explained."""
+
+    __tablename__ = "fx_rates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    rate_date: Mapped[date] = mapped_column(Date, nullable=False)
+    source: Mapped[str] = mapped_column(String(16), nullable=False)  # nbs
+    rsd_per_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    usd_per_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

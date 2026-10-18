@@ -167,3 +167,21 @@ letter drafts, approval queue, offer, analytics), a 10-frame demo GIF (about 0.6
 **Verified by running:** the tour ran end to end on Postgres with the mock AI; frames were looked at before they went in.
 
 **Not done:** deploy to a server, public demo access, a short written walkthrough.
+
+## Keys in the app, NBS rates, install from git (2026-10-18)
+
+**Asked by the human:** no public demo, but anyone must be able to take it from GitHub and run it; users put their own
+keys inside the application and the AI direction is finished; exchange-rate source is the National Bank of Serbia.
+
+**Built by the AI:** a Settings tab (Anthropic provider, model, key with test; rate source with fetch and history), encrypted
+key storage, migration 0006, `/settings` API, a **Parse with AI** button in Mail, NBS rate fetching with a stored history and
+background refresh, compose volume for the encryption key, a rewritten install section in the README, 9 tests.
+
+**Decided by the AI, open to change:** [ADR 0008](decisions/0008-keys-in-app-and-nbs-rates.md). The first idea was to keep
+the key only in `.env`; the human's wish for entering it in the app replaced it.
+
+**Verified by running:** 69 tests pass; on Postgres migration 0006 goes up and down; in Chromium a malformed key was refused, a
+well-formed fake key was saved, never appeared in the page, was stored encrypted, and "Test key" got a real 401 from the Anthropic API.
+
+**Not verified:** a successful call with a real key (none available here), and a live NBS fetch: this environment blocks that
+host. The response format was read from the live service and the parser is tested against that format only.

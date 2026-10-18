@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -8,12 +10,31 @@ from app.crm.api import router as crm_router
 from app.db import get_session
 from app.intake.api import router as requests_router
 from app.pipeline.api import router as pipeline_router
+from app.runtime import fx, store
+from app.runtime.api import router as settings_router
 
-app = FastAPI(title="PowerProcurement", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    """Load what people saved in the Settings tab, then keep NBS rates fresh if that source is chosen."""
+    try:
+        session = next(get_session())
+        try:
+            store.apply(session)
+        finally:
+            session.close()
+    except Exception:  # noqa: BLE001 - the database may still be migrating; defaults apply meanwhile
+        pass
+    fx.start_refresher()
+    yield
+
+
+app = FastAPI(title="PowerProcurement", version="0.1.0", lifespan=lifespan)
 app.include_router(requests_router)
 app.include_router(pipeline_router)
 app.include_router(crm_router)
 app.include_router(analytics_router)
+app.include_router(settings_router)
 
 
 @app.get("/health")

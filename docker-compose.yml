@@ -32,6 +32,10 @@ services:
       MAIL_ALLOWED_RECIPIENTS: ${MAIL_ALLOWED_RECIPIENTS:-}
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
+      APP_SECRET_KEY: ${APP_SECRET_KEY:-}
+      FX_SOURCE: ${FX_SOURCE:-manual}
+    volumes:
+      - appdata:/app/data # key that encrypts API keys entered in the Settings tab
     depends_on:
       db:
         condition: service_healthy
@@ -62,3 +66,4 @@ services:
 
 volumes:
   pgdata:
+  appdata:
