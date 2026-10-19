@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+Legal: contract review.
+
+### Added
+- **Legal tab:** paste or upload a contract (.docx, .pdf, .txt); it is split into clauses, key terms are read out (payment days,
+  advance, penalty and cap, liability cap, warranty, renewal, governing law, forum, Incoterms), and about 38 playbook checks flag
+  risks from our side, buying or selling. Each remark quotes the contract, says why it matters, what to ask for and which law it
+  rests on; a person accepts it, dismisses it or sends it to the lawyer. Reports as Markdown and Excel, a portfolio view with
+  bottlenecks across contracts, a Contracts panel on each request, an optional sign-off rule that blocks the purchase order.
+- **Norm base:** a catalogue of 53 acts (EU acts by CELEX number, CISG, the New York Convention, UNIDROIT, and national acts of Serbia,
+  China and the UAE), loaded by a button, `python -m app.legal.loader --all`, or an uploaded file; split into articles and searchable.
+- **Incoterms 2020:** our own structured summary of the 11 rules by 10 topics, used by the contract checks.
+- **Optional AI read per contract** (off by default; quotes are verified, wrong ones dropped). See
+  [ADR 0013](docs/decisions/0013-legal-module.md). Migration 0012, 22 new tests.
+- **Not verified:** no statute text has been loaded (the build environment could not reach the legal sites), so law references show
+  "act not loaded yet" until you load the base; the starter thresholds are a draft; not legal advice.
+
 ## 1.1 (2026-10-19)
 
 Tasks in Bitrix24. Release 1 is the former 0.1.0 below.

@@ -15,6 +15,7 @@ const NAV = [
   { href: "/tasks", ico: "☑", label: "Tasks" },
   { href: "/suppliers", ico: "⌂", label: "Suppliers" },
   { href: "/checks", ico: "✔", label: "Supplier checks" },
+  { href: "/legal", ico: "§", label: "Legal" },
   { href: "/vault", ico: "🔒", label: "Access vault" },
   { href: "/articles", ico: "⌕", label: "Article matching" },
   { href: "/quote", ico: "€", label: "Offer" },
