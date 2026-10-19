@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.1 (2026-10-19)
+
+Tasks in Bitrix24. Release 1 is the former 0.1.0 below.
 
 ### Added
 - **Tasks in Bitrix24, Excel or a demo portal** (Tasks tab, panel on every request): a parent task per request and a subtask per step,
