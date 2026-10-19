@@ -560,6 +560,57 @@ After each sync the page lists **status codes it did not understand** so you can
 and **drift**: a task still open although the request is past that step, or a task closed before the app shows the step done.
 Bitrix24 stays the source of truth for status; changing a state here calls the matching Bitrix24 method and is recorded with your name.
 
+#### Step by step: connect Bitrix24
+
+1. **In Bitrix24** (cloud): open *Developer resources* → *Other* → *Incoming webhook* and create one. Tick the permissions
+   **Tasks (task)** and **Users (user)**; add **Workgroups (sonet_group)** if your tasks live in a workgroup or project.
+   Copy the address. It looks like `https://your-company.bitrix24.com/rest/1/xxxxxxxxxxxx/`. The webhook acts as the user who
+   created it, so create it under the account that should appear as the task author (or set an author below). Bitrix24 REST needs a paid plan.
+2. **In PowerProcurement:** enter your name at the top, open the **Tasks** tab, choose **Bitrix24 (API)** and press **Save all settings**.
+3. Paste the address under *Incoming webhook* and press **Save address** (stored encrypted, shown only as its last four characters).
+4. Press **Test the connection**: it answers "Connected to ... as <your name>". An error is explained in words (wrong address,
+   missing permission, rate limit).
+5. Press **Load people, groups and stages from the portal**. The person fields become dropdowns of your real users.
+6. **People and roles:** pick a portal user for each role (sales, buyer, manager, or roles you add). Pick the workgroup id if you use one,
+   the author (leave empty for the webhook's owner) and a default responsible. Bitrix24 refuses a task without a responsible user, so the
+   app refuses before sending anything and says which step has nobody.
+7. **Statuses:** check the status table. The starting values are Bitrix24's standard codes (1 new, 2 pending, 3 in progress, 4 waiting for
+   review, 5 completed, 6 deferred). If your portal uses kanban stages, add `stage id → state` rows; a stage wins over the code.
+8. **Steps:** switch steps on or off, rename them, change the parent, role, due days and checklist. Press **Save all settings**.
+9. Open a **confirmed request**. The *Tasks* panel shows the plan; nothing exists yet. Press **Create 7 tasks**. Parents are created first.
+   If something fails midway, what was made stays and the next press continues.
+10. Later, press **Read statuses now** (on the request, or on the Tasks tab for all requests). The panel shows each task's status, responsible,
+    deadline, history and progress. If a status code is unknown, the message names it: add it under *Statuses* and read again.
+
+![A request's plan before the tasks are created](docs/img/ui/tasks-plan.png)
+
+#### Step by step: Excel mode (no connection)
+
+1. On the **Tasks** tab choose **Excel file only** and save.
+2. On a request press **Create tasks**: the tasks exist in the app only (no task number yet).
+3. Press **Export to Excel** (on the request, or *Export all tasks to Excel* on the Tasks tab). The file has the columns
+   Request, Key, Task, Parent key, Role, Responsible, Creator, Deadline, Status, Remote status, External ID, Link.
+4. Work in the file or in Bitrix24, then change the **Status** cells (our words `todo / doing / review / done / paused`, or Bitrix24's own
+   such as `In progress`, `Завершена`).
+5. On the Tasks tab choose the file under **Import statuses from Excel**. The result says how many rows changed, were unchanged, were not
+   found, and lists status words it did not understand. A file exported from Bitrix24 itself works too, matched by its task number column (`ID`).
+
+#### Step by step: try it without Bitrix24
+
+Choose **Demo (simulated portal)**, save, open a confirmed request and press **Create tasks**. The button **Demo: a colleague moves work
+forward** advances the first open tasks one status at a time and **Read statuses now** shows what changed, so you can see history, progress
+and the "task is ahead / behind" warnings. Demo mode never contacts Bitrix24 and says so on screen.
+
+![Tasks tab: progress of all requests and the connection](docs/img/ui/tasks-overview.png)
+
+#### Fitting it to your company
+
+- A different workflow? Change the **Steps** (add, remove, re-parent, rename) and the status map. No code change.
+- Tasks in a flow or a project? Set the group id or flow id; any other Bitrix24 field (priority, tags, a custom `UF_` field for the
+  request number) goes under *Custom fields and Excel columns*.
+- Another language or other status words in Excel? Add them in *Everything as JSON* under `excel.status_words`.
+- Several installations or customers? Copy the JSON from one Tasks tab and save it on another.
+
 Honest limits: this was written from Bitrix24's public REST documentation and tested against a scripted portal, **not against a
 live Bitrix24 account**. Exact field names for flows (`FLOW_ID`), custom fields and kanban stages may need a small change on your
 portal, which is why they are settings. Statuses are read by polling (a "Read statuses now" button), not by Bitrix24 events.
@@ -761,6 +812,11 @@ To see mail from a local run, start [Mailpit](https://mailpit.axllent.org/) on p
 | Vault says an access *cannot be decrypted* | The encryption key changed (new `APP_SECRET_KEY` or wiped volume); enter that access again |
 | *Fetch from NBS now* fails | The rate mirror is unreachable from your network; the last good rate stays in use, or switch to *Manual* |
 | Start over from scratch | `docker compose down -v`, then `docker compose up --build` |
+| Tasks: *paste the Bitrix24 webhook address first* | Choose Bitrix24 (API) and save the address on the Tasks tab |
+| Tasks: *the webhook may not use tasks* | Edit the webhook in Bitrix24 and tick the Tasks and Users permissions |
+| Tasks: *has nobody responsible* | Give each role a user, or set a default responsible, on the Tasks tab |
+| Tasks: *Unknown statuses* after reading | Add those codes (or kanban stage ids) to the status table and read again |
+| Tasks: Excel import says *no status column* | The header row needs a status header name (default `Status` or `Статус`) |
 
 ## Roadmap
 
