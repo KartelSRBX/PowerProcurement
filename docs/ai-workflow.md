@@ -256,3 +256,22 @@ shortlist ticks, offers rewritten after a quote, counter-offer currency, a hard-
 
 **Not verified:** any call to the live API; the review itself is an AI reading code, so it can miss things. No sign-in exists, so the
 approver name is a label, not proof of identity.
+
+## Bitrix24 task integration skeleton (2026-10-19)
+
+**Asked by the human:** automatic tasks and subtasks, status tracking, flows, authors, assignees and progress; connect by API or
+by Excel export; cloud Bitrix24; a universal form that fits any organisation.
+
+**Built by the AI:** feasibility check against the Bitrix24 REST documentation, then the whole skeleton: a validated settings
+document, a Bitrix24 webhook client, a demo stand-in and an Excel mode, plan, creation, status sync with history, progress and drift,
+Excel import that also reads Bitrix24's own export, the Tasks tab and the panel on each request, migration 0011, 14 tests.
+
+**Decided by the AI, open to change:** [ADR 0012](decisions/0012-task-integration.md): configuration as data, polling instead of
+events, a person presses the button, Bitrix24 owns the status.
+
+**Verified by running:** 131 tests pass on Postgres; migration 0011 up, down and up; in Chromium the demo mode was configured,
+tasks created, advanced and read back, and the screenshots in the README were taken from that run.
+
+**Not verified:** any call to a live Bitrix24 portal. Field names for flows, custom fields and kanban stages come from the public
+documentation and may need adjusting on a real portal.
+

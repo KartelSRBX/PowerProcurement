@@ -14,6 +14,7 @@ from app.pipeline.api import router as pipeline_router
 from app.runtime import fx, store
 from app.runtime.api import router as settings_router
 from app.vault.api import router as vault_router
+from app.worktasks.api import router as worktasks_router
 
 
 @asynccontextmanager
@@ -39,6 +40,7 @@ app.include_router(analytics_router)
 app.include_router(settings_router)
 app.include_router(vault_router)
 app.include_router(assist_router)
+app.include_router(worktasks_router)
 
 
 @app.get("/health")

@@ -522,6 +522,49 @@ A reserved tab. It reads **"Unique to the project"** and is where the project's 
 
 ![Calculator placeholder](docs/img/ui/calculator.png)
 
+### Tasks (Bitrix24, Excel)
+
+![Tasks of a request with progress](docs/img/ui/tasks-request.png)
+
+Each confirmed request can become a **task with subtasks** in Bitrix24: one parent task for the request, one subtask per step
+(suppliers, offers, quote, customer's answer, order, invoice). The app then reads the statuses back, keeps the history of what
+changed and when, and shows the **progress** of every task and of the whole request. A person presses **Create tasks**; nothing
+is created on its own, and **no AI is involved** in this part: the plan, the progress and the warnings are computed by code.
+
+Three modes, chosen on the **Tasks** tab:
+
+- **Bitrix24 (API).** Cloud Bitrix24 through an *incoming webhook* (Developer resources, Other, Incoming webhook; give it the
+  Tasks and Users permissions). Paste its address once; it is stored encrypted like the AI key. **Test the connection** and
+  **Load people, groups and stages from the portal** fill the dropdowns below with your own people and stages.
+- **Excel file only.** No connection. **Export** gives a list of tasks; update the statuses in Excel or in Bitrix24
+  (*Export to Excel* there) and **import** the file back. Rows are matched by the Bitrix24 task number, or by request and key.
+  Status words in any language are understood (`Завершена`, `In progress`, `done`, ...); add your own words in the settings.
+- **Demo.** A simulated portal kept inside the app, so every feature can be shown without a Bitrix24 account. It says so on screen.
+
+**Two Bitrix24 portals are never alike, so nothing company-specific is in the code.** One saved document holds it all:
+
+| Setting | What it decides |
+| --- | --- |
+| People and roles | Which portal user each role (sales, buyer, manager, any you add) maps to; who is the author; who is responsible by default |
+| Statuses | What each of your status codes means (`new / in progress / review / done / paused`); kanban stages can be mapped too and win over the code |
+| Steps | Which steps become tasks, their titles and descriptions (`$ref`, `$subject`, `$customer`, `$items`, `$needed_by`), parent, role, due in N days, checklist, and at which request stage the step should be finished |
+| Custom fields | Which of your `UF_` fields carries the request number, customer and so on; fixed extra fields (priority, tags) |
+| Actions | Which Bitrix24 method sets each state when a person changes it from here |
+| Everything as JSON | The same document, to copy to another installation or to a customer |
+
+![Connection and settings](docs/img/ui/tasks-connection.png)
+![What the statuses mean](docs/img/ui/tasks-statuses.png)
+![Steps that become tasks](docs/img/ui/tasks-steps.png)
+
+After each sync the page lists **status codes it did not understand** so you can add them to the map, tasks **deleted in the portal**,
+and **drift**: a task still open although the request is past that step, or a task closed before the app shows the step done.
+Bitrix24 stays the source of truth for status; changing a state here calls the matching Bitrix24 method and is recorded with your name.
+
+Honest limits: this was written from Bitrix24's public REST documentation and tested against a scripted portal, **not against a
+live Bitrix24 account**. Exact field names for flows (`FLOW_ID`), custom fields and kanban stages may need a small change on your
+portal, which is why they are settings. Statuses are read by polling (a "Read statuses now" button), not by Bitrix24 events.
+Bitrix24 REST needs a paid plan and allows about 2 requests per second; the client waits and retries when told to slow down.
+
 ### Settings
 
 ![Settings](docs/img/ui/settings.png)
@@ -666,8 +709,9 @@ Browser ──> frontend (Next.js) ──/api──> backend (FastAPI) ──> P
 | `backend/app/analytics/` | Message analytics and markup analysis |
 | `backend/app/vault/`, `runtime/` | Encrypted access vault; runtime settings, secret encryption, exchange rates |
 | `backend/app/ai/` | The AI adapter, versioned prompts, the one `run_task` helper every assisted step calls |
+| `backend/app/worktasks/` | Tasks in Bitrix24 / Excel / demo: saved settings, providers, plan, status sync, progress, Excel in and out |
 | `backend/app/assist/` | The assisted steps: supplier pool, letter drafts and their checks, supplier replies, follow-ups, explanations |
-| `backend/migrations/` | Alembic migrations (0001 to 0010) |
+| `backend/migrations/` | Alembic migrations (0001 to 0011) |
 | `docs/` | [Architecture](docs/architecture.md), [how the AI was directed](docs/ai-workflow.md), [decision records](docs/decisions/) |
 
 Everything that talks to the outside world sits behind an adapter so it can be swapped or faked without touching
@@ -696,7 +740,7 @@ uv run alembic upgrade head && uv run pytest        # integration tests need DAT
 cd ../frontend && npm ci && npm run lint && npm run build
 ```
 
-The backend suite has 117 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, the AI steps, file reading, order letters and the pre-release fixes, with a scripted model).
+The backend suite has 131 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, the AI steps, file reading, order letters, the pre-release fixes and the task integration, with scripted models).
 What a run looks like (real output, Postgres 16; the AI steps are tested with a scripted model, not the live API):
 
 ![AI-assisted steps: 16 tests](docs/img/tests/ai-steps-tests.png)
@@ -734,7 +778,7 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | 7 | Analytics and markup | Test recovers patterns planted in the synthetic data (**done; real outcomes will replace synthetic ones**) |
 | 8 | Publication | README, demo GIF, AI work log; runs in a minute (**README and install done; demo video pending**) |
 
-Also done: encrypted access vault, dark / light theme. Not built: roles and sign-in, a detailed landed-cost
+Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal). Not built: roles and sign-in, a detailed landed-cost
 calculator (the Calculator tab is reserved for it), live price sources.
 
 More: [architecture](docs/architecture.md) · [how AI was directed](docs/ai-workflow.md) ·

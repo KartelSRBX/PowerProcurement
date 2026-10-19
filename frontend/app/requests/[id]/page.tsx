@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, eur } from "../../lib/api";
 import { usePerson } from "../../lib/person";
 import { AiOff, aiTag, useAi } from "../../lib/ai";
+import { TasksPanel } from "./Tasks";
 import { CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
 
 export default function RequestPage() {
@@ -120,6 +121,8 @@ export default function RequestPage() {
           <OrderLetters {...ctx} po={o} />
         </div>)}
       </section>
+
+      <TasksPanel id={id} who={who} stage={d.pipeline.stage} act={act} post={post} />
 
       <section><h2>Price journal</h2>
         <table><thead><tr><th>When</th><th>What</th><th>Amount</th><th>By</th></tr></thead><tbody>

@@ -12,6 +12,7 @@ const NAV = [
   { href: "/approvals", ico: "✓", label: "Approvals" },
   { href: "/analytics", ico: "▥", label: "Message analytics" },
   { href: "/pricing", ico: "%", label: "Pricing analytics" },
+  { href: "/tasks", ico: "☑", label: "Tasks" },
   { href: "/suppliers", ico: "⌂", label: "Suppliers" },
   { href: "/checks", ico: "✔", label: "Supplier checks" },
   { href: "/vault", ico: "🔒", label: "Access vault" },

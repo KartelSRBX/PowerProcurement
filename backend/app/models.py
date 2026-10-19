@@ -444,3 +444,47 @@ class Letter(Base):
     decided_by: Mapped[str | None] = mapped_column(String(128))
     sent_to: Mapped[str | None] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ExternalTask(Base):
+    """One task of the work plan for a request, as it exists in the task system (Bitrix24) or only here
+    (Excel mode). `key` is the template step it came from; the remote system owns the status."""
+
+    __tablename__ = "external_tasks"
+    __table_args__ = (UniqueConstraint("request_id", "key", name="uq_external_tasks_request_key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey("customer_requests.id"), nullable=False)
+    key: Mapped[str] = mapped_column(String(64), nullable=False)
+    parent_key: Mapped[str | None] = mapped_column(String(64))
+    provider: Mapped[str] = mapped_column(String(16), nullable=False)  # bitrix | demo | excel
+    external_id: Mapped[str | None] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    role: Mapped[str | None] = mapped_column(String(64))
+    creator_id: Mapped[str | None] = mapped_column(String(64))
+    responsible_id: Mapped[str | None] = mapped_column(String(64))
+    deadline: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    raw_status: Mapped[str | None] = mapped_column(String(64))
+    stage_id: Mapped[str | None] = mapped_column(String(64))
+    state: Mapped[str] = mapped_column(String(16), nullable=False, default="todo")
+    url: Mapped[str | None] = mapped_column(String(500))
+    remote: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ExternalTaskEvent(Base):
+    """What changed in a task and when: the task's progression. Written by sync, import or a person."""
+
+    __tablename__ = "external_task_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("external_tasks.id"), nullable=False)
+    at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # state|responsible|deadline|title
+    old: Mapped[str | None] = mapped_column(String(300))
+    new: Mapped[str | None] = mapped_column(String(300))
+    source: Mapped[str] = mapped_column(String(16), nullable=False)  # sync|excel|person|demo
+    actor: Mapped[str | None] = mapped_column(String(128))

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- **Tasks in Bitrix24, Excel or a demo portal** (Tasks tab, panel on every request): a parent task per request and a subtask per step,
+  statuses and people read back, history of changes, progress, drift warnings, Excel export and import. Everything that differs
+  between companies (users, statuses, kanban stages, steps, custom fields) is a saved setting; see
+  [ADR 0012](docs/decisions/0012-task-integration.md). Migration 0011, 14 new tests (131 on Postgres).
+- **Not verified:** never run against a live Bitrix24 portal (scripted portal only).
+
 ## 0.1.0 (2026-10-18)
 
 First release. The whole path runs end to end on synthetic data, with or without an AI key.
