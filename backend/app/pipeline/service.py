@@ -15,6 +15,7 @@ from app.config import Settings
 from app.currency import convert, to_eur
 from app.intake.schemas import ParsedRequest
 from app.intake.service import sync_items
+from app.legal.service import blocker as legal_blocker
 from app.mail.sender import MailSender, OutboundMail
 from app.models import (
     AuditLog,
@@ -583,6 +584,9 @@ def create_po(
     failed = [k for k in ("within_po_limit", "not_below_cost") if not checks[k]]
     if failed:
         raise PipelineError(f"budget check failed: {', '.join(failed)} ({checks})")
+    held = legal_blocker(session, request_id)
+    if held:
+        raise PipelineError(f"legal sign-off is required: {held}")
     req = get_request(session, request_id)
     subject, body = po_letter(
         pick_language(sup.languages),

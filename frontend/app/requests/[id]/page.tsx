@@ -6,6 +6,7 @@ import { api, eur } from "../../lib/api";
 import { usePerson } from "../../lib/person";
 import { AiOff, aiTag, useAi } from "../../lib/ai";
 import { TasksPanel } from "./Tasks";
+import { LegalPanel } from "./LegalPanel";
 import { CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
 
 export default function RequestPage() {
@@ -121,6 +122,8 @@ export default function RequestPage() {
           <OrderLetters {...ctx} po={o} />
         </div>)}
       </section>
+
+      <LegalPanel id={id} />
 
       <TasksPanel id={id} who={who} stage={d.pipeline.stage} act={act} post={post} />
 

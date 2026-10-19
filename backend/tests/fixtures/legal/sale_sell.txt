@@ -1,0 +1,29 @@
+SALES CONTRACT
+
+Between Nordlicht Trade d.o.o., Belgrade (the "Seller") and Gulf Horizon Trading LLC, Dubai (the "Buyer"). Invented for testing.
+
+1. Delivery
+1.1 The Seller shall deliver the goods DDP Dubai (Incoterms 2010).
+1.2 Delivery terms DAT Jebel Ali Terminal apply to the second shipment.
+
+2. Payment
+2.1 The Buyer shall pay the price within 90 days after delivery.
+
+3. Warranty
+3.1 The Seller warrants the goods for 36 months from delivery.
+
+4. Liability
+4.1 The Seller's liability is unlimited.
+4.2 The Seller excludes liability for wilful misconduct.
+
+5. Term
+5.1 The Contract renews automatically for successive periods of one year unless a party gives 60 days' notice.
+
+6. Termination
+6.1 The Buyer may terminate this Contract for convenience at any time.
+
+7. Governing Law
+7.1 This Contract is governed by the laws of the United Arab Emirates.
+
+8. Penalties
+8.1 The Seller shall pay liquidated damages of 0.2% per day for late delivery.

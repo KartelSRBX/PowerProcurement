@@ -275,3 +275,31 @@ tasks created, advanced and read back, and the screenshots in the README were ta
 **Not verified:** any call to a live Bitrix24 portal. Field names for flows, custom fields and kanban stages come from the public
 documentation and may need adjusting on a real portal.
 
+
+## Legal norm base: first real load (2026-10-19)
+
+**Asked by the human:** load the laws into the legal module's norm base.
+
+**Done by the AI:** ran `python -m app.legal.loader --all` against a fresh Postgres with migration 0012 once the sandbox could reach
+EUR-Lex, the EU Publications Office, UNCITRAL and UNIDROIT. 30 of the 53 listed acts loaded: the 27 EU acts, the CISG, the New York
+Convention and the UNIDROIT Principles. Then checked what was loaded instead of trusting the counts: every CELEX number was compared
+with the act title in the fetched text (all 27 matched), and article counts were compared with what the acts contain.
+
+**Errors found and fixed:**
+- The loader fetched the act as first published. For amended acts (the Russia sanctions regulations 833/2014 and 269/2014, the AI Act,
+  consumer rights, the EMC, low voltage and radio directives, and others) that is outdated law. The loader now asks the Publications
+  Office for the newest consolidated version in force and falls back to the original text only when none exists; the version used is
+  stored in the act's note. Regulation 833/2014 went from 15 to 111 articles.
+- The article splitter took the first sentence of an untitled PDF article (the CISG) as its title, kept extra spaces from the PDF,
+  did not understand `Article IV` (New York Convention) or `Article 1.1` (UNIDROIT), and took cross-references such as `Article 76
+  CISG...` for articles. Fixed, with tests.
+- The catalogue listed the New York Convention and the UNIDROIT Principles as upload-only although their publishers offer the PDF; the
+  addresses were added, and an already seeded database picks them up.
+
+**Not loaded:** the 23 national acts of Serbia (9), China (8) and the UAE (6) have no official English text at a stable address, so
+they are uploaded as files on the Norm base tab. Their names and numbers in the catalogue are still unverified. The text of none of
+them was written by the AI.
+
+**Not verified:** that every loaded article is complete (the checks were article counts and spot reads, not a word-by-word compare);
+the UNIDROIT Principles parse to 210 articles and the expected total was not confirmed; the CISG was fetched from a UNCITRAL PDF that
+also carries an introduction, which lands in the "preamble" entry. Laws change: reload to refresh the base.

@@ -488,3 +488,128 @@ class ExternalTaskEvent(Base):
     new: Mapped[str | None] = mapped_column(String(300))
     source: Mapped[str] = mapped_column(String(16), nullable=False)  # sync|excel|person|demo
     actor: Mapped[str | None] = mapped_column(String(128))
+
+
+class LegalSource(Base):
+    """One legal act (directive, regulation, convention, national law) the contract review can cite.
+    The catalogue is seeded from code; `status` says whether its text has been loaded."""
+
+    __tablename__ = "legal_sources"
+
+    key: Mapped[str] = mapped_column(String(48), primary_key=True)
+    jurisdiction: Mapped[str] = mapped_column(String(8), nullable=False)  # EU | INT | RS | CN | AE
+    kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    title: Mapped[str] = mapped_column(String(500), nullable=False)
+    short: Mapped[str] = mapped_column(String(80), nullable=False)
+    ref: Mapped[str | None] = mapped_column(String(80))  # CELEX number or official reference
+    language: Mapped[str] = mapped_column(String(8), nullable=False, default="en")
+    topics: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    fetch: Mapped[str] = mapped_column(String(12), nullable=False, default="manual")  # eurlex | url | manual
+    source_url: Mapped[str | None] = mapped_column(String(500))
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(12), nullable=False, default="not_loaded")
+    loaded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    loaded_by: Mapped[str | None] = mapped_column(String(128))
+    text_hash: Mapped[str | None] = mapped_column(String(64))
+    provision_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class LegalProvision(Base):
+    """One article of a loaded act."""
+
+    __tablename__ = "legal_provisions"
+    __table_args__ = (UniqueConstraint("source_key", "number", name="uq_legal_provision_number"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source_key: Mapped[str] = mapped_column(ForeignKey("legal_sources.key"), nullable=False, index=True)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    number: Mapped[str] = mapped_column(String(24), nullable=False)
+    heading: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class LegalIncoterm(Base):
+    """An Incoterms rule as structured data (our own wording, not the ICC text)."""
+
+    __tablename__ = "legal_incoterms"
+
+    code: Mapped[str] = mapped_column(String(4), primary_key=True)
+    version: Mapped[str] = mapped_column(String(8), nullable=False)
+    data: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+
+
+class LegalRule(Base):
+    """One check of the playbook. Thresholds in `params` are the company's, editable in the interface."""
+
+    __tablename__ = "legal_rules"
+
+    key: Mapped[str] = mapped_column(String(48), primary_key=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    clause_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    role: Mapped[str] = mapped_column(String(8), nullable=False, default="both")  # both | buy | sell
+    severity: Mapped[str] = mapped_column(String(8), nullable=False)  # red | yellow | info
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    params: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    risk: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    suggest: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    citations: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    draft: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    updated_by: Mapped[str | None] = mapped_column(String(128))
+
+
+class Contract(Base):
+    """A contract a person uploaded for review. The text stays in this database."""
+
+    __tablename__ = "contracts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    counterparty: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    role: Mapped[str] = mapped_column(String(8), nullable=False)  # buy: we buy | sell: we sell
+    request_id: Mapped[int | None] = mapped_column(ForeignKey("customer_requests.id"), index=True)
+    filename: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    text_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    ai_allowed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    ai_model: Mapped[str | None] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(12), nullable=False, default="uploaded")
+    score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    analysed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    expires_on: Mapped[date | None] = mapped_column(Date)
+
+
+class ContractClause(Base):
+    __tablename__ = "contract_clauses"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    contract_id: Mapped[int] = mapped_column(ForeignKey("contracts.id"), nullable=False, index=True)
+    position: Mapped[int] = mapped_column(Integer, nullable=False)
+    heading: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    clause_type: Mapped[str] = mapped_column(String(32), nullable=False, default="other")
+    types: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    facts: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+
+
+class ContractFinding(Base):
+    """One remark on a contract: where, how serious, what it risks, what to ask for, and which norm."""
+
+    __tablename__ = "contract_findings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    contract_id: Mapped[int] = mapped_column(ForeignKey("contracts.id"), nullable=False, index=True)
+    clause_id: Mapped[int | None] = mapped_column(ForeignKey("contract_clauses.id"))
+    rule_key: Mapped[str] = mapped_column(String(48), nullable=False)
+    severity: Mapped[str] = mapped_column(String(8), nullable=False)
+    title: Mapped[str] = mapped_column(String(300), nullable=False)
+    quote: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    risk: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    suggest: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    citations: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    by: Mapped[str] = mapped_column(String(8), nullable=False, default="rules")  # rules | ai
+    state: Mapped[str] = mapped_column(String(12), nullable=False, default="open")
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    note: Mapped[str] = mapped_column(Text, nullable=False, default="")

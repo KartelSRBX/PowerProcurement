@@ -114,3 +114,27 @@ textarea { width: 100%; min-height: 7rem; }
 
 .theme-switch { padding: .2rem .6rem; border-radius: 99px; font-size: .72rem; color: var(--muted); }
 .warn-note { border: 1px solid var(--warn); border-radius: 8px; padding: .6rem .8rem; margin: 0 0 1rem; background: var(--panel); }
+
+/* legal */
+.sev { font-size: .7rem; font-weight: 700; padding: .05rem .5rem; border-radius: 99px; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: .04em; }
+.sev.red { color: var(--bad); border-color: var(--bad); } .sev.yellow { color: var(--warn); border-color: var(--warn); } .sev.info { color: var(--accent); border-color: var(--accent); }
+.finding { border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 8px; padding: .7rem .9rem; margin: .6rem 0; background: var(--panel2); }
+.finding.red { border-left-color: var(--bad); } .finding.yellow { border-left-color: var(--warn); } .finding.info { border-left-color: var(--accent); }
+.finding.done { opacity: .6; }
+.finding h3 { margin: 0 0 .3rem; font-size: .92rem; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.quote { margin: .4rem 0; padding: .4rem .7rem; border-left: 3px solid var(--line); color: var(--muted); font-style: italic; white-space: pre-wrap; }
+.ask { margin: .4rem 0; padding: .4rem .7rem; border-radius: 6px; background: var(--panel); border: 1px dashed var(--ok); }
+.ask b { color: var(--ok); }
+.cite { display: inline-block; font-size: .75rem; padding: .1rem .5rem; margin: .1rem .3rem .1rem 0; border: 1px solid var(--line); border-radius: 6px; }
+.cite.verified { border-color: var(--ok); color: var(--ok); } .cite.article_missing { border-color: var(--bad); color: var(--bad); } .cite.not_loaded { color: var(--muted); }
+.clause { padding: .4rem .6rem; border-bottom: 1px solid var(--line); }
+.clause.hit { background: var(--panel2); }
+.clause .head { font-weight: 600; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .5rem; margin: .5rem 0; }
+.fact { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: .4rem .7rem; }
+.fact .l { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; }
+.prov { border-bottom: 1px solid var(--line); padding: .4rem 0; }
+.prov .n { font-family: var(--mono); color: var(--accent); }
+.incot td:first-child { width: 9rem; color: var(--muted); }
+.codes { display: flex; gap: .3rem; flex-wrap: wrap; margin: .5rem 0; }
+.codes button.on { border-color: var(--accent); color: var(--accent); }

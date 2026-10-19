@@ -10,6 +10,7 @@ from app.config import get_settings
 from app.crm.api import router as crm_router
 from app.db import get_session
 from app.intake.api import router as requests_router
+from app.legal.api import router as legal_router
 from app.pipeline.api import router as pipeline_router
 from app.runtime import fx, store
 from app.runtime.api import router as settings_router
@@ -41,6 +42,7 @@ app.include_router(settings_router)
 app.include_router(vault_router)
 app.include_router(assist_router)
 app.include_router(worktasks_router)
+app.include_router(legal_router)
 
 
 @app.get("/health")
