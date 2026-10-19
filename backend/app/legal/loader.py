@@ -110,7 +110,8 @@ def pdf_to_text(data: bytes) -> str:
 
     try:
         reader = PdfReader(io.BytesIO(data))
-        return "\n".join((page.extract_text() or "") for page in reader.pages).strip()
+        text = "\n".join((page.extract_text() or "") for page in reader.pages)
+        return "\n".join(re.sub(r"[^\S\n]+", " ", ln).strip() for ln in text.splitlines()).strip()
     except PyPdfError as exc:
         raise LoadError(f"the PDF could not be read ({exc})") from exc
 
@@ -159,7 +160,17 @@ def to_text(data: bytes, filename: str = "") -> str:
 
 # ---- splitting into articles --------------------------------------------------------------------
 
-_ART = re.compile(r"^(?:Article|Art\.|Član|Clanak|Члан)\s*\(?(\d+[a-z]{0,2})\)?\.?\s*(.*)$", re.I)
+_ART = re.compile(
+    r"^(?:Article|Art\.|Član|Clanak|Члан)\s*\(?(\d+(?:\.\d+)*[a-z]{0,2}|(?-i:[IVXL]+)\b)\)?\.?\s*(.*)$", re.I
+)  # "Article 12a", "ARTICLE 1.1" (UNIDROIT) and "Article IV" (New York Convention)
+
+
+def _runs_on(line: str, following: list[str]) -> bool:
+    """True when `line` is the start of a sentence or a numbered paragraph, not a title: it opens a paragraph
+    like "(1) ..." or the next line carries on in lower case (some PDFs print no article titles)."""
+    if re.fullmatch(r"\([A-Z][^()]{3,}\)", line):
+        return False  # "(Freedom of contract)": a title in brackets
+    return line.startswith("(") or bool(following and following[0][:1].islower())
 
 
 def parse_provisions(text: str) -> list[Parsed]:
@@ -173,6 +184,10 @@ def parse_provisions(text: str) -> list[Parsed]:
         if rest and (len(rest) > 90 or rest[0].islower() or rest.endswith((".", ";", ","))):
             continue  # a sentence that merely mentions an article
         heads.append((i, num, rest))
+    if (
+        sum("." in n for _, n, _ in heads) > len(heads) / 2
+    ):  # numbered 1.1, 1.2: a bare "Article 76" is a cross-reference
+        heads = [h for h in heads if "." in h[1]]
     if not heads:
         return [Parsed("text", "Full text", text.strip())]
     parsed: list[Parsed] = []
@@ -183,8 +198,11 @@ def parse_provisions(text: str) -> list[Parsed]:
         end = heads[k + 1][0] if k + 1 < len(heads) else len(lines)
         body = [ln for ln in lines[i + 1 : end] if ln]
         heading = rest
+        if heading and _runs_on(heading, body):  # no real title: the first sentence sits on the article line
+            body, heading = [heading, *body], ""
         if not heading and body and len(body[0]) <= 100 and not body[0].endswith((".", ";", ":")):
-            heading, body = body[0], body[1:]
+            if not _runs_on(body[0], body[1:]):
+                heading, body = body[0], body[1:]
         parsed.append(Parsed(num, heading[:300], "\n".join(body).strip()))
     best: dict[str, Parsed] = {}
     order: list[str] = []
@@ -196,6 +214,8 @@ def parse_provisions(text: str) -> list[Parsed]:
             best[p.number] = (
                 p  # the later one is the article itself; the earlier one was in the contents list
             )
+            order.remove(p.number)
+            order.append(p.number)
     return [best[n] for n in order if best[n].text or best[n].heading]
 
 
@@ -205,6 +225,28 @@ def parse_provisions(text: str) -> list[Parsed]:
 def _challenge(r: httpx.Response) -> bool:
     body = r.text[:4000].lower()
     return r.status_code == 202 or "awswaf" in body or ("javascript" in body and len(r.text) < 4000)
+
+
+SPARQL = "https://publications.europa.eu/webapi/rdf/sparql"
+
+
+def consolidated_celex(client: httpx.Client, celex: str, today: str | None = None) -> str | None:
+    """The newest consolidated version of an EU act in force today, e.g. 02014R0833-20241029, or None.
+    The plain CELEX number gives the act as first published; sanctions, GDPR and similar acts have been amended
+    since, so the consolidated text is the one a contract review should cite. Any failure means "use the original"."""
+    base = "0" + celex[1:]
+    query = (
+        "PREFIX cdm: <http://publications.europa.eu/ontology/cdm#> "
+        f'SELECT ?c WHERE {{ ?w cdm:resource_legal_id_celex ?c . FILTER(STRSTARTS(STR(?c), "{base}-")) }} LIMIT 500'
+    )
+    try:
+        r = client.get(SPARQL, params={"query": query}, headers={"Accept": "application/sparql-results+json"})
+        values = [b["c"]["value"] for b in r.json()["results"]["bindings"]]
+    except (httpx.HTTPError, ValueError, KeyError):
+        return None
+    cutoff = today or datetime.now(UTC).strftime("%Y%m%d")
+    dated = sorted(v for v in values if re.fullmatch(re.escape(base) + r"-\d{8}", v) and v[-8:] <= cutoff)
+    return dated[-1] if dated else None
 
 
 def fetch_text(source: LegalSource, transport: httpx.BaseTransport | None = None) -> str:
@@ -223,6 +265,10 @@ def fetch_text(source: LegalSource, transport: httpx.BaseTransport | None = None
         "Accept-Language": "en",
     }
     with httpx.Client(follow_redirects=True, timeout=TIMEOUT, transport=transport, headers=headers) as client:
+        if source.fetch == "eurlex" and source.ref:
+            newest = consolidated_celex(client, source.ref)
+            if newest:
+                urls = [*eurlex_urls(newest), *urls]
         for url in urls:
             try:
                 r = client.get(url)
@@ -241,9 +287,20 @@ def fetch_text(source: LegalSource, transport: httpx.BaseTransport | None = None
                 errors.append(f"{url}: HTTP {r.status_code}")
                 continue
             try:
-                return to_text(r.content, url)
+                text = to_text(r.content, url)
             except LoadError as exc:
                 errors.append(f"{url}: {exc}")
+                continue
+            if source.fetch == "eurlex" and source.ref:
+                version = re.search(r"CELEX[:/](\d[0-9A-Z]+-\d{8})", url) or re.search(
+                    r"/celex/(\d[0-9A-Z]+-\d{8})", url
+                )
+                source.note = (
+                    f"Consolidated text {version.group(1)[-8:]}"
+                    if version
+                    else "Text as first published (no consolidated version found)"
+                )
+            return text
     raise LoadError("; ".join(errors) or "nothing was fetched")
 
 

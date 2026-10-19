@@ -99,11 +99,28 @@ def test_fetch_from_eurlex_stores_articles_and_audits(client, monkeypatch):
     monkeypatch.setattr(legal_api, "TRANSPORT", scripted(handler))
     r = client.post("/legal/sources/eu-2011-7/fetch", json={"by": "kartel"})
     assert r.status_code == 200 and r.json()["articles"] == 5
-    assert seen[0].startswith("https://publications.europa.eu/resource/celex/32011L0007")
+    assert any(u.startswith("https://publications.europa.eu/resource/celex/32011L0007") for u in seen)
     src = client.get("/legal/sources/eu-2011-7").json()
     assert src["status"] == "loaded" and src["loaded_by"] == "kartel" and len(src["text_hash"]) == 64
     assert [p["number"] for p in src["provisions"]][-1] == "12g"
     assert client.post("/legal/sources/eu-2011-7/fetch", json={"by": " "}).status_code == 409
+
+
+def test_fetch_prefers_the_newest_consolidated_text(client, monkeypatch):
+    seen = []
+    versions = ["02011L0007-20110216", "02011L0007-20130101", "02011L0007-29991231", "02011L0007"]
+
+    def handler(req: httpx.Request):
+        seen.append(str(req.url))
+        if "sparql" in req.url.path:
+            bindings = [{"c": {"value": v}} for v in versions]
+            return httpx.Response(200, json={"results": {"bindings": bindings}})
+        return httpx.Response(200, content=ACT_HTML.encode(), headers={"content-type": "text/html"})
+
+    monkeypatch.setattr(legal_api, "TRANSPORT", scripted(handler))
+    assert client.post("/legal/sources/eu-2011-7/fetch", json={"by": "kartel"}).status_code == 200
+    assert seen[-1].endswith("/celex/02011L0007-20130101")  # not the future date, not the original
+    assert client.get("/legal/sources/eu-2011-7").json()["note"] == "Consolidated text 20130101"
 
 
 def test_fetch_explains_browser_checks_and_blocked_networks(client, monkeypatch):
@@ -599,3 +616,24 @@ def test_contract_lifecycle_against_real_postgres(pg_url):
         assert s.get(Contract, c.id) is None
         for model in (ContractClause, ContractFinding):
             assert s.scalar(select(func.count()).select_from(model).where(model.contract_id == c.id)) == 0
+
+
+def test_parser_reads_dotted_and_roman_article_numbers_and_ignores_cross_references():
+    unidroit = (
+        "UNIDROIT Principles 2016\nARTICLE 1.1\n(Freedom of contract)\n"
+        "The parties are free to enter into a contract and to determine its content.\n"
+        "ARTICLE 1.2\n(No form required)\nNothing in these Principles requires a contract to be in writing.\n"
+        "Article 76 CISG, is to facilitate proof of harm where no replacement has been made"
+    )
+    got = loader.parse_provisions(unidroit)
+    assert [p.number for p in got] == ["1.1", "1.2"]
+    assert got[0].heading == "(Freedom of contract)" and got[0].text.startswith("The parties are free")
+    roman = "Article I\n1. This Convention shall apply to arbitral awards.\nArticle II\n1. Each State shall recognise an agreement in writing."
+    assert [p.number for p in loader.parse_provisions(roman)] == ["i", "ii"]
+
+
+def test_pdf_style_article_without_a_title_keeps_its_first_sentence_in_the_text():
+    got = loader.parse_provisions(
+        "Article 78\nIf a party fails to pay the price, the other party is entitled to interest.\nArticle 79\nA party is not liable."
+    )
+    assert got[0].heading == "" and got[0].text.startswith("If a party fails")

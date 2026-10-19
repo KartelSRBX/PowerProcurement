@@ -19,7 +19,7 @@ also highlight the risks. The design below is the AI's proposal.
   and the article is in it), `article_missing` (act loaded, no such article) or `not_loaded`. The app never shows a statute text it
   did not load, and it does not pretend: with an empty base every reference reads "act not loaded yet".
 - **The norm base is filled by the loader, not shipped in the repository.** 53 acts are listed in `app/legal/catalog.py`:
-  EU acts by CELEX number (fetched from the EU Publications Office, then EUR-Lex), CISG, the New York Convention and the UNIDROIT
+  EU acts by CELEX number (fetched from the EU Publications Office, then EUR-Lex; the newest consolidated version in force is preferred over the text as first published), CISG, the New York Convention and the UNIDROIT
   Principles, and national acts of Serbia, China and the UAE marked "check the name on import". The text comes by the
   *Load* button, `python -m app.legal.loader --all`, or an uploaded file (HTML, PDF, Word, text). Licences differ per source and
   the texts are the owner's to load; the repository carries only the catalogue.

@@ -54,9 +54,14 @@ def _named(person: str) -> str:
 def ensure_seed(session: Session) -> None:
     """Fill in what the code ships with, without touching what people changed or loaded."""
     changed = False
-    have = {k for (k,) in session.execute(select(LegalSource.key))}
+    have = {s.key: s for s in session.scalars(select(LegalSource))}
     for e in CATALOG:
-        if e["key"] not in have:
+        row = have.get(e["key"])
+        if row is not None:
+            if row.status == "not_loaded" and row.fetch == "manual" and e["fetch"] != "manual":
+                row.fetch, row.source_url, row.note = e["fetch"], e.get("source_url"), e.get("note", "")
+                changed = True  # a download address was added to the catalogue after this row was seeded
+        else:
             session.add(
                 LegalSource(
                     key=e["key"],

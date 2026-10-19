@@ -1,8 +1,10 @@
 """The list of legal acts the review can cite. Only names and where to get the text live here: the texts
 themselves are downloaded by the loader (or uploaded by a person) into the database, never stored in git.
 
-EU entries carry a CELEX number, so the loader can fetch them. For the other jurisdictions the names and
-numbers were written from memory and are marked `check`: confirm them when the text is imported."""
+EU entries carry a CELEX number, so the loader can fetch them; the 27 EU numbers were checked against the
+text EUR-Lex returned (2026-10-19). CISG, the New York Convention and the UNIDROIT Principles are fetched from
+their publishers' PDFs. For Serbia, China and the UAE the names and numbers were written from memory and are
+marked `check`: confirm them when the text is imported."""
 
 # ruff: noqa: E501
 from typing import Any
@@ -283,6 +285,7 @@ CATALOG: list[dict[str, Any]] = [
         "Convention on the Recognition and Enforcement of Foreign Arbitral Awards (New York, 1958)",
         "New York Convention",
         ["arbitration"],
+        "https://uncitral.un.org/sites/uncitral.un.org/files/media-documents/uncitral/en/new-york-convention-e.pdf",
     ),
     _other(
         "unidroit-2016",
@@ -291,6 +294,7 @@ CATALOG: list[dict[str, Any]] = [
         "UNIDROIT Principles of International Commercial Contracts (2016)",
         "UNIDROIT Principles",
         ["general", "soft-law"],
+        "https://www.unidroit.org/wp-content/uploads/2021/06/Unidroit-Principles-2016-English-i.pdf",
     ),
     # --- Serbia (check numbers and titles on import) ---
     _other(
