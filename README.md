@@ -52,7 +52,7 @@ that whole path in one place, in eight steps:
 | 8. Order | Purchase order and invoice request, after the customer accepted and the budget checks pass | **A person approves** |
 
 On top of that sit a mailbox, one approval queue, analytics, supplier profiles with due-diligence checks, an
-encrypted access vault and a settings page where you enter your own API key.
+encrypted access vault, a **Legal** tab that screens contracts against a playbook and a loaded norm base of laws, and a settings page where you enter your own API key.
 
 ## What the AI is for
 
@@ -652,13 +652,25 @@ extra remarks, per contract and on request. **A person decides** on every remark
 reference is checked against the **norm base**: *found in the loaded text*, *act loaded, article not found*, or *act not loaded yet*.
 The repository does not ship any statute text. Fill the base on the **Norm base** tab:
 
-- **Load** fetches an EU act from the EU Publications Office or EUR-Lex (the server needs internet access to those sites).
-- **Upload** takes a file you saved from the official site (HTML, PDF, Word or text); use it for the CISG, national laws of
-  Serbia, China and the UAE (check the act name first, they are marked), or when EUR-Lex shows a browser check to a program.
-- On the server: `python -m app.legal.loader --fetch eu-2011-7 eu-2016-679`, `python -m app.legal.loader --all`, or
-  `python -m app.legal.loader --dir ./saved` (files named like the act keys, `cisg.pdf`, `eu-2011-7.html`).
+- **Load** fetches an act by itself: the 27 EU acts from the EU Publications Office (then EUR-Lex), and the CISG, the New York
+  Convention and the UNIDROIT Principles from the PDF their publisher (UNCITRAL, UNIDROIT) offers. The server needs internet access
+  to `publications.europa.eu`, `eur-lex.europa.eu`, `uncitral.un.org` and `www.unidroit.org`. For an EU act the loader asks for
+  the **newest consolidated version in force** and falls back to the text as first published only when no consolidated version
+  exists; the version used is shown in the act's note. (The plain text of an amended act is outdated law: Regulation 833/2014 on
+  sanctions against Russia has 15 articles as first published and 111 in the consolidated text.)
+- **Upload** takes a file you saved from the official site (HTML, PDF, Word or text). The national laws of **Serbia, China and the
+  UAE have no automatic download**: upload them here (check the act name first, they are marked), or when a site shows a browser
+  check to a program.
+- On the server: `python -m app.legal.loader --fetch eu-2011-7 eu-2016-679`, `python -m app.legal.loader --all` (every act that has
+  a download address, 30 of the 53; about 40 seconds), or `python -m app.legal.loader --dir ./saved` (files named like the act
+  keys, `rs-zoo.pdf`, `eu-2011-7.html`).
 
 ![The norm base, empty until it is loaded](docs/img/ui/legal-norms.png)
+
+*The screenshot shows the base before the first load.* After `--all` the 30 acts with a download address read *loaded* with their
+article counts (27 EU acts 1,550 articles, CISG 101 plus a preamble entry, New York Convention 16 plus a preamble entry, UNIDROIT Principles 210 plus a
+preamble entry) and the 23 national acts read *not loaded*. Articles are numbered as the act numbers them (`12a`, `1.1`, Roman
+`iv`).
 
 The base holds 53 acts: EU rules on late payment, consumer sales and digital content, e-commerce and services, copyright, product
 safety and liability, the Cyber Resilience Act, data (GDPR, Data Act), AI Act, sanctions and others; CISG, the New York Convention and
@@ -685,9 +697,16 @@ purchase order of a request is refused while a contract linked to it has an open
 text leaves the server only when you press **Ask the AI** (with an Anthropic key set). The AI only adds remarks; every quote it gives is
 checked against the contract text and wrong ones are dropped. Contract text is treated as untrusted input.
 
-Honest limits: no statute text was loaded when this was built (the build environment could not reach the legal sites), so the loader's
-live behaviour is tested only against scripted pages; the article numbers in the starter rules are checked only after the act is loaded;
-English contracts only; scanned PDFs without a text layer are not read (no OCR); it does not know your company's history with a party.
+**What was checked on 2026-10-19.** The loader was run once against the live EU Publications Office, UNCITRAL and UNIDROIT. All 27
+CELEX numbers in the catalogue were compared with the title in the text returned (all matched). The starter playbook has 42 rules
+with 39 law references: **30 resolve to an article that exists in the loaded text, none points at a missing article, and 9 name
+Serbian, Chinese or UAE acts that are not loaded**. "Exists" means the article number is there, not that a lawyer confirmed the
+article says what the remark claims.
+
+Honest limits: the 23 national acts (Serbia, China, UAE) are not loaded and their catalogue names and numbers are still unconfirmed;
+article counts and spot reads were checked, not every word of every act; laws change, so load again to refresh (the base is a snapshot
+with the date and hash of each load); the text of the acts comes from the official sites and is the user's to load, the repository
+ships none; English contracts only; scanned PDFs without a text layer are not read (no OCR); it does not know your company's history with a party.
 
 ### Settings
 
@@ -867,7 +886,7 @@ uv run alembic upgrade head && uv run pytest        # integration tests need DAT
 cd ../frontend && npm ci && npm run lint && npm run build
 ```
 
-The backend suite has 131 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, the AI steps, file reading, order letters, the pre-release fixes and the task integration, with scripted models).
+The backend suite has 156 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, the AI steps, file reading, order letters, the pre-release fixes, the task integration and the legal module with its loader and article parser, with scripted models and pages).
 What a run looks like (real output, Postgres 16; the AI steps are tested with a scripted model, not the live API):
 
 ![AI-assisted steps: 16 tests](docs/img/tests/ai-steps-tests.png)
@@ -893,7 +912,9 @@ To see mail from a local run, start [Mailpit](https://mailpit.axllent.org/) on p
 | Tasks: *has nobody responsible* | Give each role a user, or set a default responsible, on the Tasks tab |
 | Tasks: *Unknown statuses* after reading | Add those codes (or kanban stage ids) to the status table and read again |
 | Tasks: Excel import says *no status column* | The header row needs a status header name (default `Status` or `Статус`) |
-| Legal: *Load* says the site asked for a browser check, or *refused (403)* | Save the act from the official site in a browser and use **Upload**, or allow the server to reach `publications.europa.eu` and `eur-lex.europa.eu` |
+| Legal: *Load* says the site asked for a browser check, or *refused (403)* | Save the act from the official site in a browser and use **Upload**, or allow the server to reach `publications.europa.eu`, `eur-lex.europa.eu`, `uncitral.un.org` and `www.unidroit.org` |
+| Legal: an EU act shows *Text as first published* in its note | No consolidated version exists for it (typical for acts never amended); nothing to do |
+| Legal: a national act (Serbia, China, UAE) will not load | It has no download address by design; save the official text and **Upload** it, or put it in a folder as `rs-zoo.pdf` and run `python -m app.legal.loader --dir <folder>` |
 | Legal: every reference reads *act not loaded yet* | The norm base is empty; load the acts on the **Norm base** tab |
 | Legal: the AI button is missing | Tick *Allow the AI to read this contract* on that contract and set an Anthropic key in Settings |
 | Legal: *no text was found in the file* | A scan has no text layer; use a text version or paste the text |
@@ -914,7 +935,7 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | 7 | Analytics and markup | Test recovers patterns planted in the synthetic data (**done; real outcomes will replace synthetic ones**) |
 | 8 | Publication | README, demo GIF, AI work log; runs in a minute (**README and install done; demo video pending**) |
 
-Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal), Legal contract review (the norm base is filled by the user; no statute text ships with the repository). Not built: roles and sign-in, a detailed landed-cost
+Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal), Legal contract review (the norm base is filled by the loader: 30 of 53 acts have been loaded and checked, the 23 Serbian, Chinese and UAE acts wait for files; no statute text ships with the repository). Not built: roles and sign-in, a detailed landed-cost
 calculator (the Calculator tab is reserved for it), live price sources.
 
 More: [architecture](docs/architecture.md) · [how AI was directed](docs/ai-workflow.md) ·
