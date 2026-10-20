@@ -15,6 +15,7 @@ from app.config import Settings
 from app.currency import convert, to_eur
 from app.intake.schemas import ParsedRequest
 from app.intake.service import sync_items
+from app.legal.incoterms import CODES as INCOTERM_CODES
 from app.legal.service import blocker as legal_blocker
 from app.mail.sender import MailSender, OutboundMail
 from app.models import (
@@ -249,6 +250,46 @@ def decide_rfq(session: Session, sender: MailSender, rfq_id: int, approve: bool,
 # ---- Step 5: offers and scoring -----------------------------------------------------------------
 
 
+def clean_terms(
+    valid_until: date | None = None,
+    incoterm: str | None = None,
+    incoterm_place: str | None = None,
+    payment_days: int | None = None,
+) -> dict:
+    """Check the optional offer terms and return them in the form stored. A supplier may leave any of
+    them out; what is given must be sensible, so a typo does not silently skew a comparison."""
+    code = (incoterm or "").strip().upper() or None
+    if code and code not in INCOTERM_CODES:
+        raise PipelineError(f"unknown Incoterms rule {code}: use one of {', '.join(INCOTERM_CODES)}")
+    place = (incoterm_place or "").strip() or None
+    if place and not code:
+        raise PipelineError("an Incoterms place needs the Incoterms rule too")
+    if payment_days is not None and not 0 <= payment_days <= 365:
+        raise PipelineError("payment term must be from 0 to 365 days")
+    return {
+        "valid_until": valid_until,
+        "incoterm": code,
+        "incoterm_place": place[:120] if place else None,
+        "payment_days": payment_days,
+    }
+
+
+def term_flags(offer: Offer, today: date) -> list[str]:
+    """What a buyer should notice about an offer's terms before comparing it. Plain words, no scoring."""
+    flags = []
+    if offer.valid_until is None:
+        flags.append("no validity date: ask how long the price holds")
+    elif offer.valid_until < today:
+        flags.append(f"offer expired on {offer.valid_until.isoformat()}")
+    elif (offer.valid_until - today).days <= 3:
+        flags.append(f"offer expires on {offer.valid_until.isoformat()}")
+    if offer.incoterm is None:
+        flags.append("no Incoterms rule: freight and risk are unclear")
+    elif not offer.incoterm_place:
+        flags.append(f"{offer.incoterm} needs a named place")
+    return flags
+
+
 def add_offer(
     session: Session,
     settings: Settings,
@@ -260,8 +301,13 @@ def add_offer(
     covers_all_items: bool,
     moq_ok: bool,
     source: str = "manual",
+    valid_until: date | None = None,
+    incoterm: str | None = None,
+    incoterm_place: str | None = None,
+    payment_days: int | None = None,
 ) -> Offer:
     convert(1, currency, "EUR", settings)  # validates the currency
+    terms = clean_terms(valid_until, incoterm, incoterm_place, payment_days)
     offer = Offer(
         request_id=request_id,
         supplier_id=supplier_id,
@@ -271,6 +317,7 @@ def add_offer(
         covers_all_items=covers_all_items,
         moq_ok=moq_ok,
         source=source,
+        **terms,
     )
     session.add(offer)
     session.commit()
@@ -380,6 +427,11 @@ def score_request(
                 "landed_cost_eur": round(landed, 2),
                 "lead_time_days": o.lead_time_days,
                 "offer_source": o.source,
+                "valid_until": o.valid_until,
+                "incoterm": o.incoterm,
+                "incoterm_place": o.incoterm_place,
+                "payment_days": o.payment_days,
+                "term_flags": term_flags(o, today),
             }
         )
     return out

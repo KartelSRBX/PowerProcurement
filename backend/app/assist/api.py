@@ -1,5 +1,6 @@
 import base64
 import binascii
+from datetime import date
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -38,6 +39,10 @@ class ConfirmIn(BaseModel):
     lead_time_days: int
     covers_all_items: bool = True
     moq_ok: bool = True
+    valid_until: date | None = None
+    incoterm: str | None = None
+    incoterm_place: str | None = None
+    payment_days: int | None = None
 
 
 class FollowupIn(BaseModel):

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+Improvement plan, one change a day (one improvement and one commit per day, 21 Oct to 19 Nov 2026).
+
+### Added
+- **Offer terms (day 1):** an offer can now carry the price validity date, the Incoterms rule with its named place, and payment
+  days. All optional. Entered when a supplier answer is confirmed or an offer is added by hand; the ranking table shows them and
+  flags what a buyer should notice (no validity date, offer expired or expiring within 3 days, no Incoterms rule, rule without a
+  named place). The flags are warnings only and do not change scores. Migration 0013, 4 new tests.
+
+## PP1.2
+
 Legal: contract review.
 
 ### Added
