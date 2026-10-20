@@ -13,7 +13,7 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
   const [sid, setSid] = useState<number | "">("");
   const [text, setText] = useState("");
   const [rep, setRep] = useState<any>(null);
-  const [form, setForm] = useState({ total_price: "", currency: "EUR", lead_time_days: "", covers_all_items: true, moq_ok: true });
+  const [form, setForm] = useState({ total_price: "", currency: "EUR", lead_time_days: "", covers_all_items: true, moq_ok: true, valid_until: "", incoterm: "", incoterm_place: "", payment_days: "" });
   const [msg, setMsg] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
@@ -31,13 +31,14 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
         : await post(`/requests/${id}/replies`, { supplier_id: Number(sid), text, entered_by: who });
       const p = r.proposal ?? {};
       setRep(r);
-      setForm({ total_price: p.total_price ?? "", currency: p.currency ?? "EUR", lead_time_days: p.lead_time_days ?? "", covers_all_items: p.covers_all_items ?? true, moq_ok: p.moq_ok ?? true });
+      setForm({ total_price: p.total_price ?? "", currency: p.currency ?? "EUR", lead_time_days: p.lead_time_days ?? "", covers_all_items: p.covers_all_items ?? true, moq_ok: p.moq_ok ?? true, valid_until: /^\d{4}-\d{2}-\d{2}$/.test(r.valid_until ?? "") ? r.valid_until : "", incoterm: "", incoterm_place: "", payment_days: "" });
       setMsg(r.ai.used ? `Read by ${r.read_by}. Check every number against the supplier's text before saving.` : r.ai.note ?? "Type the numbers yourself.");
     });
   }
   async function save() {
     await act(async () => {
-      await post(`/replies/${rep.id}/confirm`, { confirmed_by: who, total_price: Number(form.total_price), currency: form.currency, lead_time_days: Number(form.lead_time_days), covers_all_items: form.covers_all_items, moq_ok: form.moq_ok });
+      await post(`/replies/${rep.id}/confirm`, { confirmed_by: who, total_price: Number(form.total_price), currency: form.currency, lead_time_days: Number(form.lead_time_days), covers_all_items: form.covers_all_items, moq_ok: form.moq_ok,
+        valid_until: form.valid_until || null, incoterm: form.incoterm || null, incoterm_place: form.incoterm_place.trim() || null, payment_days: form.payment_days === "" ? null : Number(form.payment_days) });
       setRep(null); setText(""); setFile(null); setMsg("Saved as an offer.");
     });
   }
@@ -68,6 +69,13 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
           <label>Lead time, days <input type="number" style={{ width: "5rem" }} value={form.lead_time_days} onChange={(e) => set("lead_time_days", e.target.value)} /></label>
           <label><input type="checkbox" checked={form.covers_all_items} onChange={(e) => set("covers_all_items", e.target.checked)} /> covers all items</label>
           <label><input type="checkbox" checked={form.moq_ok} onChange={(e) => set("moq_ok", e.target.checked)} /> minimum order fits</label>
+        </div>
+        <div className="row">
+          <label>Price valid until <input type="date" value={form.valid_until} onChange={(e) => set("valid_until", e.target.value)} /></label>
+          <label>Incoterms <select value={form.incoterm} onChange={(e) => set("incoterm", e.target.value)}><option value="">not stated</option>
+            {["EXW", "FCA", "FAS", "FOB", "CFR", "CIF", "CPT", "CIP", "DAP", "DPU", "DDP"].map((c) => <option key={c}>{c}</option>)}</select></label>
+          <label>Named place <input style={{ width: "10rem" }} placeholder="e.g. Belgrade" value={form.incoterm_place} onChange={(e) => set("incoterm_place", e.target.value)} /></label>
+          <label>Payment, days <input type="number" min={0} max={365} style={{ width: "5rem" }} value={form.payment_days} onChange={(e) => set("payment_days", e.target.value)} /></label>
         </div>
         {(rep.payment_terms || rep.warranty || rep.valid_until) && <p className="muted">{[rep.payment_terms && `terms: ${rep.payment_terms}`, rep.warranty && `warranty: ${rep.warranty}`, rep.valid_until && `valid until ${rep.valid_until}`].filter(Boolean).join(" · ")}</p>}
         <div className="row"><button className="primary" disabled={!form.total_price || !form.lead_time_days} onClick={save}>Save as offer</button>

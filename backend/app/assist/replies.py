@@ -2,7 +2,7 @@
 is written; code adds up the prices, and a person reviews and confirms before an offer exists. Without
 AI the same screen works by hand."""
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,7 +13,7 @@ from app.assist.schemas import SupplierReply as ReplyAnswer
 from app.config import Settings
 from app.currency import convert
 from app.models import AuditLog, CustomerQuote, Offer, PurchaseOrder, Rfq, Supplier, SupplierReply
-from app.pipeline.service import PipelineError, _need_person, add_offer, get_request, items_of
+from app.pipeline.service import PipelineError, _need_person, add_offer, clean_terms, get_request, items_of
 from app.rfq.templates import ItemLine
 
 MAX_TEXT = 20000
@@ -205,6 +205,10 @@ def confirm_reply(
     lead_time_days: int,
     covers_all_items: bool,
     moq_ok: bool,
+    valid_until: date | None = None,
+    incoterm: str | None = None,
+    incoterm_place: str | None = None,
+    payment_days: int | None = None,
 ) -> Offer:
     """A person checked the numbers: only now does an offer exist."""
     by = _need_person(confirmed_by)
@@ -216,6 +220,7 @@ def confirm_reply(
     if total_price <= 0 or lead_time_days < 0:
         raise PipelineError("the total must be above zero and the lead time cannot be negative")
     source = "manual" if reply.read_by == "manual" else "ai-reviewed"
+    terms = clean_terms(valid_until, incoterm, incoterm_place, payment_days)
     existing = session.scalar(
         select(Offer).where(Offer.request_id == reply.request_id, Offer.supplier_id == reply.supplier_id)
     )
@@ -231,6 +236,7 @@ def confirm_reply(
             covers_all_items,
             moq_ok,
             source=source,
+            **terms,
         )
     else:  # a later answer (for example after a follow-up) replaces the earlier numbers
         if session.scalar(
@@ -245,6 +251,8 @@ def confirm_reply(
         offer = existing
         offer.total_price, offer.currency, offer.lead_time_days = total_price, currency, lead_time_days
         offer.covers_all_items, offer.moq_ok, offer.source = covers_all_items, moq_ok, source
+        for name, value in terms.items():
+            setattr(offer, name, value)
     reply.status, reply.offer_id = "confirmed", offer.id
     session.add(
         AuditLog(

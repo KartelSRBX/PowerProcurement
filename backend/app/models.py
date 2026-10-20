@@ -195,6 +195,11 @@ class Offer(Base):
     moq_ok: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     source: Mapped[str] = mapped_column(String(32), nullable=False)  # "manual" | "demo-simulator"
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # terms that make offers comparable; all optional because a supplier may not state them
+    valid_until: Mapped[date | None] = mapped_column(Date)
+    incoterm: Mapped[str | None] = mapped_column(String(3))
+    incoterm_place: Mapped[str | None] = mapped_column(String(120))
+    payment_days: Mapped[int | None] = mapped_column(Integer)
 
 
 class CustomerQuote(Base):

@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -81,6 +83,10 @@ class OfferIn(BaseModel):
     lead_time_days: int
     covers_all_items: bool = True
     moq_ok: bool = True
+    valid_until: date | None = None
+    incoterm: str | None = None
+    incoterm_place: str | None = None
+    payment_days: int | None = None
 
 
 class WeightsIn(BaseModel):
