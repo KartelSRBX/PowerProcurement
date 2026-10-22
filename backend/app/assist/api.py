@@ -12,7 +12,7 @@ from app.config import Settings, get_settings
 from app.db import get_session
 from app.mail.sender import MailSender
 from app.models import Letter, Supplier
-from app.pipeline.api import WeightsIn, _dump, get_sender, guarded
+from app.pipeline.api import LineIn, WeightsIn, _dump, get_sender, guarded
 from app.pipeline.service import PipelineError
 from app.scoring.scoring import Weights
 
@@ -43,6 +43,7 @@ class ConfirmIn(BaseModel):
     incoterm: str | None = None
     incoterm_place: str | None = None
     payment_days: int | None = None
+    lines: list[LineIn] | None = None
 
 
 class FollowupIn(BaseModel):

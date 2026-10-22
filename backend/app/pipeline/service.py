@@ -5,7 +5,7 @@ the checks in app.assist.drafts; the AI-assisted steps live in app.assist."""
 import hashlib
 from datetime import UTC, date, datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -24,6 +24,7 @@ from app.models import (
     CustomerRequest,
     MarketPrice,
     Offer,
+    OfferLine,
     Outcome,
     PriceEvent,
     PurchaseOrder,
@@ -290,6 +291,36 @@ def term_flags(offer: Offer, today: date) -> list[str]:
     return flags
 
 
+def set_lines(session: Session, offer: Offer, lines: list[dict]) -> None:
+    """Store the unit price per item and let code decide what follows from it: the offer covers all
+    items only if every requested item has a price, and the minimum orders fit only if the quantity
+    asked for reaches each stated minimum. A person's tick boxes cannot contradict the lines."""
+    items = {i.id: i for i in items_of(session, offer.request_id)}
+    seen: set[int] = set()
+    for ln in lines:
+        item_id = ln["item_id"]
+        if item_id not in items:
+            raise PipelineError(f"item {item_id} is not part of this request")
+        if item_id in seen:
+            raise PipelineError(f"item {item_id} is priced twice")
+        seen.add(item_id)
+        if not ln["unit_price"] > 0:
+            raise PipelineError(f"the price of '{items[item_id].description}' must be above zero")
+        if ln.get("moq") is not None and ln["moq"] < 0:
+            raise PipelineError("a minimum order cannot be negative")
+    session.execute(delete(OfferLine).where(OfferLine.offer_id == offer.id))
+    for ln in lines:
+        session.add(
+            OfferLine(
+                offer_id=offer.id, item_id=ln["item_id"], unit_price=ln["unit_price"], moq=ln.get("moq")
+            )
+        )
+    offer.covers_all_items = seen == set(items)
+    offer.moq_ok = all(
+        ln.get("moq") is None or (items[ln["item_id"]].quantity or 0) >= ln["moq"] for ln in lines
+    )
+
+
 def add_offer(
     session: Session,
     settings: Settings,
@@ -305,6 +336,7 @@ def add_offer(
     incoterm: str | None = None,
     incoterm_place: str | None = None,
     payment_days: int | None = None,
+    lines: list[dict] | None = None,
 ) -> Offer:
     convert(1, currency, "EUR", settings)  # validates the currency
     terms = clean_terms(valid_until, incoterm, incoterm_place, payment_days)
@@ -320,6 +352,13 @@ def add_offer(
         **terms,
     )
     session.add(offer)
+    if lines:
+        session.flush()
+        try:
+            set_lines(session, offer, lines)
+        except PipelineError:
+            session.rollback()  # no offer without valid lines
+            raise
     session.commit()
     return offer
 

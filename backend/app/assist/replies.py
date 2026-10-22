@@ -13,7 +13,15 @@ from app.assist.schemas import SupplierReply as ReplyAnswer
 from app.config import Settings
 from app.currency import convert
 from app.models import AuditLog, CustomerQuote, Offer, PurchaseOrder, Rfq, Supplier, SupplierReply
-from app.pipeline.service import PipelineError, _need_person, add_offer, clean_terms, get_request, items_of
+from app.pipeline.service import (
+    PipelineError,
+    _need_person,
+    add_offer,
+    clean_terms,
+    get_request,
+    items_of,
+    set_lines,
+)
 from app.rfq.templates import ItemLine
 
 MAX_TEXT = 20000
@@ -209,6 +217,7 @@ def confirm_reply(
     incoterm: str | None = None,
     incoterm_place: str | None = None,
     payment_days: int | None = None,
+    lines: list[dict] | None = None,
 ) -> Offer:
     """A person checked the numbers: only now does an offer exist."""
     by = _need_person(confirmed_by)
@@ -236,6 +245,7 @@ def confirm_reply(
             covers_all_items,
             moq_ok,
             source=source,
+            lines=lines,
             **terms,
         )
     else:  # a later answer (for example after a follow-up) replaces the earlier numbers
@@ -253,6 +263,8 @@ def confirm_reply(
         offer.covers_all_items, offer.moq_ok, offer.source = covers_all_items, moq_ok, source
         for name, value in terms.items():
             setattr(offer, name, value)
+        if lines:
+            set_lines(session, offer, lines)
     reply.status, reply.offer_id = "confirmed", offer.id
     session.add(
         AuditLog(

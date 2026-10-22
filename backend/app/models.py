@@ -202,6 +202,19 @@ class Offer(Base):
     payment_days: Mapped[int | None] = mapped_column(Integer)
 
 
+class OfferLine(Base):
+    """What a supplier quoted for one requested item: the unit price and, if stated, the smallest order."""
+
+    __tablename__ = "offer_lines"
+    __table_args__ = (UniqueConstraint("offer_id", "item_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    offer_id: Mapped[int] = mapped_column(ForeignKey("offers.id"), nullable=False)
+    item_id: Mapped[int] = mapped_column(ForeignKey("request_items.id"), nullable=False)
+    unit_price: Mapped[float] = mapped_column(Float, nullable=False)  # in the offer's currency
+    moq: Mapped[float | None] = mapped_column(Float)
+
+
 class CustomerQuote(Base):
     __tablename__ = "customer_quotes"
 

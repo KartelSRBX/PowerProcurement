@@ -7,7 +7,7 @@ import { usePerson } from "../../lib/person";
 import { AiOff, aiTag, useAi } from "../../lib/ai";
 import { TasksPanel } from "./Tasks";
 import { LegalPanel } from "./LegalPanel";
-import { CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
+import { Comparison, CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
 
 export default function RequestPage() {
   const id = useParams<{ id: string }>().id;
@@ -92,6 +92,7 @@ export default function RequestPage() {
           <select value={cur} onChange={(e) => setCur(e.target.value)}><option>EUR</option><option>RSD</option><option>USD</option></select>
           <span className="muted">Scores are computed by code, not by AI. Demo exchange rates.</span></div>
         <ExplainScores id={id} ai={ai} w={w} disabled={d.offers.length === 0} />
+        <Comparison id={id} offers={d.offers.length} />
       </section>
 
       <Followups {...ctx} />

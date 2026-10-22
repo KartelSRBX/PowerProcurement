@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -22,6 +22,7 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
+from app.pipeline import compare
 from app.pipeline import service as svc
 from app.scoring.scoring import Weights
 
@@ -76,6 +77,12 @@ class DecisionIn(BaseModel):
     decided_by: str
 
 
+class LineIn(BaseModel):
+    item_id: int
+    unit_price: float
+    moq: float | None = None
+
+
 class OfferIn(BaseModel):
     supplier_id: int
     total_price: float
@@ -87,6 +94,7 @@ class OfferIn(BaseModel):
     incoterm: str | None = None
     incoterm_place: str | None = None
     payment_days: int | None = None
+    lines: list[LineIn] | None = None
 
 
 class WeightsIn(BaseModel):
@@ -238,6 +246,25 @@ def simulate(
 @router.get("/requests/{request_id}/offers")
 def offers(request_id: int, session: Session = Depends(get_session)):
     return [_dump(o) for o in session.scalars(select(Offer).where(Offer.request_id == request_id))]
+
+
+@router.get("/requests/{request_id}/comparison")
+def comparison(
+    request_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return guarded(compare.compare_offers, session, settings, request_id)
+
+
+@router.get("/requests/{request_id}/comparison.xlsx")
+def comparison_xlsx(
+    request_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    data = guarded(compare.comparison_xlsx, session, settings, request_id)
+    return Response(
+        data,
+        media_type=compare.XLSX,
+        headers={"content-disposition": f'attachment; filename="request-{request_id}-comparison.xlsx"'},
+    )
 
 
 @router.post("/requests/{request_id}/score")

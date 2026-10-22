@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { api } from "../../lib/api";
+import { api, eur } from "../../lib/api";
 import { AiOff, aiTag } from "../../lib/ai";
 
 type Ctx = { id: string; who: string; ai: boolean | null; d: any; act: (fn: () => Promise<unknown>) => Promise<void>; post: (p: string, j?: unknown) => Promise<any> };
@@ -14,6 +14,7 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
   const [text, setText] = useState("");
   const [rep, setRep] = useState<any>(null);
   const [form, setForm] = useState({ total_price: "", currency: "EUR", lead_time_days: "", covers_all_items: true, moq_ok: true, valid_until: "", incoterm: "", incoterm_place: "", payment_days: "" });
+  const [lines, setLines] = useState<Record<number, { unit_price: string; moq: string }>>({});
   const [msg, setMsg] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
@@ -32,13 +33,19 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
       const p = r.proposal ?? {};
       setRep(r);
       setForm({ total_price: p.total_price ?? "", currency: p.currency ?? "EUR", lead_time_days: p.lead_time_days ?? "", covers_all_items: p.covers_all_items ?? true, moq_ok: p.moq_ok ?? true, valid_until: /^\d{4}-\d{2}-\d{2}$/.test(r.valid_until ?? "") ? r.valid_until : "", incoterm: "", incoterm_place: "", payment_days: "" });
+      setLines({});
       setMsg(r.ai.used ? `Read by ${r.read_by}. Check every number against the supplier's text before saving.` : r.ai.note ?? "Type the numbers yourself.");
     });
   }
+  const items: any[] = d.items ?? [];
+  const priced = Object.entries(lines).filter(([, l]) => l.unit_price !== "");
+  const setLine = (id: number, k: "unit_price" | "moq", v: string) => setLines({ ...lines, [id]: { ...(lines[id] ?? { unit_price: "", moq: "" }), [k]: v } });
+  const linesSum = priced.reduce((t, [id, l]) => t + Number(l.unit_price) * (items.find((i) => i.id === Number(id))?.quantity ?? 0), 0);
   async function save() {
     await act(async () => {
       await post(`/replies/${rep.id}/confirm`, { confirmed_by: who, total_price: Number(form.total_price), currency: form.currency, lead_time_days: Number(form.lead_time_days), covers_all_items: form.covers_all_items, moq_ok: form.moq_ok,
-        valid_until: form.valid_until || null, incoterm: form.incoterm || null, incoterm_place: form.incoterm_place.trim() || null, payment_days: form.payment_days === "" ? null : Number(form.payment_days) });
+        valid_until: form.valid_until || null, incoterm: form.incoterm || null, incoterm_place: form.incoterm_place.trim() || null, payment_days: form.payment_days === "" ? null : Number(form.payment_days),
+        lines: priced.length ? priced.map(([id, l]) => ({ item_id: Number(id), unit_price: Number(l.unit_price), moq: l.moq === "" ? null : Number(l.moq) })) : null });
       setRep(null); setText(""); setFile(null); setMsg("Saved as an offer.");
     });
   }
@@ -77,12 +84,47 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
           <label>Named place <input style={{ width: "10rem" }} placeholder="e.g. Belgrade" value={form.incoterm_place} onChange={(e) => set("incoterm_place", e.target.value)} /></label>
           <label>Payment, days <input type="number" min={0} max={365} style={{ width: "5rem" }} value={form.payment_days} onChange={(e) => set("payment_days", e.target.value)} /></label>
         </div>
+        <details><summary className="muted">Price per item (optional, lets you compare offers item by item)</summary>
+          <table><thead><tr><th>Item</th><th>Qty</th><th>Unit price</th><th>Minimum order</th></tr></thead><tbody>
+            {items.map((i) => <tr key={i.id}><td>{i.description}</td><td>{i.quantity} {i.unit}</td>
+              <td><input type="number" min={0} style={{ width: "7rem" }} value={lines[i.id]?.unit_price ?? ""} onChange={(e) => setLine(i.id, "unit_price", e.target.value)} /></td>
+              <td><input type="number" min={0} style={{ width: "6rem" }} value={lines[i.id]?.moq ?? ""} onChange={(e) => setLine(i.id, "moq", e.target.value)} /></td></tr>)}</tbody></table>
+          {priced.length > 0 && <p className="muted">Sum of the lines: {linesSum.toFixed(2)} {form.currency}.{priced.length < items.length ? " Items without a price make this offer incomplete." : ""}{Math.abs(linesSum - Number(form.total_price)) > 0.01 * linesSum ? " It differs from the total above." : ""}
+            {" "}<button onClick={() => set("total_price", linesSum.toFixed(2))}>Use as total</button></p>}
+        </details>
         {(rep.payment_terms || rep.warranty || rep.valid_until) && <p className="muted">{[rep.payment_terms && `terms: ${rep.payment_terms}`, rep.warranty && `warranty: ${rep.warranty}`, rep.valid_until && `valid until ${rep.valid_until}`].filter(Boolean).join(" · ")}</p>}
         <div className="row"><button className="primary" disabled={!form.total_price || !form.lead_time_days} onClick={save}>Save as offer</button>
           <span className="muted">Nothing counts as an offer until you save it.</span></div>
       </>}
     </div>
   );
+}
+
+/** Offers side by side, item by item. Code does the arithmetic; an offer that cannot be set against the others says why. */
+export function Comparison({ id, offers }: { id: string; offers: number }) {
+  const [c, setC] = useState<any>(null);
+  const [err, setErr] = useState("");
+  async function run() {
+    setErr("");
+    try { setC(await api(`/requests/${id}/comparison`)); } catch (e: any) { setErr(e.message); }
+  }
+  return <>
+    <div className="row"><button disabled={offers === 0} onClick={run}>Compare item by item</button>
+      {c && <a href={`/api/requests/${id}/comparison.xlsx`}><button>Excel</button></a>}</div>
+    {err && <div className="err">{err}</div>}
+    {c && <>
+      <table><thead><tr><th>Item</th>{c.offers.map((o: any) => <th key={o.offer_id}>{o.supplier}{o.currency !== "EUR" && <div className="muted">{o.currency} → EUR</div>}</th>)}</tr></thead><tbody>
+        {c.items.map((i: any) => <tr key={i.id}><td>{i.description} <span className="muted">× {i.quantity} {i.unit}</span></td>
+          {c.offers.map((o: any) => { const x = c.cells[o.offer_id]?.[i.id];
+            return <td key={o.offer_id} style={x?.best ? { fontWeight: 600, color: "var(--good, green)" } : undefined}>{x ? <>{eur(x.unit_price_eur)}{x.best && " ✓"}{x.moq != null && <div className="muted">min {x.moq}</div>}</> : <span className="muted">no price</span>}</td>; })}</tr>)}
+        <tr><td><b>Total, EUR</b></td>{c.offers.map((o: any) => <td key={o.offer_id}><b>{eur(o.total_eur)}</b></td>)}</tr>
+        <tr><td>Terms</td>{c.offers.map((o: any) => <td key={o.offer_id} className="muted">{[o.incoterm && `${o.incoterm}${o.incoterm_place ? " " + o.incoterm_place : ""}`, o.payment_days != null && `pay in ${o.payment_days} d`, `${o.lead_time_days} d lead`].filter(Boolean).join(" · ")}</td>)}</tr>
+        <tr><td>Can be compared?</td>{c.offers.map((o: any) => <td key={o.offer_id}>{o.comparable ? "yes" : <span className="err">no</span>}
+          {[...o.not_comparable, ...o.notes].map((n: string) => <div key={n} className="muted">{n}</div>)}</td>)}</tr>
+      </tbody></table>
+      <p className="muted">Unit prices are in EUR at the demo rates in Settings. The ✓ marks the lowest price among offers that can be compared; offers that cannot are never marked.</p>
+    </>}
+  </>;
 }
 
 /** Plain-language reading of the ranking table; the numbers stay the ones code computed. */

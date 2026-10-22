@@ -9,6 +9,12 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   days. All optional. Entered when a supplier answer is confirmed or an offer is added by hand; the ranking table shows them and
   flags what a buyer should notice (no validity date, offer expired or expiring within 3 days, no Incoterms rule, rule without a
   named place). The flags are warnings only and do not change scores. Migration 0013, 4 new tests.
+- **Prices per item and comparison (day 2):** an offer can carry a unit price and a minimum order per requested item. When it
+  does, code decides whether the offer covers all items and whether the minimum orders fit (the tick boxes cannot contradict the
+  lines). "Compare item by item" on the request page sets offers side by side in EUR, marks the lowest price per item among offers
+  that can be compared, and says why an offer cannot be (only a total, missing items, different or missing Incoterms, expired
+  price, sanctioned supplier); a stated total that differs from the sum of the lines is noted. Excel export of the same table.
+  Migration 0014, 9 new tests.
 
 ## PP1.2
 
