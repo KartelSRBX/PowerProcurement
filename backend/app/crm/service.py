@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.currency import convert, to_eur
 from app.intake.evaluate import load_gold, normalize
+from app.intake.routing import Route, apply_route, route_email
 from app.models import (
     AuditLog,
     CatalogPrice,
@@ -62,6 +63,94 @@ def store_raw_email(session: Session, mail, source: str) -> InboxEmail:
     )
     session.add(row)
     session.commit()
+    return row
+
+
+def route_incoming(session: Session, mail, source: str) -> tuple[InboxEmail, Route | None]:
+    """Store a mail and decide where it belongs. Returns the stored row and the route, or None for the
+    route when the mail was already routed earlier (polling the same folder again changes nothing)."""
+    row = store_raw_email(session, mail, source)
+    if row.route is not None:
+        return row, None
+    route = route_email(session, mail)
+    apply_route(session, row, route)
+    return row, route
+
+
+def unattached_mail(session: Session) -> list[dict]:
+    """Supplier-looking mail that could not be tied to a request without a person, with the requests it
+    could belong to (those where a letter was sent to the sender, or to anyone if the sender is unknown)."""
+    sent = list(session.scalars(select(Rfq).where(Rfq.status == "sent")))
+    names = {s.id: s.name for s in session.scalars(select(Supplier))}
+    out = []
+    for e in session.scalars(
+        select(InboxEmail).where(InboxEmail.route == "unattached").order_by(InboxEmail.id)
+    ):
+        mine = [
+            r
+            for r in sent
+            if (e.route_supplier_id is None or r.supplier_id == e.route_supplier_id)
+            and (e.route_request_id is None or r.request_id == e.route_request_id)
+        ]
+        out.append(
+            {
+                "id": e.id,
+                "sender": e.sender,
+                "subject": e.subject,
+                "body": e.body,
+                "received_at": _iso(e.received_at),
+                "reason": e.route_reason,
+                "supplier_id": e.route_supplier_id,
+                "candidates": [
+                    {
+                        "request_id": r.request_id,
+                        "supplier_id": r.supplier_id,
+                        "supplier": names.get(r.supplier_id),
+                    }
+                    for r in mine
+                ],
+            }
+        )
+    return out
+
+
+def attach_mail(session: Session, email_id: int, request_id: int, supplier_id: int, by: str) -> InboxEmail:
+    """A person says which request and supplier an unattached mail answers."""
+    who = _need_person(by)
+    row = session.get(InboxEmail, email_id)
+    if row is None:
+        raise LookupError("mail not found")
+    asked = session.scalar(
+        select(Rfq.id).where(
+            Rfq.request_id == request_id, Rfq.supplier_id == supplier_id, Rfq.status == "sent"
+        )
+    )
+    if asked is None:
+        raise PipelineError(
+            "no letter was sent to this supplier for this request, so it cannot be its answer"
+        )
+    apply_route(session, row, Route("supplier", request_id, supplier_id, f"attached by {who}"), by=who)
+    session.add(
+        AuditLog(
+            actor="human",
+            actor_id=who,
+            action="mail.attached",
+            payload={"mail_id": email_id, "request_id": request_id, "supplier_id": supplier_id},
+        )
+    )
+    session.commit()
+    return row
+
+
+def mark_not_supplier(session: Session, email_id: int, by: str) -> InboxEmail:
+    """A person says this is not a supplier's answer after all; it goes the customer-request way."""
+    who = _need_person(by)
+    row = session.get(InboxEmail, email_id)
+    if row is None:
+        raise LookupError("mail not found")
+    apply_route(
+        session, row, Route("customer", None, None, f"marked as not a supplier answer by {who}"), by=who
+    )
     return row
 
 
@@ -121,7 +210,12 @@ def mail_feed(session: Session, folder: str = "all", q: str = "", limit: int = 3
                     "subject": e.subject,
                     "body": e.body,
                     "at": _iso(e.received_at),
-                    "status": req.status if req else "unparsed",
+                    "status": req.status
+                    if req
+                    else (e.route if e.route in ("supplier", "unattached") else "unparsed"),
+                    "route": e.route,
+                    "route_request_id": e.route_request_id,
+                    "route_reason": e.route_reason,
                     "source": e.source,
                     "message_id": e.message_id,
                     "request": _parsed_brief(req),

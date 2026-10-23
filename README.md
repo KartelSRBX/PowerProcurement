@@ -353,6 +353,12 @@ A mailbox with **All / Inbox / Sent** folders, search, and a detail pane. In the
 emails in English, Serbian (Latin and Cyrillic) and German, including newsletters and thank-you notes that are
 **not** requests. Real inbox reading uses IMAP (see [configuration](#configuration-reference)).
 
+Mail from suppliers is told apart from customer mail when the inbox is polled. Each approved RFQ goes out with a
+Message-ID, so a reply that points back at it is matched exactly; otherwise the request number in the subject (`PP-00012`)
+and the sender's address decide, and a known supplier with only one request waiting is matched by address alone. Doubtful
+mail is shown as **unattached**: a person attaches it to a request and supplier, or says it is not a supplier answer.
+Matching never creates an offer.
+
 ![Mail: list and detail](docs/img/ui/mail-detail.png)
 
 For an incoming email that has no request yet you get the **Create a request from this email** panel:

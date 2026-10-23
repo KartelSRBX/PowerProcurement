@@ -293,6 +293,12 @@ class InboxEmail(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     source: Mapped[str] = mapped_column(String(16), nullable=False)  # imap | eml | demo
+    # where the mail was sent by app.intake.routing: customer | supplier | unattached (null = not routed yet)
+    route: Mapped[str | None] = mapped_column(String(16))
+    route_request_id: Mapped[int | None] = mapped_column(ForeignKey("customer_requests.id"))
+    route_supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"))
+    route_reason: Mapped[str | None] = mapped_column(String(300))
+    routed_by: Mapped[str | None] = mapped_column(String(128))  # "auto" or the person who attached it
 
 
 class QuoteHistory(Base):

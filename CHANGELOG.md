@@ -15,6 +15,12 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   that can be compared, and says why an offer cannot be (only a total, missing items, different or missing Incoterms, expired
   price, sanctioned supplier); a stated total that differs from the sum of the lines is noted. Excel export of the same table.
   Migration 0014, 9 new tests.
+- **Supplier mail finds its request (day 3):** mail arriving through the inbox poll is now sorted. A reply is matched to the
+  letter it answers by the Message-ID that every approved RFQ now carries, else by the request number in the subject (PP-00012)
+  together with the sender's address, else by the sender alone when only one request waits for that supplier. Matches are filed as
+  "supplier answer"; doubtful mail goes to an "unattached" list on the Mail tab, where a person attaches it to a request and
+  supplier or says it is not a supplier answer. Everything else still goes the customer-request way. Nothing creates an offer;
+  reading the answer is day 4. Migration 0015, 9 new tests.
 
 ## PP1.2
 

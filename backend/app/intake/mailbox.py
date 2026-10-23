@@ -20,6 +20,8 @@ class InboundEmail:
     subject: str
     body: str
     received_at: datetime
+    in_reply_to: str = ""
+    references: str = ""
 
 
 class MailboxReader(Protocol):
@@ -58,6 +60,8 @@ def parse_message(raw: bytes) -> InboundEmail:
         subject=_decode(msg["Subject"]),
         body=_text_body(msg),
         received_at=received,
+        in_reply_to=(msg["In-Reply-To"] or "").strip(),
+        references=" ".join((msg["References"] or "").split()),
     )
 
 

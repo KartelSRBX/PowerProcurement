@@ -5,7 +5,7 @@ from pathlib import Path
 
 from app.ai import make_adapter
 from app.config import get_settings
-from app.crm.service import store_raw_email
+from app.crm.service import route_incoming
 from app.db import get_session
 from app.intake.mailbox import EmlDirReader, ImapReader, MailboxReader
 from app.intake.service import intake_email
@@ -28,7 +28,11 @@ def main() -> int:
     adapter = make_adapter(s)
     source = "eml" if args.dir else "imap"
     for mail in reader.fetch_new():
-        store_raw_email(session, mail, source)
+        stored, route = route_incoming(session, mail, source)
+        if stored.route != "customer":  # a supplier's answer is not a customer request
+            if route is not None:
+                print(f"mail {stored.id}\t{stored.route}\t{stored.route_reason}\t{stored.subject}")
+            continue
         row = intake_email(session, adapter, s, mail)
         print(f"{row.id}\t{row.status}\t{row.confidence:.2f}\t{row.subject}")
     return 0

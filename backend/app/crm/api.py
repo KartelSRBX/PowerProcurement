@@ -27,6 +27,33 @@ def mail(folder: str = "all", q: str = "", session: Session = Depends(get_sessio
     return svc.mail_feed(session, folder, q)
 
 
+class AttachIn(BaseModel):
+    request_id: int
+    supplier_id: int
+    by: str
+
+
+class ByIn(BaseModel):
+    by: str
+
+
+@router.get("/mail/unattached")
+def unattached(session: Session = Depends(get_session)):
+    return svc.unattached_mail(session)
+
+
+@router.post("/mail/{email_id}/attach")
+def attach(email_id: int, body: AttachIn, session: Session = Depends(get_session)):
+    row = guarded(svc.attach_mail, session, email_id, body.request_id, body.supplier_id, body.by)
+    return {"id": row.id, "route": row.route, "request_id": row.route_request_id}
+
+
+@router.post("/mail/{email_id}/not-supplier")
+def not_supplier(email_id: int, body: ByIn, session: Session = Depends(get_session)):
+    row = guarded(svc.mark_not_supplier, session, email_id, body.by)
+    return {"id": row.id, "route": row.route}
+
+
 @router.post("/mail/demo-load")
 def demo_load(session: Session = Depends(get_session)):
     return {"added": svc.load_demo_inbox(session)}

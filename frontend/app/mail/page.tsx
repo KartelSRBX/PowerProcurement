@@ -8,7 +8,7 @@ import { usePerson } from "../lib/person";
 const STATUS: Record<string, [string, string]> = {
   unparsed: ["unparsed", "warn"], needs_review: ["needs review", "warn"], parsed: ["parsed by AI", "acc"],
   confirmed: ["request confirmed", "ok"], not_request: ["not a request", ""], draft: ["draft", "warn"],
-  sent: ["sent", "ok"], rejected: ["rejected", "bad"],
+  sent: ["sent", "ok"], rejected: ["rejected", "bad"], supplier: ["supplier answer", "ok"], unattached: ["unattached", "warn"],
 };
 const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", po: "purchase order", email: "customer email", followup: "supplier follow-up", reminder: "customer reminder", confirmation: "order confirmation", delivery: "delivery question" };
 
@@ -91,6 +91,43 @@ function RequestFromMail({ mail, onDone }: { mail: any; onDone: () => void }) {
   );
 }
 
+/** A supplier's mail: where it was filed and why, and for doubtful ones a way to say where it belongs. */
+function SupplierMail({ mail, onDone }: { mail: any; onDone: () => void }) {
+  const { person } = usePerson();
+  const [cands, setCands] = useState<any[]>([]);
+  const [pick, setPick] = useState("");
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    if (mail.status !== "unattached") return;
+    api<any[]>("/mail/unattached").then((l) => setCands(l.find((x) => x.id === mail.id)?.candidates ?? [])).catch(() => {});
+  }, [mail.id, mail.status]);
+  async function act(path: string, json: unknown) {
+    setErr("");
+    try { await api(`/mail/${mail.id}/${path}`, { method: "POST", json }); onDone(); } catch (e: any) { setErr(e.message); }
+  }
+  const named = person.trim().length > 1;
+  return (
+    <div className="letter">
+      {mail.status === "supplier"
+        ? <><b>Answer to request #{mail.route_request_id}</b> <span className="muted">{mail.route_reason}</span>
+          <div className="row"><Link href={`/requests/${mail.route_request_id}`}><button>Open the request</button></Link></div></>
+        : <><b>This looks like a supplier's mail, but it is not clear which request it answers.</b>
+          <div className="muted">{mail.route_reason}</div>
+          <div className="row">
+            <select value={pick} onChange={(e) => setPick(e.target.value)}>
+              <option value="">Which request and supplier?</option>
+              {cands.map((c) => <option key={`${c.request_id}-${c.supplier_id}`} value={`${c.request_id}:${c.supplier_id}`}>Request #{c.request_id} · {c.supplier}</option>)}
+            </select>
+            <button className="primary" disabled={!named || !pick} onClick={() => { const [r, s] = pick.split(":").map(Number); act("attach", { request_id: r, supplier_id: s, by: person }); }}>Attach</button>
+            <button disabled={!named} onClick={() => act("not-supplier", { by: person })}>Not a supplier answer</button>
+          </div>
+          {cands.length === 0 && <div className="muted">No request is waiting for a supplier answer.</div>}
+          {!named && <div className="muted">Enter your name at the top: a person decides where it belongs.</div>}</>}
+      {err && <div className="err">{err}</div>}
+    </div>
+  );
+}
+
 export default function MailPage() {
   const [folder, setFolder] = useState<"all" | "in" | "out">("all");
   const [q, setQ] = useState("");
@@ -167,7 +204,9 @@ export default function MailPage() {
                     <div className="row"><Link href={`/requests/${cur.request.request_id}`}><button>Open pipeline</button></Link><Link href={`/articles?request=${cur.request.request_id}`}><button>Match articles</button></Link><Link href={`/quote?request=${cur.request.request_id}`}><button>To the offer</button></Link></div>
                   </div>
                 )}
-                {cur.direction === "in" && !cur.request && <RequestFromMail key={cur.key} mail={cur} onDone={load} />}
+                {cur.direction === "in" && !cur.request && (cur.status === "supplier" || cur.status === "unattached")
+                  && <SupplierMail key={cur.key} mail={cur} onDone={load} />}
+                {cur.direction === "in" && !cur.request && cur.status !== "supplier" && cur.status !== "unattached" && <RequestFromMail key={cur.key} mail={cur} onDone={load} />}
                 {cur.direction === "out" && cur.request && <div className="row"><Link href={`/requests/${cur.request.request_id}`}><button>Request #{cur.request.request_id}</button></Link></div>}
               </div>
             </>

@@ -22,6 +22,7 @@ class OutboundMail:
     subject: str
     body: str
     approved_by: str
+    message_id: str | None = None  # lets a reply be matched to the letter it answers
 
 
 class MailSender:
@@ -40,6 +41,8 @@ class MailSender:
         msg = EmailMessage()
         msg["From"], msg["To"], msg["Subject"] = s.mail_from, mail.to, mail.subject
         msg["X-Approved-By"] = mail.approved_by
+        if mail.message_id:
+            msg["Message-ID"] = mail.message_id
         msg.set_content(mail.body)
         with smtplib.SMTP(s.smtp_host, s.smtp_port, timeout=10) as smtp:
             smtp.send_message(msg)

@@ -36,7 +36,14 @@ def client(monkeypatch):
             return False
 
         def send_message(self, msg):
-            outbox.append({"to": msg["To"], "subject": msg["Subject"], "approved_by": msg["X-Approved-By"]})
+            outbox.append(
+                {
+                    "to": msg["To"],
+                    "subject": msg["Subject"],
+                    "approved_by": msg["X-Approved-By"],
+                    "message_id": msg["Message-ID"],
+                }
+            )
 
     monkeypatch.setattr("app.mail.sender.smtplib.SMTP", RecordingSMTP)
     app.dependency_overrides[get_session] = lambda: session

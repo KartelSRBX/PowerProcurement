@@ -13,6 +13,7 @@ from app.assist.drafts import invoice_text, quote_text, rfq_text
 from app.assist.pool import augment_shortlist
 from app.config import Settings
 from app.currency import convert, to_eur
+from app.intake.routing import rfq_message_id
 from app.intake.schemas import ParsedRequest
 from app.intake.service import sync_items
 from app.legal.incoterms import CODES as INCOTERM_CODES
@@ -236,7 +237,10 @@ def decide_rfq(session: Session, sender: MailSender, rfq_id: int, approve: bool,
     if approve:
         sup = session.get(Supplier, rfq.supplier_id)
         rfq.sent_to = send_claimed(
-            session, sender, rfq, OutboundMail(sup.email, rfq.subject, rfq.body, approved_by=by)
+            session,
+            sender,
+            rfq,
+            OutboundMail(sup.email, rfq.subject, rfq.body, approved_by=by, message_id=rfq_message_id(rfq.id)),
         )
         rfq.status = "sent"
         rfq.sent_at = datetime.now(UTC)
