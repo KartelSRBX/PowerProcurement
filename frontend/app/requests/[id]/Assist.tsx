@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, eur } from "../../lib/api";
 import { AiOff, aiTag } from "../../lib/ai";
 
@@ -24,18 +24,29 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
     fr.onerror = () => no(new Error("the file could not be read in the browser"));
     fr.readAsDataURL(f);
   });
+  function show(r: any, note?: string) {
+    const p = r.proposal ?? r.extracted?.proposal ?? {};
+    setRep(r);
+    setForm({ total_price: p.total_price ?? "", currency: p.currency ?? "EUR", lead_time_days: p.lead_time_days ?? "", covers_all_items: p.covers_all_items ?? true, moq_ok: p.moq_ok ?? true, valid_until: /^\d{4}-\d{2}-\d{2}$/.test(r.valid_until ?? "") ? r.valid_until : "", incoterm: "", incoterm_place: "", payment_days: "" });
+    setLines({});
+    setMsg(note ?? (r.ai?.used ? `Read by ${r.read_by}. Check every number against the supplier's text before saving.` : r.ai?.note ?? "Type the numbers yourself."));
+  }
   async function read() {
     setMsg("");
     await act(async () => {
       const r = file
         ? await post(`/requests/${id}/replies/file`, { supplier_id: Number(sid), filename: file.name, content_base64: await toBase64(file), entered_by: who })
         : await post(`/requests/${id}/replies`, { supplier_id: Number(sid), text, entered_by: who });
-      const p = r.proposal ?? {};
-      setRep(r);
-      setForm({ total_price: p.total_price ?? "", currency: p.currency ?? "EUR", lead_time_days: p.lead_time_days ?? "", covers_all_items: p.covers_all_items ?? true, moq_ok: p.moq_ok ?? true, valid_until: /^\d{4}-\d{2}-\d{2}$/.test(r.valid_until ?? "") ? r.valid_until : "", incoterm: "", incoterm_place: "", payment_days: "" });
-      setLines({});
-      setMsg(r.ai.used ? `Read by ${r.read_by}. Check every number against the supplier's text before saving.` : r.ai.note ?? "Type the numbers yourself.");
+      show(r);
     });
+  }
+  const [mail, setMail] = useState<any[]>([]);
+  useEffect(() => { api<any[]>(`/requests/${id}/mail`).then(setMail).catch(() => setMail([])); }, [id, d, rep]);
+  const waiting = mail.filter((m) => m.waiting);
+  const unsaved = mail.filter((m) => !m.waiting && m.reply?.status === "extracted");
+  async function readMail(m: any) {
+    setMsg("");
+    await act(async () => { show(await post(`/mail/${m.id}/read`, { entered_by: who })); });
   }
   const items: any[] = d.items ?? [];
   const priced = Object.entries(lines).filter(([, l]) => l.unit_price !== "");
@@ -53,6 +64,16 @@ export function ReplyPanel({ id, who, ai, d, act, post }: Ctx) {
 
   return (
     <div className="letter">
+      {mail.length > 0 && <div className="letter">
+        <div className="row"><b>Waiting to be read ({waiting.length})</b><span className="muted">Mail from suppliers that the inbox filed under this request. Attachments are not kept: upload an attached file in the form below.</span></div>
+        {[...waiting, ...unsaved].map((m) => <div key={m.id} className="row">
+          <span><b>{m.supplier}</b> · {m.subject}<div className="muted">{m.body.slice(0, 140)}{m.body.length > 140 ? "…" : ""} · {m.how_matched}</div></span>
+          {m.waiting
+            ? <button className="primary" disabled={!who} onClick={() => readMail(m)}>{ai ? "Read with AI" : "Read"}</button>
+            : <button disabled={!who} onClick={() => show(m.reply, "Opened the earlier reading of this mail. Check every number against the supplier's text before saving.")}>Open the reading</button>}
+        </div>)}
+        {!who && <span className="muted">Enter your name at the top first.</span>}
+      </div>}
       <div className="row"><b>Enter a supplier's answer</b>{ai === false && <AiOff what="you type the numbers yourself." />}</div>
       {asked.length === 0 ? <p className="muted">Available after at least one letter to a supplier has been approved and sent.</p> : <>
         <div className="row"><select value={sid} onChange={(e) => { setSid(e.target.value ? Number(e.target.value) : ""); setRep(null); }}>

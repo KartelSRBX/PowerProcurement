@@ -12,7 +12,16 @@ from app.assist.drafts import items_text
 from app.assist.schemas import SupplierReply as ReplyAnswer
 from app.config import Settings
 from app.currency import convert
-from app.models import AuditLog, CustomerQuote, Offer, PurchaseOrder, Rfq, Supplier, SupplierReply
+from app.models import (
+    AuditLog,
+    CustomerQuote,
+    InboxEmail,
+    Offer,
+    PurchaseOrder,
+    Rfq,
+    Supplier,
+    SupplierReply,
+)
 from app.pipeline.service import (
     PipelineError,
     _need_person,
@@ -201,6 +210,57 @@ def list_replies(session: Session, request_id: int) -> list[dict]:
         select(SupplierReply).where(SupplierReply.request_id == request_id).order_by(SupplierReply.id)
     )
     return [reply_dict(r, names.get(r.supplier_id, "?")) for r in rows]
+
+
+def mail_for_request(session: Session, request_id: int) -> list[dict]:
+    """Supplier mail filed under this request, oldest first, with the reading of it once one exists.
+    Mail without a reading is "waiting to be read"."""
+    names = {s.id: s.name for s in session.scalars(select(Supplier))}
+    out = []
+    rows = session.scalars(
+        select(InboxEmail)
+        .where(InboxEmail.route == "supplier", InboxEmail.route_request_id == request_id)
+        .order_by(InboxEmail.received_at, InboxEmail.id)
+    )
+    for e in rows:
+        reply = session.get(SupplierReply, e.reply_id) if e.reply_id else None
+        out.append(
+            {
+                "id": e.id,
+                "supplier_id": e.route_supplier_id,
+                "supplier": names.get(e.route_supplier_id, "?"),
+                "sender": e.sender,
+                "subject": e.subject,
+                "body": e.body,
+                "received_at": e.received_at.isoformat() if e.received_at else None,
+                "how_matched": e.route_reason,
+                "waiting": reply is None,
+                "reply": reply_dict(reply, names.get(reply.supplier_id, "?")) if reply else None,
+            }
+        )
+    return out
+
+
+def read_mail(session: Session, settings: Settings, email_id: int, entered_by: str) -> dict:
+    """Read an attached supplier mail the way a pasted answer is read: the model (if on) extracts, code adds
+    up, a person confirms later. Reading the same mail twice would make two answers, so it is refused."""
+    by = _need_person(entered_by)
+    e = session.get(InboxEmail, email_id)
+    if e is None:
+        raise LookupError("mail not found")
+    if e.route != "supplier" or e.route_request_id is None or e.route_supplier_id is None:
+        raise PipelineError("this mail is not attached to a request and supplier yet")
+    if e.reply_id is not None:
+        raise PipelineError("this mail was already read: open its answer instead")
+    text = f"Subject: {e.subject}\n\n{e.body}".strip()
+    if not e.body.strip():
+        raise PipelineError(
+            "the mail has no text; if the answer is in an attachment, upload that file in the form below"
+        )
+    result = extract_reply(session, settings, e.route_request_id, e.route_supplier_id, text, by)
+    e.reply_id = result["id"]
+    session.commit()
+    return result
 
 
 def confirm_reply(

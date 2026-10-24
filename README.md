@@ -358,6 +358,7 @@ Message-ID, so a reply that points back at it is matched exactly; otherwise the 
 and the sender's address decide, and a known supplier with only one request waiting is matched by address alone. Doubtful
 mail is shown as **unattached**: a person attaches it to a request and supplier, or says it is not a supplier answer.
 Matching never creates an offer.
+On the request page the mail waits under **Waiting to be read**; the **Read** button turns it into an answer a person checks and saves.
 
 ![Mail: list and detail](docs/img/ui/mail-detail.png)
 

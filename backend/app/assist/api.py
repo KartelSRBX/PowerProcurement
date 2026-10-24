@@ -107,6 +107,25 @@ def add_reply_file(
     return guarded(read)
 
 
+@router.get("/requests/{request_id}/mail")
+def request_mail(request_id: int, session: Session = Depends(get_session)):
+    return replies.mail_for_request(session, request_id)
+
+
+class ReadMailIn(BaseModel):
+    entered_by: str
+
+
+@router.post("/mail/{email_id}/read")
+def read_mail(
+    email_id: int,
+    body: ReadMailIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    return guarded(replies.read_mail, session, settings, email_id, body.entered_by)
+
+
 @router.get("/requests/{request_id}/replies")
 def list_replies(request_id: int, session: Session = Depends(get_session)):
     return replies.list_replies(session, request_id)

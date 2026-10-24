@@ -299,6 +299,9 @@ class InboxEmail(Base):
     route_supplier_id: Mapped[int | None] = mapped_column(ForeignKey("suppliers.id"))
     route_reason: Mapped[str | None] = mapped_column(String(300))
     routed_by: Mapped[str | None] = mapped_column(String(128))  # "auto" or the person who attached it
+    reply_id: Mapped[int | None] = mapped_column(
+        ForeignKey("supplier_replies.id")
+    )  # set once a person had it read
 
 
 class QuoteHistory(Base):

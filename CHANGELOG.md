@@ -21,6 +21,10 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   "supplier answer"; doubtful mail goes to an "unattached" list on the Mail tab, where a person attaches it to a request and
   supplier or says it is not a supplier answer. Everything else still goes the customer-request way. Nothing creates an offer;
   reading the answer is day 4. Migration 0015, 9 new tests.
+- **"Waiting to be read" on a request (day 4):** the offers step of a request lists the supplier mail the inbox filed under it.
+  "Read" (with AI when a key is set, otherwise by hand) turns a mail into a supplier answer to check, exactly like a pasted one;
+  a mail is read once, an unsaved reading can be reopened, and nothing becomes an offer until a person saves it. Attachments are
+  not kept, so a file attached to the mail is uploaded in the form below. Migration 0016, 4 new tests.
 
 ## PP1.2
 
