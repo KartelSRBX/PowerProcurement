@@ -34,6 +34,12 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   (10,280 lines read from the user's copy); the PDF and the parsed table are not in the repository, only the parser and a small
   invented sample in the same layout. Load: `python -m app.duty.loader --pdf ...` or a CSV from the Settings page. Migration 0017,
   11 new tests.
+- **Landed-cost engine (day 6):** pure arithmetic in `app/pricing/landed.py` for what goods cost once they are in the warehouse:
+  goods, origin charges, carriage, insurance, duty, customs agent, inland transport and VAT. The Incoterms rule of the offer decides
+  which of these the seller's price already contains (EXW none, DDP all) and which the buyer adds from the figures a person gives.
+  A needed figure that is missing is a warning and marks the result incomplete; nothing is guessed. VAT that can be reclaimed is
+  shown but kept out of the landed cost. A simplified rule set for imports into Serbia, to be checked by a tax adviser; see
+  [ADR 0014](docs/decisions/0014-landed-cost.md). Not wired into scoring yet (days 7-8). 12 new tests, each recalculated by hand.
 
 ## PP1.2
 

@@ -1,0 +1,31 @@
+# 0014. Landed cost: arithmetic in code, figures from people, Incoterms decide who has paid what
+
+Status: part of the 30-day improvement plan (feature F5: landed cost instead of the flat demo markup per country). Built in three
+steps: the engine (this decision), the Calculator screen, then use in scoring and quotes.
+
+## Decisions
+
+- **Pure code, no AI.** `app/pricing/landed.py` takes the quoted price and the figures a person supplies (freight, insurance or a
+  rate, inland transport, customs agent, duty rate, VAT rate) and returns the lines, the customs value, duty, VAT, the landed cost
+  and the cash out. No database, no network.
+- **The Incoterms rule decides which figures the buyer still adds.** For each of the 11 rules there are five parts: origin charges,
+  main carriage, insurance, delivery after the named place, import duty and taxes. The seller's price already contains the ones
+  the rule makes the seller pay; the buyer adds the rest. EXW covers none of them, DDP all of them. The table is `COVERED` and a
+  test checks that it lists every rule of `app/legal/incoterms.py`.
+- **Nothing is guessed.** A figure that is needed and missing is a warning, counts as zero, and marks the result `complete: false`
+  so a caller can show it as a lower bound or refuse to rank on it. No default for freight, insurance, duty or VAT exists in the
+  code. A missing Incoterms rule is treated as ex works with a warning, because that is the case where nothing is hidden in the
+  price.
+- **Rule set.** Customs value = price + origin charges + carriage + insurance the buyer adds, minus the part of the price that pays
+  for transport after the border (D rules; the caller enters it). Duty = customs value x rate. VAT base = customs value + duty +
+  the buyer's own costs inside the country (agent, inland transport). VAT is not part of the landed cost when it can be reclaimed
+  (`vat_recoverable`, the caller's statement) and is shown separately as part of the cash out. This is a simplified rule set for
+  imports into Serbia and is marked as such; a tax adviser should check it before it decides a purchase.
+- **Rates come from the registry, not from the code.** The duty rate for a code and origin comes from the duty registry (day 5);
+  a preferential rate needs proof of origin, so choosing it stays a person's decision. The VAT rate is a setting.
+- **The old flat model stays as the fallback** until offers carry enough figures; scoring will say which of the two it used.
+
+## Not decided here
+
+- Excise duties, anti-dumping duties, quotas, customs fees by band and currency conversion of figures given in other currencies
+  (the caller converts to EUR first) are outside this step.
