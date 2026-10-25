@@ -640,3 +640,26 @@ class ContractFinding(Base):
     decided_by: Mapped[str | None] = mapped_column(String(128))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     note: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+
+class DutyRate(Base):
+    """One line of a customs tariff: the general duty and the rates under trade agreements, as printed.
+    The rows are loaded from the official tariff by a person; nothing here is typed in from memory."""
+
+    __tablename__ = "duty_rates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    code: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)  # 10 digits, no spaces
+    description: Mapped[str] = mapped_column(String(1000), nullable=False)
+    heading: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    unit: Mapped[str] = mapped_column(String(8), nullable=False, default="")
+    mfn_rate: Mapped[float | None] = mapped_column(Float)  # general duty, percent of customs value
+    mfn_text: Mapped[str] = mapped_column(String(200), nullable=False, default="")  # the cell as printed
+    # partner -> percent, or the printed text when it is not a plain number (a table reference, a minimum)
+    agreements: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    has_exceptions: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notes: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    source: Mapped[str] = mapped_column(String(200), nullable=False)  # which tariff this row came from
+    rate_date: Mapped[date | None] = mapped_column(Date)  # the date the rates are valid from
+    imported_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

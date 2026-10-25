@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, fmtDate } from "../lib/api";
 import { usePerson } from "../lib/person";
+import { Duties } from "./Duties";
 
 export default function Settings() {
   const { person } = usePerson();
@@ -99,6 +100,7 @@ export default function Settings() {
           </table>
         )}
       </section>
+      <Duties />
     </>
   );
 }

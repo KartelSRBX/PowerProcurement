@@ -25,6 +25,15 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   "Read" (with AI when a key is set, otherwise by hand) turns a mail into a supplier answer to check, exactly like a pasted one;
   a mail is read once, an unsaved reading can be reopened, and nothing becomes an offer until a person saves it. Attachments are
   not kept, so a file attached to the mail is uploaded in the form below. Migration 0016, 4 new tests.
+- **Duty registry (day 5):** a customs tariff can be loaded into the app and searched by code or words (Settings, "Customs duties").
+  Each line keeps the general duty, the unit and the rates under the trade agreements (SSP with the EU, CEFTA, EAEU and EFTA by
+  country, TR, GB, CN, AE, EG) as printed, with the tariff's name, the date and who loaded it. A rate that is not a plain
+  percentage (a table reference, a minimum, a sub-case with its own rates) is kept as text and marked "needs a look", never
+  converted. For a code and an origin country the registry returns the general and the preferential rate side by side; a
+  preference needs proof of origin and is never chosen automatically. A parser reads the official Serbian Customs Tariff 2026 PDF
+  (10,280 lines read from the user's copy); the PDF and the parsed table are not in the repository, only the parser and a small
+  invented sample in the same layout. Load: `python -m app.duty.loader --pdf ...` or a CSV from the Settings page. Migration 0017,
+  11 new tests.
 
 ## PP1.2
 

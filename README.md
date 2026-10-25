@@ -725,6 +725,15 @@ ships none; English contracts only; scanned PDFs without a text layer are not re
   numbers. **Fetch from NBS now** reads the current rate on demand; with NBS selected the app refreshes about every
   six hours, keeps every fetched rate with its date and keeps the last good one when a fetch fails. The bank
   itself has no free JSON feed, so the app reads the public mirror `kurs.resenje.org`; the address is itself a setting.
+- **Customs duties.** A registry of the lines of an official customs tariff: the general duty, the unit and the rates
+  under the trade agreements (SSP with the EU, CEFTA, EAEU and EFTA by country, TR, GB, CN, AE, EG), searchable by code
+  or words, with the tariff's name and date and who loaded it. For a code and an origin country it shows the general and
+  the preferential rate side by side; a preference needs proof of origin, so it is never applied for you. A rate that is
+  not a plain percentage (a table reference, a minimum, a sub-case) is kept as printed and marked "needs a look". Nothing
+  is typed from memory and no tariff ships with the app: load the official PDF with
+  `cd backend && uv run python -m app.duty.loader --pdf tariff.pdf --source "Customs Tariff 2026" --by "your name" --csv-out tariff.csv`
+  (about a minute and a half for 1,750 pages; written against the Serbian Customs Tariff 2026 layout) or load the saved CSV
+  here. Loading replaces the whole registry. Keep the PDF and the table out of git.
 
 ### Mailpit (demo inbox)
 
@@ -862,6 +871,7 @@ Browser ──> frontend (Next.js) ──/api──> backend (FastAPI) ──> P
 | `backend/app/vault/`, `runtime/` | Encrypted access vault; runtime settings, secret encryption, exchange rates |
 | `backend/app/ai/` | The AI adapter, versioned prompts, the one `run_task` helper every assisted step calls |
 | `backend/app/legal/` | Legal: act catalogue, loader, Incoterms data, clause analysis, the playbook, reports, API |
+| `backend/app/duty/` | Customs duty registry: tariff parser, loader, search, rates for an origin |
 | `backend/app/worktasks/` | Tasks in Bitrix24 / Excel / demo: saved settings, providers, plan, status sync, progress, Excel in and out |
 | `backend/app/assist/` | The assisted steps: supplier pool, letter drafts and their checks, supplier replies, follow-ups, explanations |
 | `backend/migrations/` | Alembic migrations (0001 to 0012) |
