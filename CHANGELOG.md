@@ -40,6 +40,12 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   A needed figure that is missing is a warning and marks the result incomplete; nothing is guessed. VAT that can be reclaimed is
   shown but kept out of the landed cost. A simplified rule set for imports into Serbia, to be checked by a tax adviser; see
   [ADR 0014](docs/decisions/0014-landed-cost.md). Not wired into scoring yet (days 7-8). 12 new tests, each recalculated by hand.
+- **Calculator tab (day 7):** the reserved tab is now the landed-cost calculator. It starts from a request and one of its
+  offers (items, unit prices, currency, Incoterms rule, supplier country) or from items typed by hand, takes the costs of the
+  whole shipment and a duty and VAT rate, and shows per item the customs value, duty, landed cost, cost per unit, VAT and
+  cash out, plus a total breakdown. Shipment costs are split over the items by value. "Find duty" looks a tariff code up in
+  the duty registry and offers the general and the agreement rate as buttons. New `POST /pricing/landed` and
+  `GET /requests/{id}/landed-draft`. 7 new tests.
 
 ## PP1.2
 

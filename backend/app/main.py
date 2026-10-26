@@ -13,6 +13,7 @@ from app.duty.api import router as duty_router
 from app.intake.api import router as requests_router
 from app.legal.api import router as legal_router
 from app.pipeline.api import router as pipeline_router
+from app.pricing.api import router as pricing_router
 from app.runtime import fx, store
 from app.runtime.api import router as settings_router
 from app.vault.api import router as vault_router
@@ -45,6 +46,7 @@ app.include_router(assist_router)
 app.include_router(worktasks_router)
 app.include_router(legal_router)
 app.include_router(duty_router)
+app.include_router(pricing_router)
 
 
 @app.get("/health")

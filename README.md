@@ -76,7 +76,7 @@ been run against the live API, so read the first real answers critically.
 | 5 | Collecting feedback | Reads a supplier answer (pasted, or a PDF / Excel / CSV / text file) into prices, lead time, MOQ, terms and gaps; explains the score table in words | **Code adds up the total**, warns about gaps; a person checks and saves the offer; scoring is code | Built (scanned PDFs without a text layer are not read) |
 | 6 | Secondary mailing when something is wrong | Writes a precise follow-up for a silent supplier or an answer with gaps | Code decides **who** needs one; the letter waits in **Approvals** | Built |
 | 7 | Invoice requests and the rest of the paperwork | Drafts the invoice request, the order confirmation to the customer, a delivery question to the supplier and a customer reminder; reads the customer's reply into a proposed outcome | A person edits and approves each letter and records the outcome | Built |
-| 8 | Calculations (future) | Suggests customs codes from descriptions, reads supplier proforma and invoice fields, explains a calculation | The calculation itself is deterministic code | Planned (the **Calculator** tab is reserved) |
+| 8 | Calculations (future) | Suggests customs codes from descriptions, reads supplier proforma and invoice fields, explains a calculation | The calculation itself is deterministic code | AI help planned; the calculation itself is built (the **Calculator** tab) |
 
 ### 1. Analytics of received requests
 
@@ -205,7 +205,7 @@ as every other letter and leave only after a person approves them.
 
 ### 8. In the future: calculations
 
-The **Calculator** tab is reserved for the project's own landed-cost calculator. The plan for the AI there is
+The **Calculator** tab holds the project's own landed-cost calculator (see below). The plan for the AI there is
 narrow on purpose: suggest the **customs tariff code** from a product description, read the fields of a supplier's
 proforma or invoice (price, quantity, weight, origin), and explain a finished calculation in words. Duties,
 freight, VAT and exchange rates are then computed by deterministic code from a rate table, so the same inputs always
@@ -525,9 +525,22 @@ based on category, 261 quotes)* with a **Use 20.5%** button.
 
 ### Calculator
 
-A reserved tab. It reads **"Unique to the project"** and is where the project's own landed-cost calculator will go.
+What the goods cost once they are in the warehouse. Pick a request and one of its offers and the form fills in
+the items, the unit prices, the currency, the **Incoterms** rule and the supplier's country; or type the items by hand.
+You then give the costs of the shipment (origin charges, main carriage, insurance, transport inside the country, customs
+agent), the duty rate for each item and the VAT rate. **Find duty** looks up a tariff code in the duty registry (Settings)
+and offers the general rate and, for the origin country, the agreement rate as buttons: nothing is chosen for you, because a
+preferential rate needs proof of origin.
 
-![Calculator placeholder](docs/img/ui/calculator.png)
+The result updates as you type. It shows, per item, the customs value, duty, landed cost, landed cost per unit, VAT and
+cash out, and a total with a "where the money goes" breakdown. Costs of the whole shipment are split over the items by
+their value. The Incoterms rule decides what the supplier's price already includes (EXW nothing, DDP everything). A
+figure left empty is counted as zero, named in a warning, and the result is marked **incomplete: a lower bound**. The
+arithmetic is code (`app/pricing/landed.py`, `app/pricing/calculator.py`), the same inputs always give the same result,
+and the rules are a simplified set for imports into Serbia that a tax adviser should check
+([ADR 0014](docs/decisions/0014-landed-cost.md)). Scoring and customer quotes do not use it yet.
+
+![Calculator](docs/img/ui/calculator.png)
 
 ### Tasks (Bitrix24, Excel)
 
@@ -952,8 +965,7 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | 7 | Analytics and markup | Test recovers patterns planted in the synthetic data (**done; real outcomes will replace synthetic ones**) |
 | 8 | Publication | README, demo GIF, AI work log; runs in a minute (**README and install done; demo video pending**) |
 
-Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal), Legal contract review (the norm base is filled by the loader: 30 of 53 acts have been loaded and checked, the 23 Serbian, Chinese and UAE acts wait for files; no statute text ships with the repository). Not built: roles and sign-in, a detailed landed-cost
-calculator (the Calculator tab is reserved for it), live price sources.
+Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal), Legal contract review (the norm base is filled by the loader: 30 of 53 acts have been loaded and checked, the 23 Serbian, Chinese and UAE acts wait for files; no statute text ships with the repository). Not built: roles and sign-in, landed cost inside scoring and quotes (the Calculator tab works on its own), live price sources.
 
 More: [architecture](docs/architecture.md) · [how AI was directed](docs/ai-workflow.md) ·
 [decision records](docs/decisions/)
