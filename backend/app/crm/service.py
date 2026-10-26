@@ -26,7 +26,7 @@ from app.models import (
     Supplier,
 )
 from app.pipeline.service import PipelineError, get_request, items_of
-from app.scoring.scoring import landed_cost
+from app.pricing.offer_cost import cost_for
 from app.suppliers import profile
 from app.suppliers.shortlist import catalog_lines_for
 
@@ -614,12 +614,16 @@ def quote_preview(
         raise ValueError("markup must be greater than -100%")
     sup = session.get(Supplier, offer.supplier_id)
     goods_eur = to_eur(offer.total_price, offer.currency, settings)
-    cost = landed_cost(goods_eur, sup.country)
+    basis = cost_for(session, settings, offer, sup)
+    cost = basis.cost_eur
     price_eur = cost * (1 + markup)
     return {
         "supplier": sup.name,
         "goods_eur": round(goods_eur, 2),
         "landed_cost_eur": round(cost, 2),
+        "cost_source": basis.source,
+        "cost_note": basis.note,
+        "cost_breakdown": basis.breakdown,
         "price_eur": round(price_eur, 2),
         "price": round(convert(price_eur, "EUR", currency, settings), 2),
         "currency": currency,

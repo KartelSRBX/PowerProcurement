@@ -538,9 +538,17 @@ their value. The Incoterms rule decides what the supplier's price already includ
 figure left empty is counted as zero, named in a warning, and the result is marked **incomplete: a lower bound**. The
 arithmetic is code (`app/pricing/landed.py`, `app/pricing/calculator.py`), the same inputs always give the same result,
 and the rules are a simplified set for imports into Serbia that a tax adviser should check
-([ADR 0014](docs/decisions/0014-landed-cost.md)). Scoring and customer quotes do not use it yet.
+([ADR 0014](docs/decisions/0014-landed-cost.md)).
+
+With an offer chosen, **Save for this offer** keeps the calculation as that offer's landed cost. Scoring, the quote preview,
+the customer quote and the purchase order then use it instead of the old flat estimate per country, as long as it is
+complete and the offer's price has not changed. Every cost in the score table and the quote page is labelled
+**calculation** or **flat estimate** (hover for the reason), and a quote stores which basis and which breakdown it used.
+An incomplete calculation is saved but not used: it would make the offer look cheaper than it is.
 
 ![Calculator](docs/img/ui/calculator.png)
+
+![A saved calculation](docs/img/ui/calculator-saved.png)
 
 ### Tasks (Bitrix24, Excel)
 
@@ -762,7 +770,9 @@ Everything below is code you can read (`backend/app/scoring`, `backend/app/prici
 changes a number.
 
 **Landed cost.** Goods price in EUR, plus a demo model of freight and duty as a share of goods value by supplier
-country: RS 3%, DE/PL/HU 5%, TR 12%, CN 18%, any other country 10%. These are proposals, not real tariffs.
+country: RS 3%, DE/PL/HU 5%, TR 12%, CN 18%, any other country 10%. These are proposals, not real tariffs. This flat
+estimate is only the fallback: an offer with a complete saved Calculator calculation is judged by that instead, and the
+score table says which one it used.
 
 **Hard filters.** A sanctioned supplier and an offer that does not cover every requested item are excluded before
 scoring and shown last with the reason. Suppliers whose newest check says *not working* never reach the shortlist.
@@ -965,7 +975,7 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | 7 | Analytics and markup | Test recovers patterns planted in the synthetic data (**done; real outcomes will replace synthetic ones**) |
 | 8 | Publication | README, demo GIF, AI work log; runs in a minute (**README and install done; demo video pending**) |
 
-Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal), Legal contract review (the norm base is filled by the loader: 30 of 53 acts have been loaded and checked, the 23 Serbian, Chinese and UAE acts wait for files; no statute text ships with the repository). Not built: roles and sign-in, landed cost inside scoring and quotes (the Calculator tab works on its own), live price sources.
+Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal), Legal contract review (the norm base is filled by the loader: 30 of 53 acts have been loaded and checked, the 23 Serbian, Chinese and UAE acts wait for files; no statute text ships with the repository). Not built: roles and sign-in, live price sources.
 
 More: [architecture](docs/architecture.md) · [how AI was directed](docs/ai-workflow.md) ·
 [decision records](docs/decisions/)

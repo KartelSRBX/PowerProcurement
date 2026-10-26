@@ -25,6 +25,20 @@ steps: the engine (this decision), the Calculator screen, then use in scoring an
   a preferential rate needs proof of origin, so choosing it stays a person's decision. The VAT rate is a setting.
 - **The old flat model stays as the fallback** until offers carry enough figures; scoring will say which of the two it used.
 
+## Used in scoring, quotes and orders (day 8)
+
+- **A saved calculation per offer.** A person saves the Calculator's result for one offer (`offer_costs`: inputs, result,
+  who, when). Scoring, the quote preview, the customer quote and the purchase order all ask one function
+  (`app/pricing/offer_cost.py`) which cost an offer is judged by.
+- **Only a complete, matching calculation counts.** An incomplete one is a lower bound and would make an offer look cheaper
+  than it is, so it is saved but not used. A calculation whose goods value no longer matches the offer's price (the offer
+  changed after saving) is not used either. Saving is refused when the items add up to a different price than the offer.
+- **The flat estimate stays as the fallback**, so every offer still has a cost to rank by. Every result carries `cost_source`
+  (`calculation` or `flat estimate`) and, for the flat estimate, the reason. A quote stores the basis and the breakdown it used,
+  so the cost in an old quote can be explained after the calculation or the rates have changed.
+- **Mixed ranking is possible**: one offer judged by a calculation and another by the flat estimate. The table says which is
+  which instead of hiding it. Calculating every offer before ranking is the person's call.
+
 ## Not decided here
 
 - Excise duties, anti-dumping duties, quotas, customs fees by band and currency conversion of figures given in other currencies

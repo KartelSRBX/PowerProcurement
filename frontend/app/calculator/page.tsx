@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState } from "react";
-import { api, eur } from "../lib/api";
+import { api, eur, fmtDate } from "../lib/api";
+import { usePerson } from "../lib/person";
 
 type Row = { key: number; description: string; quantity: string; unit_price: string; hs_code: string; duty_pct: string; vat_pct: string; hint?: any; choices?: any[]; hintErr?: string };
 
@@ -20,6 +21,7 @@ const SHARED: [string, string, string][] = [
 
 function Inner() {
   const params = useSearchParams();
+  const { person } = usePerson();
   const [reqs, setReqs] = useState<any[]>([]);
   const [rid, setRid] = useState(params.get("request") ?? "");
   const [draft, setDraft] = useState<any>(null);
@@ -37,21 +39,37 @@ function Inner() {
   const [res, setRes] = useState<any>(null);
   const [err, setErr] = useState("");
   const [notes, setNotes] = useState<string[]>([]);
+  const [saved, setSaved] = useState<any>(null);
+  const [saveNote, setSaveNote] = useState<{ ok: boolean; text: string } | null>(null);
 
   useEffect(() => { api<any[]>("/requests").then(setReqs).catch(() => setReqs([])); }, []);
   useEffect(() => { api<any>("/legal/incoterms").then((d) => setRules(d.rules.map((x: any) => x.code))).catch(() => setRules([])); }, []);
 
+  const fill = useCallback((inp: any) => {
+    setCurrency(inp.currency); setIncoterm(inp.incoterm ?? "");
+    setRows(inp.lines.map((l: any, i: number) => ({ key: i + 1, description: l.description, quantity: String(l.quantity), unit_price: String(l.unit_price), hs_code: l.hs_code ?? "", duty_pct: l.duty_pct == null ? "" : String(l.duty_pct), vat_pct: l.vat_pct == null ? "" : String(l.vat_pct) })));
+    setCost(Object.fromEntries(SHARED.map(([k]) => [k, inp[k] == null ? "" : String(inp[k])])));
+    setInsPct(inp.insurance_pct == null ? "" : String(inp.insurance_pct));
+    setInlandIn(inp.inland_in_price ? String(inp.inland_in_price) : "");
+    setVat(inp.vat_pct == null ? "" : String(inp.vat_pct));
+    setRecoverable(inp.vat_recoverable !== false);
+  }, []);
+
   const load = useCallback(async (request: string, offer: string) => {
-    setErr(""); setNotes([]);
+    setErr(""); setNotes([]); setSaved(null); setSaveNote(null);
     if (!request) { setDraft(null); return; }
     try {
       const d = await api<any>(`/requests/${request}/landed-draft${offer ? `?offer_id=${offer}` : ""}`);
       setDraft(d);
-      if (offer) { setCurrency(d.currency); setIncoterm(d.incoterm ?? ""); setCountry(d.origin_country ?? ""); }
-      setRows(d.lines.map((l: any, i: number) => ({ ...blank(i + 1), description: l.description, quantity: String(l.quantity), unit_price: l.unit_price == null ? "" : String(l.unit_price) })));
+      if (offer) { setCountry(d.origin_country ?? ""); }
+      if (offer && d.saved) { fill(d.saved.inputs); setSaved(d.saved); }
+      else {
+        if (offer) { setCurrency(d.currency); setIncoterm(d.incoterm ?? ""); }
+        setRows(d.lines.map((l: any, i: number) => ({ ...blank(i + 1), description: l.description, quantity: String(l.quantity), unit_price: l.unit_price == null ? "" : String(l.unit_price) })));
+      }
       setNotes(d.notes);
     } catch (e: any) { setErr(e.message); }
-  }, []);
+  }, [fill]);
   useEffect(() => { load(rid, offerId); }, [rid, offerId, load]);
 
   const body = () => ({
@@ -74,6 +92,19 @@ function Inner() {
     return () => clearTimeout(t);
   }, [rows, currency, incoterm, cost, insPct, inlandIn, vat, recoverable]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  async function save() {
+    setSaveNote(null);
+    try {
+      const d = await api<any>(`/offers/${offerId}/cost`, { method: "PUT", json: { ...body(), saved_by: person } });
+      setSaved(d);
+      setSaveNote({ ok: true, text: d.used ? "Saved. Scoring and quotes for this offer now use this calculation." : "Saved, but it is incomplete, so scoring and quotes still use the flat estimate until every figure is given." });
+    } catch (e: any) { setSaveNote({ ok: false, text: e.message }); }
+  }
+  async function unsave() {
+    setSaveNote(null);
+    try { await api(`/offers/${offerId}/cost`, { method: "DELETE" }); setSaved(null); setSaveNote({ ok: true, text: "Removed. This offer is judged by the flat estimate again." }); }
+    catch (e: any) { setSaveNote({ ok: false, text: e.message }); }
+  }
   const set = (key: number, patch: Partial<Row>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   async function pick(key: number, code: string) {
     try {
@@ -153,6 +184,15 @@ function Inner() {
         {err && <div className="err">{err}</div>}
         {!ready && <p className="muted">Fill in a name, a quantity and a price for each item to see the result.</p>}
         {res && <Result res={res} />}
+        {offerId && <div className="letter" data-testid="save-box">
+          <b>Use this for the offer</b>
+          <div className="muted">Saving makes this calculation the landed cost of the chosen offer in scoring, quote preview, quotes and the purchase order, as long as it is complete and the offer’s price does not change. Without one, a flat estimate by country is used.</div>
+          {saved && <div>Saved by {saved.saved_by} on {fmtDate(saved.saved_at)}: {eur(saved.landed_cost_eur)} EUR · {saved.used ? <span className="tag ok">in use</span> : <span className="tag warn">not in use: {!saved.complete ? "incomplete" : "the offer’s price changed"}</span>}</div>}
+          <div className="row"><button className="primary" disabled={!person.trim() || !res} onClick={save}>{saved ? "Save again" : "Save for this offer"}</button>
+            {saved && <button onClick={unsave}>Remove the saved calculation</button>}
+            {!person.trim() && <span className="muted">Enter your name at the top: a person saves a calculation.</span>}</div>
+          {saveNote && <div className={saveNote.ok ? "ok-note" : "err"}>{saveNote.text}</div>}
+        </div>}
       </div>
     </div>
   );

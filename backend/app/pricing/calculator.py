@@ -11,9 +11,10 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.currency import CURRENCIES, to_eur
-from app.models import Offer, OfferLine, Supplier
+from app.models import Offer, OfferCost, OfferLine, Supplier
 from app.pipeline.service import get_request, items_of
 from app.pricing.landed import Landed, LandedInput, compute
+from app.pricing.offer_cost import PRICE_TOLERANCE, matches_offer, saved_for
 
 SHARED = ("origin", "freight", "insurance", "inland", "clearance", "inland_in_price")
 
@@ -189,6 +190,7 @@ def draft_from_request(
     offer = next((o for o in offers if o.id == offer_id), None)
     if offer is None:
         raise LookupError(f"offer {offer_id} is not on request {request_id}")
+    out["saved"] = saved_dump(saved_for(session, offer.id), offer, settings)
     out |= {
         "offer_id": offer.id,
         "currency": offer.currency,
@@ -219,3 +221,59 @@ def draft_from_request(
     if not offer.incoterm:
         out["notes"].append("the offer states no Incoterms rule: choose one before trusting the result")
     return out
+
+
+def save_for_offer(session: Session, settings: Settings, offer_id: int, inputs: dict, saved_by: str) -> dict:
+    """Keep a calculation as the landed cost of one offer. Refused when the items add up to a different
+    price than the offer states: that calculation is about something else."""
+    person = saved_by.strip()
+    if not person:
+        raise ValueError("a named person is required to save a calculation")
+    offer = session.get(Offer, offer_id)
+    if offer is None:
+        raise LookupError(f"offer {offer_id} not found")
+    lines = [CalcLine(**ln) for ln in inputs["lines"]]
+    rest = {k: v for k, v in inputs.items() if k != "lines"}
+    result = calculate(CalcInput(lines=lines, **rest), settings)
+    goods = sum(ln["value_eur"] for ln in result["lines"])
+    offer_eur = to_eur(offer.total_price, offer.currency, settings)
+    if abs(goods - offer_eur) > PRICE_TOLERANCE * offer_eur:
+        raise ValueError(
+            f"the items add up to {goods:.2f} EUR but the offer is {offer_eur:.2f} EUR: "
+            "fix the prices or choose the right offer"
+        )
+    row = saved_for(session, offer_id)
+    if row is None:
+        row = OfferCost(offer_id=offer_id)
+        session.add(row)
+    row.inputs, row.result = inputs, result
+    row.goods_eur = offer_eur
+    row.landed_cost_eur = result["total"]["landed_cost_eur"]
+    row.complete = result["complete"]
+    row.saved_by = person
+    session.commit()
+    return saved_dump(row, offer, settings)
+
+
+def saved_dump(row: OfferCost | None, offer: Offer, settings: Settings) -> dict | None:
+    if row is None:
+        return None
+    return {
+        "offer_id": row.offer_id,
+        "inputs": row.inputs,
+        "result": row.result,
+        "landed_cost_eur": row.landed_cost_eur,
+        "complete": row.complete,
+        "matches_offer": matches_offer(row, offer, settings),
+        "saved_by": row.saved_by,
+        "saved_at": row.saved_at.isoformat() if row.saved_at else None,
+        "used": row.complete and matches_offer(row, offer, settings),
+    }
+
+
+def delete_for_offer(session: Session, offer_id: int) -> None:
+    row = saved_for(session, offer_id)
+    if row is None:
+        raise LookupError("no calculation is saved for this offer")
+    session.delete(row)
+    session.commit()

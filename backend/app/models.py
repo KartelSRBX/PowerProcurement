@@ -235,6 +235,28 @@ class CustomerQuote(Base):
         String(120), nullable=False, default="template", server_default="template"
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # where cost_eur came from: "calculation" (a saved landed-cost calculation) or "flat estimate"
+    cost_basis: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="flat estimate", server_default="flat estimate"
+    )
+    cost_breakdown: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+
+
+class OfferCost(Base):
+    """A person's landed-cost calculation for one offer: the inputs as entered and the result as computed.
+    Scoring and quotes use it when it is complete and still matches the offer; otherwise the flat estimate."""
+
+    __tablename__ = "offer_costs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    offer_id: Mapped[int] = mapped_column(ForeignKey("offers.id"), unique=True, nullable=False)
+    inputs: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    result: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    goods_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    landed_cost_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    complete: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    saved_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    saved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class PriceEvent(Base):

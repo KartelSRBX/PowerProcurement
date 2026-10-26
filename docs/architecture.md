@@ -35,4 +35,4 @@ price sources and risk checks.
 
 ## Not built yet
 
-Roles and sign-in, landed cost inside scoring and quotes (the Calculator tab works on its own), live price sources. See the roadmap in the README.
+Roles and sign-in, live price sources. See the roadmap in the README.

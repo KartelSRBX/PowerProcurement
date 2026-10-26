@@ -35,9 +35,10 @@ from app.models import (
     Supplier,
 )
 from app.orders.templates import po_letter
+from app.pricing.offer_cost import cost_for
 from app.pricing.service import fetch_target_prices, target_total_eur
 from app.rfq.templates import ItemLine, pick_language
-from app.scoring.scoring import OfferFacts, SupplierFacts, Weights, landed_cost, score_offers
+from app.scoring.scoring import OfferFacts, SupplierFacts, Weights, score_offers
 from app.suppliers.shortlist import build_shortlist, catalog_lines_for
 
 
@@ -431,8 +432,9 @@ def score_request(
     pairs, by_offer = [], {}
     for o in offers:
         sup = session.get(Supplier, o.supplier_id)
-        landed = landed_cost(to_eur(o.total_price, o.currency, settings), sup.country)
-        by_offer[o.id] = (o, sup, landed)
+        basis = cost_for(session, settings, o, sup)
+        landed = basis.cost_eur
+        by_offer[o.id] = (o, sup, landed, basis)
         pairs.append(
             (
                 OfferFacts(o.id, sup.id, landed, o.lead_time_days, o.covers_all_items, o.moq_ok),
@@ -455,7 +457,7 @@ def score_request(
     results = score_offers(pairs, target, _days_available(req, today), weights)
     out = []
     for r in results:
-        o, sup, landed = by_offer[r.offer_id]
+        o, sup, landed, basis = by_offer[r.offer_id]
         out.append(
             {
                 "offer_id": o.id,
@@ -468,6 +470,8 @@ def score_request(
                 "offer_total": o.total_price,
                 "currency": o.currency,
                 "landed_cost_eur": round(landed, 2),
+                "cost_source": basis.source,
+                "cost_note": basis.note,
                 "lead_time_days": o.lead_time_days,
                 "offer_source": o.source,
                 "valid_until": o.valid_until,
@@ -512,7 +516,8 @@ def create_quote(
     markup = settings.default_markup if markup is None else markup
     if markup <= -1:
         raise PipelineError("markup must be greater than -100%")
-    cost_eur = landed_cost(to_eur(offer.total_price, offer.currency, settings), sup.country)
+    basis = cost_for(session, settings, offer, sup)
+    cost_eur = basis.cost_eur
     price = convert(cost_eur * (1 + markup), "EUR", currency, settings)
     lang = _customer_language(req)
     subject, body, drafted_by = quote_text(
@@ -529,6 +534,8 @@ def create_quote(
         request_id=request_id,
         offer_id=offer_id,
         cost_eur=round(cost_eur, 2),
+        cost_basis=basis.source,
+        cost_breakdown=basis.breakdown | ({"note": basis.note} if basis.note else {}),
         markup=markup,
         currency=currency,
         price=round(price, 2),
@@ -666,13 +673,15 @@ def create_po(
         raise PipelineError("a purchase order already exists for this request")
     offer = session.get(Offer, quote.offer_id)
     sup = session.get(Supplier, offer.supplier_id)
-    cost_eur = landed_cost(to_eur(offer.total_price, offer.currency, settings), sup.country)
+    basis = cost_for(session, settings, offer, sup)
+    cost_eur = basis.cost_eur
     agreed = outcome.price if outcome.price is not None else quote.price
     agreed_eur = to_eur(agreed, outcome.currency or quote.currency, settings)
     checks = {
         "within_po_limit": cost_eur <= settings.po_budget_limit_eur,
         "po_limit_eur": settings.po_budget_limit_eur,
         "cost_eur": round(cost_eur, 2),
+        "cost_source": basis.source,
         "agreed_price_eur": round(agreed_eur, 2),
         "not_below_cost": agreed_eur >= cost_eur,
     }

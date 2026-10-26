@@ -46,6 +46,35 @@ def landed(body: LandedIn, settings: Settings = Depends(get_settings)):
         raise HTTPException(422, str(exc)) from exc
 
 
+class SaveIn(LandedIn):
+    saved_by: str = Field(max_length=128)
+
+
+@router.put("/offers/{offer_id}/cost")
+def save_cost(
+    offer_id: int,
+    body: SaveIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    inputs = body.model_dump(exclude={"saved_by"})
+    try:
+        return calc.save_for_offer(session, settings, offer_id, inputs, body.saved_by)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.delete("/offers/{offer_id}/cost")
+def delete_cost(offer_id: int, session: Session = Depends(get_session)):
+    try:
+        calc.delete_for_offer(session, offer_id)
+    except LookupError as exc:
+        raise HTTPException(404, str(exc)) from exc
+    return {"deleted": True}
+
+
 @router.get("/requests/{request_id}/landed-draft")
 def draft(
     request_id: int,

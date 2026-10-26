@@ -46,6 +46,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   cash out, plus a total breakdown. Shipment costs are split over the items by value. "Find duty" looks a tariff code up in
   the duty registry and offers the general and the agreement rate as buttons. New `POST /pricing/landed` and
   `GET /requests/{id}/landed-draft`. 7 new tests.
+- **Landed cost in scoring, quotes and orders (day 8):** a calculation saved for an offer (migration 0018, `PUT
+  /offers/{id}/cost`) becomes that offer's cost in scoring, the quote preview, the customer quote and the purchase order, when
+  it is complete and the offer's price still matches. Otherwise the old flat estimate per country is used and says why. Every
+  cost is labelled `calculation` or `flat estimate`; a quote stores its cost basis and breakdown. The Calculator restores a
+  saved calculation and can remove it. 7 new tests.
 
 ## PP1.2
 

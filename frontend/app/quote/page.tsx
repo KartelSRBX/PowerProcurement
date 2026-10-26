@@ -77,11 +77,11 @@ function Inner() {
                   <tr key={r.offer_id} className={r.excluded ? "" : "click"} style={r.excluded ? { opacity: 0.6 } : undefined} onClick={() => !r.excluded && setOfferId(r.offer_id)}>
                     <td><input type="radio" disabled={!!r.excluded} checked={offerId === r.offer_id} readOnly /></td>
                     <td>{r.supplier} ({r.country}){r.flags.length > 0 && <div className="muted">{r.flags.join("; ")}</div>}{r.excluded && <div className="err">excluded: {r.excluded}</div>}</td>
-                    <td className="num">{r.excluded ? "—" : <b>{r.total}</b>}</td><td className="num">{eur(r.landed_cost_eur)}</td><td className="num">{r.lead_time_days}</td>
+                    <td className="num">{r.excluded ? "—" : <b>{r.total}</b>}</td><td className="num">{eur(r.landed_cost_eur)}<div><span className={`tag ${r.cost_source === "calculation" ? "ok" : "warn"}`} title={r.cost_note}>{r.cost_source}</span></div></td><td className="num">{r.lead_time_days}</td>
                   </tr>))}</tbody>
               </table>
             )}
-            <p className="muted">Scores are computed by code with fixed formulas, not by AI. Cost includes estimated duties and delivery.</p>
+            <p className="muted">Scores are computed by code with fixed formulas, not by AI. Cost is a saved landed-cost calculation where there is one (<Link href="/calculator">Calculator</Link>); otherwise a flat estimate of duties and delivery by country.</p>
           </section>
 
           <section>
@@ -100,10 +100,11 @@ function Inner() {
             {prev && (
               <>
                 <div className="kpis">
-                  <div className="kpi"><div className="v">{eur(prev.landed_cost_eur)}</div><div className="l">cost, EUR</div></div>
+                  <div className="kpi"><div className="v">{eur(prev.landed_cost_eur)}</div><div className="l">cost, EUR · {prev.cost_source}</div></div>
                   <div className="kpi"><div className="v">{eur(prev.price)}</div><div className="l">customer price, {prev.currency}</div></div>
                   <div className="kpi" style={{ borderTopColor: prev.below_cost ? "var(--bad)" : "var(--ok)" }}><div className="v">{eur(prev.margin_eur)}</div><div className="l">margin, EUR</div></div>
                 </div>
+                {prev.cost_source !== "calculation" && <p className="muted">This cost is a rough flat estimate ({prev.cost_note}). <Link href={`/calculator?request=${rid}&offer=${offerId}`}>Calculate it</Link> before quoting a large order.</p>}
                 {prev.below_cost && <div className="err">Price is below cost: this quote cannot be taken to an order.</div>}
                 <button className="primary" disabled={!who || !!prev.excluded} onClick={() => act(() => post(`/requests/${rid}/quotes`, { offer_id: offerId, markup: markup / 100, currency: cur, created_by: who }))}>Create quote draft</button>
                 {!who && <span className="muted"> Enter your name at the top.</span>}
