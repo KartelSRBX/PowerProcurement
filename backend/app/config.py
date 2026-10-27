@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     default_markup: float = 0.15
     # A supplier that has not answered a sent letter after this many days gets a follow-up draft.
     followup_after_days: int = 3
+    # A customs tariff whose rate date is older than this many days is flagged in calculations.
+    duty_rate_max_age_days: int = Field(default=365, ge=30, le=3650)
     # Upper limit for a single purchase order, EUR.
     po_budget_limit_eur: float = 50000
 

@@ -546,7 +546,21 @@ complete and the offer's price has not changed. Every cost in the score table an
 **calculation** or **flat estimate** (hover for the reason), and a quote stores which basis and which breakdown it used.
 An incomplete calculation is saved but not used: it would make the offer look cheaper than it is.
 
+**You pay.** When an Incoterms rule is chosen, the result says in plain words which of the five parts (export formalities,
+main carriage, insurance, delivery after the named place, import clearance and duty) are in the supplier's price and which
+you pay on top, quoting the buyer's and the seller's duty from the Legal module's Incoterms data. Code decides who pays what
+from one table; the Legal text is a summary in our own words, so compare with the official ICC text before relying on a
+detail. In the score table an offer under EXW, FCA, FAS or FOB carries the flag "you pay the main carriage, it is not in
+this price".
+
+**Old rates.** For an item with a full 10-digit tariff code, the calculation checks the code against the duty registry and
+warns when the tariff's rate date is older than a limit (Settings, Customs duties; 365 days to start with), when the tariff
+has no rate date at all, when the code is not in the registry or not a full tariff line, and when no tariff is loaded. It is a
+warning: the rate you typed is still used and the result is not marked incomplete.
+
 ![Calculator](docs/img/ui/calculator.png)
+
+![What you pay under FOB, and a warning about a tariff without a date](docs/img/ui/calculator-youpay.png)
 
 ![A saved calculation](docs/img/ui/calculator-saved.png)
 
@@ -750,7 +764,7 @@ ships none; English contracts only; scanned PDFs without a text layer are not re
   under the trade agreements (SSP with the EU, CEFTA, EAEU and EFTA by country, TR, GB, CN, AE, EG), searchable by code
   or words, with the tariff's name and date and who loaded it. For a code and an origin country it shows the general and
   the preferential rate side by side; a preference needs proof of origin, so it is never applied for you. A rate that is
-  not a plain percentage (a table reference, a minimum, a sub-case) is kept as printed and marked "needs a look". Nothing
+  not a plain percentage (a table reference, a minimum, a sub-case) is kept as printed and marked "needs a look". The Settings tab also holds the limit after which a tariff's rates count as old (calculations then warn). Nothing
   is typed from memory and no tariff ships with the app: load the official PDF with
   `cd backend && uv run python -m app.duty.loader --pdf tariff.pdf --source "Customs Tariff 2026" --by "your name" --csv-out tariff.csv`
   (about a minute and a half for 1,750 pages; written against the Serbian Customs Tariff 2026 layout) or load the saved CSV

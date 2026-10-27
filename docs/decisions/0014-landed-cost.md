@@ -39,6 +39,22 @@ steps: the engine (this decision), the Calculator screen, then use in scoring an
 - **Mixed ranking is possible**: one offer judged by a calculation and another by the flat estimate. The table says which is
   which instead of hiding it. Calculating every offer before ranking is the person's call.
 
+## Warnings (day 9)
+
+- **"You pay" comes from one table.** Which parts the buyer pays is decided by `COVERED` in `landed.py`, the same table
+  the arithmetic uses, so the words and the numbers cannot disagree. The text for each part is the buyer's or the seller's
+  duty from the Legal module's Incoterms data (`app/legal/incoterms.py`), quoted and not rewritten. The Legal data is our own
+  summary of the ICC rules, not the ICC text, and the interface says so.
+- **Only carriage is a flag.** An offer under EXW, FCA, FAS or FOB gets "you pay the main carriage" in its term flags,
+  because that is a cost missing from the price. The full list of what the buyer pays is shown in the Calculator, not as a
+  flag on every offer.
+- **Old rates warn, they do not block.** The registry keeps the tariff's rate date. When it is older than a limit
+  (`duty_rate_max_age_days`, 365 to start with, a setting changed by a named person), when it is missing ("unknown": nobody
+  can say how old the rates are), when the code is not in the registry or not a full 10-digit line, or when no tariff is
+  loaded, the calculation adds a warning. The rate typed by the person is still used and the result stays complete: a
+  doubtful rate is not a missing figure. The check runs when the calculation is made or saved; it is not repeated when the
+  saved calculation is later used for scoring.
+
 ## Not decided here
 
 - Excise duties, anti-dumping duties, quotas, customs fees by band and currency conversion of figures given in other currencies

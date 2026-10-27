@@ -20,7 +20,16 @@ export function Duties() {
   const [rateDate, setRateDate] = useState("");
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
 
-  const loadSummary = useCallback(() => api<any>("/duties/summary").then(setSum).catch(() => setSum(null)), []);
+  const [age, setAge] = useState("");
+  const loadSummary = useCallback(() => api<any>("/duties/summary").then((d) => { setSum(d); setAge(String(d.freshness?.max_age_days ?? "")); }).catch(() => setSum(null)), []);
+  async function saveAge() {
+    setNote(null);
+    try {
+      const d = await api<any>("/duties/settings", { method: "PUT", json: { changed_by: person, max_age_days: Number(age) } });
+      setSum(d); setAge(String(d.freshness?.max_age_days ?? age));
+      setNote({ ok: true, text: `Saved: calculations warn when the tariff’s rates are older than ${age} days.` });
+    } catch (e: any) { setNote({ ok: false, text: e.message }); }
+  }
   useEffect(() => { loadSummary(); }, [loadSummary]);
   useEffect(() => {
     if (!q.trim()) { setRows(null); return; }
@@ -55,6 +64,13 @@ export function Duties() {
       {sum && sum.rows > 0
         ? <p><b>{sum.rows.toLocaleString("en")}</b> lines · {sum.source}{sum.rate_date ? ` · rates from ${sum.rate_date}` : ""} · loaded by {sum.imported_by} on {fmtDate(sum.imported_at)} · <b>{sum.to_check.toLocaleString("en")}</b> lines need a look (a sub-case, a table reference or a specific duty)</p>
         : <p className="muted">Empty. Load a tariff below.</p>}
+
+      {sum && sum.rows > 0 && sum.freshness && <>
+        {sum.freshness.state !== "ok" && <div className="err" data-testid="stale">{sum.freshness.note}. Calculations warn about it until a newer tariff is loaded or the limit is raised.</div>}
+        <div className="row"><label>Warn when the tariff’s rates are older than <input type="number" min={30} max={3650} style={{ width: "5.5rem" }} value={age} onChange={(e) => setAge(e.target.value)} /> days</label>
+          <button disabled={!named || Number(age) === sum.freshness.max_age_days || !(Number(age) >= 30)} onClick={saveAge}>Save limit</button>
+          {!named && <span className="muted">Enter your name at the top.</span>}</div>
+      </>}
 
       {sum && sum.rows > 0 && <>
         <div className="row"><input style={{ flex: 1, minWidth: "16rem" }} placeholder="Code (8517 13) or words from the description" value={q} onChange={(e) => setQ(e.target.value)} />

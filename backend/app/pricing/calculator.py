@@ -5,14 +5,17 @@ items by their value, because that is the only split that needs no weights or vo
 the VAT rate are per item."""
 
 from dataclasses import dataclass, field, replace
+from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.currency import CURRENCIES, to_eur
-from app.models import Offer, OfferCost, OfferLine, Supplier
+from app.duty.service import freshness, normalize_code
+from app.models import DutyRate, Offer, OfferCost, OfferLine, Supplier
 from app.pipeline.service import get_request, items_of
+from app.pricing.incoterm_notes import you_pay
 from app.pricing.landed import Landed, LandedInput, compute
 from app.pricing.offer_cost import PRICE_TOLERANCE, matches_offer, saved_for
 
@@ -111,9 +114,39 @@ def calculate(inp: CalcInput, settings: Settings) -> dict:
         "total": total.as_dict(),
         "warnings": _warnings(results, [ln.description for ln in inp.lines]) + inp.notes,
         "complete": total.complete,
+        "you_pay": you_pay(inp.incoterm),
+        "rate_checks": [],
         "fx": {"RSD": settings.fx_rsd_per_eur, "USD": settings.fx_usd_per_eur},
         "rounding": "Amounts are shown to the cent; totals are added before rounding",
     }
+
+
+def check_rates(
+    session: Session, settings: Settings, inp: CalcInput, result: dict, today: date | None = None
+) -> dict:
+    """For each item with a tariff code: is the code in the registry, and is the tariff it comes from old? A
+    warning only: the rate the person typed is still used, and the result stays complete."""
+    checks = []
+    for ln in inp.lines:
+        code = normalize_code(ln.hs_code or "")
+        if not code:
+            continue
+        row = session.scalar(select(DutyRate).where(DutyRate.code == code)) if len(code) == 10 else None
+        if len(code) != 10:
+            state = "incomplete"
+            note = "the tariff code is not a full 10-digit tariff line, so its rate was not checked"
+        elif row is None:
+            state, note = "not found", "the tariff code is not in the duty registry: the rate is as typed"
+            if session.scalar(select(DutyRate.id).limit(1)) is None:
+                note = "no tariff is loaded, so the duty rate could not be checked"
+        else:
+            fresh = freshness(row.rate_date, settings.duty_rate_max_age_days, today)
+            state, note = fresh["state"], fresh["note"]
+        checks.append({"description": ln.description, "code": code, "state": state, "note": note})
+        if note:
+            result["warnings"].append(f"{ln.description}: {note}")
+    result["rate_checks"] = checks
+    return result
 
 
 def _sum(results: list[Landed]) -> Landed:
@@ -234,7 +267,8 @@ def save_for_offer(session: Session, settings: Settings, offer_id: int, inputs: 
         raise LookupError(f"offer {offer_id} not found")
     lines = [CalcLine(**ln) for ln in inputs["lines"]]
     rest = {k: v for k, v in inputs.items() if k != "lines"}
-    result = calculate(CalcInput(lines=lines, **rest), settings)
+    calc_in = CalcInput(lines=lines, **rest)
+    result = check_rates(session, settings, calc_in, calculate(calc_in, settings))
     goods = sum(ln["value_eur"] for ln in result["lines"])
     offer_eur = to_eur(offer.total_price, offer.currency, settings)
     if abs(goods - offer_eur) > PRICE_TOLERANCE * offer_eur:

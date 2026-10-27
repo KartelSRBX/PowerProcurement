@@ -35,6 +35,7 @@ from app.models import (
     Supplier,
 )
 from app.orders.templates import po_letter
+from app.pricing.incoterm_notes import carriage_flag
 from app.pricing.offer_cost import cost_for
 from app.pricing.service import fetch_target_prices, target_total_eur
 from app.rfq.templates import ItemLine, pick_language
@@ -293,6 +294,8 @@ def term_flags(offer: Offer, today: date) -> list[str]:
         flags.append("no Incoterms rule: freight and risk are unclear")
     elif not offer.incoterm_place:
         flags.append(f"{offer.incoterm} needs a named place")
+    if (carriage := carriage_flag(offer.incoterm)) is not None:
+        flags.append(carriage)
     return flags
 
 

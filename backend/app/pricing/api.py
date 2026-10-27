@@ -37,11 +37,14 @@ class LandedIn(BaseModel):
 
 
 @router.post("/pricing/landed")
-def landed(body: LandedIn, settings: Settings = Depends(get_settings)):
+def landed(
+    body: LandedIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
     data = body.model_dump()
     lines = [calc.CalcLine(**ln) for ln in data.pop("lines")]
     try:
-        return calc.calculate(calc.CalcInput(lines=lines, **data), settings)
+        inp = calc.CalcInput(lines=lines, **data)
+        return calc.check_rates(session, settings, inp, calc.calculate(inp, settings))
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
 

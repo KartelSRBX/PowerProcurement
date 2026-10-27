@@ -11,8 +11,17 @@ from app.runtime import fx, vault
 PROVIDERS = ("mock", "anthropic")
 FX_SOURCES = ("manual", "nbs")
 SECRET_KEYS = {"anthropic_api_key"}
-EDITABLE = {"ai_provider", "ai_model", "anthropic_api_key", "fx_source", "fx_rsd_per_eur", "fx_usd_per_eur"}
+EDITABLE = {
+    "ai_provider",
+    "ai_model",
+    "anthropic_api_key",
+    "fx_source",
+    "fx_rsd_per_eur",
+    "fx_usd_per_eur",
+    "duty_rate_max_age_days",
+}
 FLOATS = {"fx_rsd_per_eur", "fx_usd_per_eur"}
+INTS = {"duty_rate_max_age_days"}
 
 
 class SettingsError(ValueError):
@@ -28,7 +37,7 @@ def stored(session: Session, settings: Settings) -> dict:
         value = vault.decrypt(settings, row.value) if row.secret else row.value
         if value is None:
             continue
-        out[row.key] = float(value) if row.key in FLOATS else value
+        out[row.key] = float(value) if row.key in FLOATS else int(value) if row.key in INTS else value
     return out
 
 

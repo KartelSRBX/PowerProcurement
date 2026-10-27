@@ -151,7 +151,30 @@ def import_lines(
     return summary(session)
 
 
-def summary(session: Session) -> dict:
+def freshness(rate_date: date | None, max_age_days: int, today: date | None = None) -> dict:
+    """Is a tariff's rate date older than the limit in Settings? A tariff without a date is "unknown": nobody
+    can say how old the rates are, which is as much a reason to look as an old date."""
+    today = today or date.today()
+    if rate_date is None:
+        return {
+            "state": "unknown",
+            "age_days": None,
+            "max_age_days": max_age_days,
+            "note": "the tariff has no rate date, so the age of its rates is unknown",
+        }
+    age = (today - rate_date).days
+    old = age > max_age_days
+    return {
+        "state": "old" if old else "ok",
+        "age_days": age,
+        "max_age_days": max_age_days,
+        "note": f"the tariff's rates date from {rate_date.isoformat()}, {age} days ago (limit {max_age_days})"
+        if old
+        else "",
+    }
+
+
+def summary(session: Session, max_age_days: int = 365, today: date | None = None) -> dict:
     rows = session.scalar(select(func.count()).select_from(DutyRate)) or 0
     if not rows:
         return {
@@ -161,6 +184,7 @@ def summary(session: Session) -> dict:
             "imported_by": None,
             "imported_at": None,
             "to_check": 0,
+            "freshness": None,
         }
     first = session.scalar(select(DutyRate).order_by(DutyRate.id).limit(1))
     to_check = sum(
@@ -175,6 +199,7 @@ def summary(session: Session) -> dict:
         "imported_by": first.imported_by,
         "imported_at": first.imported_at.isoformat() if first.imported_at else None,
         "to_check": to_check,
+        "freshness": freshness(first.rate_date, max_age_days, today),
     }
 
 

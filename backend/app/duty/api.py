@@ -3,11 +3,13 @@ import binascii
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.config import Settings, get_settings
 from app.db import get_session
 from app.duty import service
+from app.runtime import store
 
 router = APIRouter(tags=["duties"])
 MAX_CSV_BYTES = 30_000_000
@@ -29,9 +31,28 @@ class CsvImportIn(BaseModel):
     imported_by: str
 
 
+class AgeIn(BaseModel):
+    changed_by: str
+    max_age_days: int = Field(ge=30, le=3650)
+
+
 @router.get("/duties/summary")
-def summary(session: Session = Depends(get_session)):
-    return service.summary(session)
+def summary(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
+    return service.summary(session, settings.duty_rate_max_age_days)
+
+
+@router.put("/duties/settings")
+def save_settings(
+    body: AgeIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """How old a tariff's rate date may be before calculations warn about it."""
+    try:
+        store.save(session, settings, body.changed_by, {"duty_rate_max_age_days": body.max_age_days})
+        store.apply(session, settings)
+    except store.SettingsError as exc:
+        session.rollback()
+        raise HTTPException(422, str(exc)) from exc
+    return service.summary(session, body.max_age_days)
 
 
 @router.get("/duties/search")
@@ -40,13 +61,23 @@ def search(q: str = "", limit: int = 50, session: Session = Depends(get_session)
 
 
 @router.get("/duties/{code}")
-def one(code: str, origin: str | None = None, session: Session = Depends(get_session)):
+def one(
+    code: str,
+    origin: str | None = None,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
     row = _guard(service.get, session, code)
-    return service._dump(row) | {"applicable": service.rates_for(row, origin)}
+    return service._dump(row) | {
+        "applicable": service.rates_for(row, origin),
+        "freshness": service.freshness(row.rate_date, settings.duty_rate_max_age_days),
+    }
 
 
 @router.post("/duties/import/csv")
-def import_csv(body: CsvImportIn, session: Session = Depends(get_session)):
+def import_csv(
+    body: CsvImportIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
     def run():
         if len(body.content_base64) > MAX_CSV_BYTES * 4 // 3 + 16:
             raise service.DutyError(f"the file is larger than {MAX_CSV_BYTES // 1_000_000} MB")
@@ -55,6 +86,7 @@ def import_csv(body: CsvImportIn, session: Session = Depends(get_session)):
         except (binascii.Error, ValueError) as exc:
             raise service.DutyError("the file could not be read as UTF-8 text") from exc
         lines = service.lines_from_csv(text)
-        return service.import_lines(session, lines, body.source, body.rate_date, body.imported_by)
+        done = service.import_lines(session, lines, body.source, body.rate_date, body.imported_by)
+        return done | {"freshness": service.freshness(body.rate_date, settings.duty_rate_max_age_days)}
 
     return _guard(run)

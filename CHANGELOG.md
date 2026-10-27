@@ -51,6 +51,12 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   it is complete and the offer's price still matches. Otherwise the old flat estimate per country is used and says why. Every
   cost is labelled `calculation` or `flat estimate`; a quote stores its cost basis and breakdown. The Calculator restores a
   saved calculation and can remove it. 7 new tests.
+- **Incoterms warnings and old rates (day 9):** the Calculator result lists, under the chosen Incoterms rule, which parts are
+  in the supplier's price and which you pay on top, with the buyer's and seller's duty quoted from the Legal module's Incoterms
+  data; an offer under EXW, FCA, FAS or FOB is flagged "you pay the main carriage". A calculation checks each tariff code
+  against the duty registry and warns when the tariff's rates are older than a limit (new setting, 365 days to start with,
+  changed in Settings, Customs duties), have no date, or the code is missing or partial. Warnings only: the typed rate is still
+  used. 11 new tests.
 
 ## PP1.2
 

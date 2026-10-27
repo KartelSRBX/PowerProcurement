@@ -109,7 +109,7 @@ function Inner() {
   async function pick(key: number, code: string) {
     try {
       const d = await api<any>(`/duties/${encodeURIComponent(code)}${country ? `?origin=${encodeURIComponent(country)}` : ""}`);
-      set(key, { hint: d, choices: undefined });
+      set(key, { hint: d, choices: undefined, hs_code: code });
     } catch (e: any) { set(key, { hintErr: e.message }); }
   }
   async function lookup(r: Row) {
@@ -160,6 +160,7 @@ function Inner() {
                 {r.hint && <div className="muted">{r.hint.description}<br />
                   general {r.hint.applicable.mfn.rate != null ? <button onClick={() => set(r.key, { duty_pct: String(r.hint.applicable.mfn.rate) })}>use {pct(r.hint.applicable.mfn.rate)}</button> : <b>{r.hint.applicable.mfn.text || "see the tariff line"}</b>}
                   {r.hint.applicable.preferential && <> · {r.hint.applicable.preferential.agreement} {r.hint.applicable.preferential.rate != null ? <button onClick={() => set(r.key, { duty_pct: String(r.hint.applicable.preferential.rate) })}>use {pct(r.hint.applicable.preferential.rate)}</button> : r.hint.applicable.preferential.text} (needs proof of origin)</>}
+                  {r.hint.freshness?.note && <div className="err">{r.hint.freshness.note}</div>}
                   {r.hint.applicable.notes.filter((n: string) => !n.startsWith("a preferential")).map((n: string) => <div key={n}>{n}</div>)}</div>}</td>
               <td><input aria-label="duty" style={{ width: "5rem" }} inputMode="decimal" value={r.duty_pct} onChange={(e) => set(r.key, { duty_pct: e.target.value })} /></td>
               <td><input aria-label="item VAT" style={{ width: "5rem" }} inputMode="decimal" value={r.vat_pct} onChange={(e) => set(r.key, { vat_pct: e.target.value })} /></td>
@@ -204,6 +205,13 @@ function Result({ res }: { res: any }) {
     <section data-testid="result">
       <h3>Result {res.complete ? <span className="tag ok">all figures given</span> : <span className="tag warn">incomplete: a lower bound</span>}</h3>
       {t.included_by_seller.length > 0 && <p className="muted">The supplier’s price ({res.incoterm}) already includes: {t.included_by_seller.join(", ")}.</p>}
+      {res.you_pay && <div className="letter" data-testid="you-pay">
+        <b>{res.you_pay.summary}</b>
+        <table style={{ marginTop: ".4rem" }}><tbody>{res.you_pay.lines.map((l: any) => <tr key={l.key}>
+          <td>{l.short}</td><td>{l.pays === "you" ? <span className="tag warn">you pay</span> : <span className="tag ok">in the price</span>}</td><td className="muted">{l.text}</td></tr>)}</tbody></table>
+        <div className="muted">{res.you_pay.watch}</div>
+        <div className="muted">{res.you_pay.source}</div>
+      </div>}
       {res.warnings.length > 0 && <ul>{res.warnings.map((w: string) => <li key={w} className="muted">{w}</li>)}</ul>}
       <table>
         <thead><tr><th>Item</th><th>Share</th><th>Goods, EUR</th><th>Customs value</th><th>Duty</th><th>Landed cost</th><th>Per unit</th><th>VAT</th><th>Cash out</th></tr></thead>
