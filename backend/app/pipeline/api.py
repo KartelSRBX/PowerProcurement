@@ -1,7 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -22,7 +22,7 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
-from app.pipeline import compare
+from app.pipeline import compare, delivery
 from app.pipeline import service as svc
 from app.scoring.scoring import Weights
 
@@ -378,6 +378,24 @@ def invoice_draft(
     po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
 ):
     return guarded(svc.invoice_draft, session, settings, po_id)
+
+
+class DeliveryIn(BaseModel):
+    changed_by: str
+    promised_date: date | None = None
+    status: str | None = None
+    delivered_date: date | None = None
+    reason: str = Field(default="", max_length=300)
+
+
+@router.get("/orders/{po_id}/delivery")
+def delivery_record(po_id: int, session: Session = Depends(get_session)):
+    return guarded(delivery.view, session, po_id)
+
+
+@router.put("/orders/{po_id}/delivery")
+def update_delivery(po_id: int, body: DeliveryIn, session: Session = Depends(get_session)):
+    return guarded(delivery.update, session, po_id, **body.model_dump())
 
 
 @router.get("/requests/{request_id}/price-events")

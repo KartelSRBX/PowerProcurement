@@ -8,6 +8,7 @@ import { usePerson } from "../../lib/person";
 import { AiOff, aiTag, useAi } from "../../lib/ai";
 import { TasksPanel } from "./Tasks";
 import { LegalPanel } from "./LegalPanel";
+import { Delivery } from "./Delivery";
 import { Comparison, CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
 
 export default function RequestPage() {
@@ -121,6 +122,7 @@ export default function RequestPage() {
           <div className="row"><b>PO #{o.id}</b><span className="tag">cost {eur(o.total_eur)} EUR</span><span className="tag">budget checks: {o.budget_checks.within_po_limit && o.budget_checks.not_below_cost ? "passed" : "failed"}</span></div>
           {o.invoice_requested_by ? <span className="muted">Invoice requested by {o.invoice_requested_by}</span>
             : <InvoiceRequest po={o} who={who} act={act} post={post} />}
+          <Delivery po={o} who={who} />
           <OrderLetters {...ctx} po={o} />
         </div>)}
       </section>

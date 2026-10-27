@@ -3,7 +3,7 @@ Numbers come from code. Letters come from templates, or from the model when AI i
 the checks in app.assist.drafts; the AI-assisted steps live in app.assist."""
 
 import hashlib
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
@@ -23,6 +23,7 @@ from app.models import (
     AuditLog,
     CustomerQuote,
     CustomerRequest,
+    DeliveryEvent,
     MarketPrice,
     Offer,
     OfferLine,
@@ -718,10 +719,27 @@ def create_po(
     except IntegrityError as exc:
         session.rollback()
         raise PipelineError("a purchase order already exists for this request") from exc
+    _start_delivery(session, po, offer, date.today(), by)
     sender.send(OutboundMail(sup.email, subject, body, approved_by=by))
     _audit(session, "human", by, "po.approved", request_id=req.id, checks=checks)
     session.commit()
     return po
+
+
+def _start_delivery(session: Session, po: PurchaseOrder, offer: Offer, today: date, by: str) -> None:
+    """Give a new order its first date: the order date plus the offer's lead time. It is a calculation."""
+    po.promised_date = today + timedelta(days=offer.lead_time_days)
+    po.delivery_status = "ordered"
+    session.add(
+        DeliveryEvent(
+            order_id=po.id,
+            kind="promised_date",
+            old_value=None,
+            new_value=po.promised_date.isoformat(),
+            reason=f"calculated from the offer's lead time of {offer.lead_time_days} days, not yet confirmed",
+            changed_by=by,
+        )
+    )
 
 
 def invoice_draft(session: Session, settings: Settings, po_id: int) -> dict:

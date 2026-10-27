@@ -300,6 +300,29 @@ class PurchaseOrder(Base):
     approved_by: Mapped[str] = mapped_column(String(128), nullable=False)
     invoice_requested_by: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # delivery record: when the supplier is expected to deliver, and where the goods are
+    promised_date: Mapped[date | None] = mapped_column(Date)
+    delivery_status: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="ordered", server_default="ordered"
+    )
+    delivered_date: Mapped[date | None] = mapped_column(Date)
+
+
+class DeliveryEvent(Base):
+    """Every change to an order's delivery record, with who made it and why. Append-only."""
+
+    __tablename__ = "delivery_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    kind: Mapped[str] = mapped_column(
+        String(16), nullable=False
+    )  # "promised_date" | "status" | "delivered_date"
+    old_value: Mapped[str | None] = mapped_column(String(40))
+    new_value: Mapped[str | None] = mapped_column(String(40))
+    reason: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    changed_by: Mapped[str] = mapped_column(String(128), nullable=False)
 
 
 class InboxEmail(Base):

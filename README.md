@@ -323,6 +323,15 @@ quantity are accepted but block supplier lookup until you fill the quantity in.
 
 ![Purchase order and invoice request](docs/img/ui/step-order.png)
 
+**Delivery record.** Every order carries one: the date the supplier is expected to deliver, a status (ordered, supplier
+confirmed the date, shipped, delivered, cancelled) and a history of every change with who made it and why. A new order gets a
+first date from the offer's lead time, shown as "ordered, no confirmation yet": it is a calculation, not a promise, until a
+person records that the supplier confirmed. Moving a date that is already set needs a reason, so the history says why it
+moved. "Delivered" takes a delivery date (today unless given; never in the future) and closes the record, as does
+"cancelled". Code works out how many days an order is overdue.
+
+![Delivery record on an order](docs/img/ui/delivery.png)
+
 **The AI steps on this page.** The screenshots below were taken with a scripted stand-in model (note the `demo-stub` tag),
 not the live API, so they show the layout and the controls, not real model quality.
 
@@ -810,7 +819,7 @@ win-rate curve and suggests the markup that maximises expected margin (markup ×
 enough quotes (the customer's own history, then the category, then all quotes) and always says which one.
 
 **Purchase order checks.** Only after the customer **accepted**; the cost must be within `PO_BUDGET_LIMIT_EUR`
-(50,000 EUR by default); the agreed price must not be below cost; one order per request.
+(50,000 EUR by default); the agreed price must not be below cost; one order per request. The order then gets its delivery record (see Step 8).
 
 ## Safe by default
 

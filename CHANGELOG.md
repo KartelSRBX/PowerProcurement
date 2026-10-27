@@ -57,6 +57,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   against the duty registry and warns when the tariff's rates are older than a limit (new setting, 365 days to start with,
   changed in Settings, Customs duties), have no date, or the code is missing or partial. Warnings only: the typed rate is still
   used. 11 new tests.
+- **Delivery record on an order (day 10):** a purchase order now has a promised date, a delivery status (ordered, confirmed,
+  shipped, delivered, cancelled), a delivery date and an append-only history of changes with who and why (migration 0019,
+  `GET`/`PUT /orders/{id}/delivery`). A new order gets a first date from the offer's lead time, marked as a calculation until a
+  person records the supplier's confirmation. Moving a set date needs a reason; delivered and cancelled close the record; code
+  counts the days overdue. A panel on the order in the request page shows and edits it. 6 new tests.
 
 ## PP1.2
 
