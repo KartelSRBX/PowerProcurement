@@ -332,6 +332,16 @@ moved. "Delivered" takes a delivery date (today unless given; never in the futur
 
 ![Delivery record on an order](docs/img/ui/delivery.png)
 
+**Overdue deliveries.** On the Requests page, a list shows every order whose promised date has passed and that is neither
+delivered nor cancelled, the most late first, with the days late and the state of the question to its supplier. **Prepare
+question** (per order) or **Prepare questions for all** writes a letter asking why the delivery is late and when it will
+come, in the supplier's language and with the promised date; AI writes the wording when a key is set and the text passes the
+usual checks (reference, items, the promised date), otherwise a template does. The letter waits in **Approvals** as a "delay
+question"; nothing is sent until a person approves it. No second question is drafted while one waits or within the follow-up
+interval after one was sent (3 days to start with). Nothing runs by itself: the list is worked out when the page is opened.
+
+![Overdue deliveries](docs/img/ui/overdue.png)
+
 **The AI steps on this page.** The screenshots below were taken with a scripted stand-in model (note the `demo-stub` tag),
 not the live API, so they show the layout and the controls, not real model quality.
 

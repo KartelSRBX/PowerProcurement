@@ -2,12 +2,13 @@
 the model only drafts the wording. Follow-ups and customer reminders are ordinary letters in the
 approval queue: nothing leaves until a named person approves."""
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.assist.drafts import (
+    delay_question_text,
     delivery_question_text,
     followup_text,
     order_confirmation_text,
@@ -26,6 +27,7 @@ from app.models import (
     Supplier,
     SupplierReply,
 )
+from app.pipeline import delivery
 from app.pipeline.service import (
     PipelineError,
     _customer_language,
@@ -265,6 +267,73 @@ def draft_delivery_question(session: Session, settings: Settings, po_id: int) ->
     session.add(letter)
     session.commit()
     return letter
+
+
+def draft_delay_question(
+    session: Session, settings: Settings, po_id: int, today: date | None = None
+) -> Letter:
+    """A question to the supplier of an order that is past its promised date: why, and when now. It waits in
+    the approval queue like every letter. Not drafted again while one waits, or when one was sent within the
+    follow-up interval (the supplier has been asked and has had time to answer)."""
+    today = today or date.today()
+    po = _order(session, po_id)
+    days_late = delivery.overdue_days(po, today)
+    if days_late == 0:
+        raise PipelineError("this order is not overdue")
+    mine = list(
+        session.scalars(
+            select(Letter).where(Letter.order_id == po_id, Letter.kind == "delay").order_by(Letter.id)
+        )
+    )
+    if any(x.status == "draft" for x in mine):
+        raise PipelineError("a question about this delay is already waiting for approval")
+    cutoff = datetime.now(UTC) - timedelta(days=settings.followup_after_days)
+    asked = [x for x in mine if x.status == "sent" and (_aware(x.created_at) or cutoff) >= cutoff]
+    if asked:
+        raise PipelineError(
+            f"the supplier was asked about this delay on {asked[-1].created_at.date().isoformat()}: "
+            f"wait {settings.followup_after_days} days for an answer before asking again"
+        )
+    sup = session.get(Supplier, po.supplier_id)
+    lang = pick_language(sup.languages)
+    promised = po.promised_date.isoformat()
+    subject, body, by = delay_question_text(
+        session,
+        settings,
+        lang,
+        sup.name,
+        _lines(items_of(session, po.request_id)),
+        _ref(po.request_id),
+        promised,
+    )
+    letter = Letter(
+        request_id=po.request_id,
+        order_id=po_id,
+        kind="delay",
+        supplier_id=sup.id,
+        to_email=sup.email,
+        language=lang,
+        subject=subject,
+        body=body,
+        reason=f"order #{po_id} is {days_late} day(s) late (promised {promised})",
+        drafted_by=by,
+    )
+    session.add(letter)
+    session.commit()
+    return letter
+
+
+def draft_delay_questions(session: Session, settings: Settings, today: date | None = None) -> dict[str, list]:
+    """One question for every overdue order that has none waiting or recently sent. Returns the letters made
+    and the orders skipped with the reason."""
+    today = today or date.today()
+    made, skipped = [], []
+    for row in delivery.overdue_orders(session, today):
+        try:
+            made.append(draft_delay_question(session, settings, row["order_id"], today))
+        except PipelineError as exc:
+            skipped.append({"order_id": row["order_id"], "reason": str(exc)})
+    return {"letters": made, "skipped": skipped}
 
 
 def edit_letter(session: Session, letter_id: int, subject: str | None, body: str | None) -> Letter:

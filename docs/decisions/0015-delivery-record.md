@@ -20,6 +20,19 @@ question to the supplier come on day 11.
 - **Orders made before this step have no date.** The migration leaves them empty rather than inventing one; the panel asks for a
   date, and the first one needs no reason.
 
+## Delay alert (day 11)
+
+- **The list is computed, not stored.** `GET /orders/overdue` works out, when it is asked, which open orders are past their promised
+  date. Nothing runs on a timer, so there is no job to fail silently and no alert that can be stale. When a scheduler exists the same
+  function can feed it.
+- **The question is a letter in the approval queue** (`Letter` of kind `delay`), like every other letter to a supplier: drafted by code
+  or by the model, edited and approved by a named person, never sent by itself. The AI may write the wording; the checks require the
+  reference, the items and the promised date, and forbid any other figure.
+- **No nagging.** A question is not drafted while one waits for approval, nor within the follow-up interval (`followup_after_days`)
+  after one was sent: the supplier has been asked and has had time to answer. A rejected question does not block a new one.
+- **Not a verdict on the supplier.** An overdue order says only that the promised date passed. Why, and whether it was the supplier's
+  fault, is for a person to record in the history (day 12 reads those records for supplier performance).
+
 ## Not decided here
 
 - Partial deliveries, several shipments per order, and goods received against order lines. The record is one date and one status

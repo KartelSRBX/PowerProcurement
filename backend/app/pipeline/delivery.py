@@ -8,7 +8,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import DeliveryEvent, PurchaseOrder
+from app.models import DeliveryEvent, Letter, PurchaseOrder, Supplier
 from app.pipeline.service import PipelineError, _audit, _need_person
 
 STATUSES = ("ordered", "confirmed", "shipped", "delivered", "cancelled")
@@ -155,3 +155,39 @@ def update(
     )
     session.commit()
     return view(session, po_id, today)
+
+
+def overdue_orders(session: Session, today: date | None = None) -> list[dict]:
+    """Every open order whose promised date has passed, the most late first, with the state of the question to
+    its supplier (none, waiting for approval, or sent and when)."""
+    today = today or date.today()
+    rows = []
+    for po in session.scalars(select(PurchaseOrder).where(PurchaseOrder.promised_date.is_not(None))):
+        days = overdue_days(po, today)
+        if days == 0:
+            continue
+        sup = session.get(Supplier, po.supplier_id)
+        letters = list(
+            session.scalars(
+                select(Letter).where(Letter.order_id == po.id, Letter.kind == "delay").order_by(Letter.id)
+            )
+        )
+        waiting = next((x for x in letters if x.status == "draft"), None)
+        sent = [x for x in letters if x.status == "sent"]
+        last = sent[-1].created_at if sent else None
+        rows.append(
+            {
+                "order_id": po.id,
+                "request_id": po.request_id,
+                "supplier_id": sup.id,
+                "supplier": sup.name,
+                "promised_date": po.promised_date.isoformat(),
+                "status": po.delivery_status,
+                "status_label": LABELS[po.delivery_status],
+                "overdue_days": days,
+                "question": "waiting" if waiting else "sent" if sent else "none",
+                "question_letter_id": waiting.id if waiting else None,
+                "last_asked": last.date().isoformat() if last else None,
+            }
+        )
+    return sorted(rows, key=lambda r: (-r["overdue_days"], r["order_id"]))

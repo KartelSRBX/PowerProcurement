@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, eur, fmtDate } from "../lib/api";
 import { usePerson } from "../lib/person";
 
-const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", followup: "supplier follow-up", reminder: "customer reminder", confirmation: "order confirmation", delivery: "delivery question" };
+const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", followup: "supplier follow-up", reminder: "customer reminder", confirmation: "order confirmation", delivery: "delivery question", delay: "delay question" };
 
 export default function Approvals() {
   const { person } = usePerson();
@@ -50,7 +50,7 @@ export default function Approvals() {
       <div className="split two">
         <div className="pane">
           <div className="pane-h row" style={{ margin: 0 }}>
-            {(["all", "rfq", "quote", "followup", "reminder", "confirmation", "delivery"] as const).map((k) => (
+            {(["all", "rfq", "quote", "followup", "reminder", "confirmation", "delivery", "delay"] as const).map((k) => (
               <button key={k} className={kind === k ? "primary" : ""} onClick={() => setKind(k)}>{k === "all" ? "All" : KIND[k]}</button>
             ))}
             <span className="muted">{shown.length} letter(s)</span>

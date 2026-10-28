@@ -12,6 +12,7 @@ from app.config import Settings, get_settings
 from app.db import get_session
 from app.mail.sender import MailSender
 from app.models import Letter, Supplier
+from app.pipeline import delivery
 from app.pipeline.api import LineIn, WeightsIn, _dump, get_sender, guarded
 from app.pipeline.service import PipelineError
 from app.scoring.scoring import Weights
@@ -211,6 +212,30 @@ def customer_confirmation(
     po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
 ):
     return followups.letter_dict(guarded(followups.draft_order_confirmation, session, settings, po_id))
+
+
+@router.get("/orders/overdue")
+def overdue(session: Session = Depends(get_session)):
+    return delivery.overdue_orders(session)
+
+
+@router.post("/orders/overdue/questions")
+def overdue_questions(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
+    """Prepare a question for every overdue order that has none waiting or recently sent. Nothing is sent."""
+    done = followups.draft_delay_questions(session, settings)
+    names = {s.id: s.name for s in session.scalars(select(Supplier))}
+    return {
+        "letters": [followups.letter_dict(x, names.get(x.supplier_id)) for x in done["letters"]],
+        "skipped": done["skipped"],
+    }
+
+
+@router.post("/orders/{po_id}/delay-question")
+def delay_question(
+    po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    letter = guarded(followups.draft_delay_question, session, settings, po_id)
+    return followups.letter_dict(letter, session.get(Supplier, letter.supplier_id).name)
 
 
 @router.post("/orders/{po_id}/delivery-question")

@@ -299,6 +299,37 @@ def delivery_question_text(
     return subject, body, by
 
 
+def delay_question_text(
+    session: Session,
+    settings: Settings,
+    lang: str,
+    supplier_name: str,
+    items: list[ItemLine],
+    ref: str,
+    promised_date: str,
+) -> tuple[str, str, str]:
+    """A question to a supplier whose delivery is past its promised date: why, and when now."""
+    subject, body, by = _ai_letter(
+        session,
+        settings,
+        "delay_question_draft",
+        {
+            "language_name": LANGUAGE_NAME.get(lang, "English"),
+            "sender_name": SENDER_NAME,
+            "supplier_name": supplier_name,
+            "ref": ref,
+            "promised_date": promised_date,
+            "items": items_text(items),
+        },
+        ref,
+        [ref, promised_date, *[i.description for i in items]],
+        [],
+    )
+    if subject is None:
+        subject, body = _delay_template(lang, supplier_name, items, ref, promised_date)
+    return subject, body, by
+
+
 def _lines(items: list[ItemLine]) -> str:
     return "\n".join(f"- {fmt_qty(i.quantity)} x {i.description}" for i in items)
 
@@ -352,6 +383,26 @@ def _confirmation_template(
         f"{_lines(items)}\n\n"
         f"Total price: {price_text}\nExpected delivery: {lead_days} days.\n\n"
         f"We will let you know if anything changes.\n\nKind regards,\n{SENDER_NAME} (demo)",
+    )
+
+
+def _delay_template(
+    lang: str, supplier_name: str, items: list[ItemLine], ref: str, promised_date: str
+) -> tuple[str, str]:
+    if lang == "sr":
+        return (
+            f"Kašnjenje isporuke narudžbenice [{ref}]",
+            f"Poštovani ({supplier_name}),\n\nisporuka po narudžbenici {ref} bila je obećana za "
+            f"{promised_date} i još nije stigla:\n{_lines(items)}\n\nMolimo vas da nam odgovorite zbog "
+            "čega kasni, koji je novi potvrđeni datum isporuke i u kom je stanju pošiljka (prevoznik i "
+            f"broj za praćenje ako je otpremljena).\n\nSrdačan pozdrav,\n{SENDER_NAME} (demo)",
+        )
+    return (
+        f"Late delivery on purchase order [{ref}]",
+        f"Dear {supplier_name},\n\ndelivery on purchase order {ref} was promised for {promised_date} and has "
+        f"not arrived:\n{_lines(items)}\n\nCould you please tell us the reason for the delay, the confirmed "
+        "new delivery date and the status of the shipment (carrier and tracking number if it was dispatched)?"
+        f"\n\nKind regards,\n{SENDER_NAME} (demo)",
     )
 
 

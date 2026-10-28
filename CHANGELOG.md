@@ -62,6 +62,12 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   `GET`/`PUT /orders/{id}/delivery`). A new order gets a first date from the offer's lead time, marked as a calculation until a
   person records the supplier's confirmation. Moving a set date needs a reason; delivered and cancelled close the record; code
   counts the days overdue. A panel on the order in the request page shows and edits it. 6 new tests.
+- **Delay alert (day 11):** `GET /orders/overdue` lists open orders past their promised date, most late first, with the state
+  of the question to the supplier. `POST /orders/{id}/delay-question` (and `POST /orders/overdue/questions` for all) prepares a
+  letter asking why the delivery is late and when it will come, with the promised date; it waits in Approvals as a "delay
+  question" and nothing is sent until a person approves it. It is not drafted again while one waits or within the follow-up
+  interval after one was sent. New AI prompt `delay_question_draft` with a template fallback in Serbian and English; the AI
+  text is used only if it names the reference, the items and the promised date. The list is on the Requests page. 7 new tests.
 
 ## PP1.2
 
