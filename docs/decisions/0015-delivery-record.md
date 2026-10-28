@@ -33,6 +33,17 @@ question to the supplier come on day 11.
 - **Not a verdict on the supplier.** An overdue order says only that the promised date passed. Why, and whether it was the supplier's
   fault, is for a person to record in the history (day 12 reads those records for supplier performance).
 
+## Supplier performance (day 12)
+
+- **Computed from the record, not stored.** `suppliers/performance.py` reads delivered orders, their date-change events and the
+  offer's quoted lead time when the profile is asked for. No table, nothing to go stale.
+- **On time, two ways.** Against the date in force at delivery (what the supplier last promised) and against the first date (the
+  calculation or first confirmation). A supplier who moves the date each time looks fine on the first and poor on the second.
+- **OTIF is only OT.** "In full" needs a received quantity, which the record does not have; it is reported as not measured, not
+  guessed.
+- **Too few orders.** Under 3 delivered orders the figures are shown with a note that they are too few; day 13 uses the same
+  threshold before delivery history may affect scoring.
+
 ## Not decided here
 
 - Partial deliveries, several shipments per order, and goods received against order lines. The record is one date and one status

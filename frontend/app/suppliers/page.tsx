@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, eur } from "../lib/api";
 import { usePerson } from "../lib/person";
-import { CHECK_LABEL, CHECK_TAG, ChecksPanel, ProfilePanel, STATUSES, TIERS } from "./Profile";
+import { CHECK_LABEL, CHECK_TAG, ChecksPanel, PerformancePanel, ProfilePanel, STATUSES, TIERS } from "./Profile";
 
 const blank = { name: "", country: "RS", email: "", categories: "electronics", languages: "sr,en", age_years: 0, deals_count: 0, payment_terms_days: 0, warranty_months: 12, vat_verified: false, framework_contract: false };
 const today = new Date().toISOString().slice(0, 10);
@@ -132,6 +132,7 @@ export default function Suppliers() {
                 <button disabled={!person.trim()} onClick={() => patch({ vat_verified: !d.vat_verified })}>{d.vat_verified ? "remove VAT mark" : "mark VAT ID verified"}</button>
                 <button className={d.sanctioned ? "" : "danger"} disabled={!person.trim()} onClick={() => confirm(d.sanctioned ? "Remove the sanctions mark?" : "Mark this supplier as sanctioned? It will disappear from matching and mailings.") && patch({ sanctioned: !d.sanctioned })}>{d.sanctioned ? "remove sanctions mark" : "mark: sanctioned"}</button>
               </div>
+              <PerformancePanel p={d.performance} />
               <ProfilePanel d={d} person={person} run={run} reopen={d.id} />
               <ChecksPanel d={d} person={person} run={run} reopen={d.id} />
               <h2 style={{ marginTop: "1rem" }}>Price list ({d.catalog.length})</h2>

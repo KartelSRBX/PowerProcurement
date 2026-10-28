@@ -68,6 +68,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   question" and nothing is sent until a person approves it. It is not drafted again while one waits or within the follow-up
   interval after one was sent. New AI prompt `delay_question_draft` with a template fallback in Serbian and English; the AI
   text is used only if it names the reference, the items and the promised date. The list is on the Requests page. 7 new tests.
+- **Supplier performance (day 12):** the supplier profile shows delivery performance computed from the delivery records of its
+  delivered orders, with no new tables: share delivered on time against the date in force and against the first date, days late
+  when late, how often the promised date was moved later, the real lead time (min, max, mean, spread) against the quoted one,
+  and the latest orders. Fewer than 3 delivered orders are shown with a note that they are too few to judge by. "In full" is
+  reported as not measured, because the delivery record has no received quantity. 7 new tests.
 
 ## PP1.2
 

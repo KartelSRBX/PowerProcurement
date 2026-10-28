@@ -457,6 +457,14 @@ Sortable columns: supplier, country, status, check, deals, payment days, stock d
 | Website, contract note, credit line (with note), rebates | Free text and a tick box |
 | Discounts by brand | A list such as *Texas Instruments: 10% from 100 pcs*; add and remove entries |
 
+**Delivery performance.** Under the profile, a panel summarises the supplier's delivered orders from their delivery records:
+the share delivered on time against the date in force and against the first (calculated) date, how late the late ones were,
+how often the promised date was moved later, and the real lead time (min, max, mean and spread) against the quoted one, with
+the latest orders listed. Fewer than 3 delivered orders are marked as too few to judge by. *In full* is shown as not
+measured, because the delivery record keeps no received quantity. It is information for a person; scoring does not use it yet.
+
+![Delivery performance](docs/img/ui/performance.png)
+
 **Supplier facts used by scoring** are shown as tags (years in business, deals, payment days, warranty, VAT ID
 verified, framework contract) with buttons to **+1 deal**, **mark/remove VAT mark** and **mark: sanctioned**. A
 sanctioned supplier disappears from matching and mailings.

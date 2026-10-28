@@ -96,3 +96,37 @@ export function ChecksPanel({ d, person, run, reopen }: { d: any; person: string
     </>
   );
 }
+
+const pc = (v: number | null | undefined) => (v == null ? "no data" : `${v}%`);
+const sign = (n: number | null | undefined) => (n == null ? "-" : n > 0 ? `+${n}` : String(n));
+
+/** How the supplier has actually delivered, from the delivery records of its orders. */
+export function PerformancePanel({ p }: { p: any }) {
+  if (!p) return null;
+  const lt = p.lead_time;
+  const o = p.orders;
+  return (
+    <section data-testid="performance">
+      <h2 style={{ marginTop: "1rem" }}>Delivery performance</h2>
+      <p className="muted">From the delivery records of its orders: {o.delivered} delivered, {o.open} open{o.overdue_now > 0 ? ` (${o.overdue_now} overdue)` : ""}, {o.cancelled} cancelled.
+        Only delivered orders with a date count.</p>
+      {p.note && <div className="err">{p.note}</div>}
+      <div className="kpis">
+        <div className="kpi" title={p.on_time.against}><div className="v" style={{ fontSize: "1.2rem" }}>{pc(p.on_time.pct)}</div><div className="l">on time vs the date in force ({p.on_time.of})</div></div>
+        <div className="kpi" title={p.on_time_first.against}><div className="v" style={{ fontSize: "1.2rem" }}>{pc(p.on_time_first.pct)}</div><div className="l">on time vs the first date ({p.on_time_first.of})</div></div>
+        <div className="kpi"><div className="v" style={{ fontSize: "1.2rem" }}>{lt.actual ? `${lt.actual.min}–${lt.actual.max}` : "-"}</div><div className="l">real lead time, days (min–max)</div></div>
+        <div className="kpi"><div className="v" style={{ fontSize: "1.2rem" }}>{lt.actual ? `${lt.actual.mean} ± ${lt.actual.stdev}` : "-"}</div><div className="l">mean ± spread, days{lt.quoted_mean != null ? ` · quoted ${lt.quoted_mean}` : ""}</div></div>
+      </div>
+      <div className="muted">
+        {lt.actual_minus_quoted != null && <>On average the goods take {sign(lt.actual_minus_quoted)} days against the quoted lead time. </>}
+        {p.avg_days_late_when_late != null && <>When late, {p.avg_days_late_when_late} days. </>}
+        {p.date_moves.later > 0 && <>The promised date was moved later {p.date_moves.later} time(s) on {p.date_moves.orders} order(s). </>}
+        In full: {p.in_full.note}.
+      </div>
+      {p.recent.length > 0 && <table><thead><tr><th>Order</th><th>Ordered</th><th>Quoted</th><th>Real</th><th>First date</th><th>Date in force</th><th>Delivered</th><th>vs date</th><th>vs first</th></tr></thead><tbody>
+        {p.recent.map((r: any) => <tr key={r.order_id}><td>PO #{r.order_id}</td><td>{r.ordered_on}</td><td className="num">{r.quoted_days ?? "-"}</td><td className="num">{r.actual_days}</td>
+          <td>{r.first_date ?? "-"}</td><td>{r.promised_date ?? "-"}</td><td>{r.delivered_date}</td>
+          <td className={`num ${r.days_vs_promise > 0 ? "err" : ""}`}>{sign(r.days_vs_promise)}</td><td className={`num ${r.days_vs_first > 0 ? "err" : ""}`}>{sign(r.days_vs_first)}</td></tr>)}</tbody></table>}
+    </section>
+  );
+}

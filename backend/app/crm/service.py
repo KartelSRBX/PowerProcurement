@@ -28,6 +28,7 @@ from app.models import (
 from app.pipeline.service import PipelineError, get_request, items_of
 from app.pricing.offer_cost import cost_for
 from app.suppliers import profile
+from app.suppliers.performance import performance
 from app.suppliers.shortlist import catalog_lines_for
 
 
@@ -452,6 +453,7 @@ def supplier_detail(session: Session, supplier_id: int, settings: Settings) -> d
         "purchase_orders": len(pos),
         "purchase_total_eur": round(sum(p.total_eur for p in pos), 2),
     }
+    d["performance"] = performance(session, s.id)
     d["discounts"] = profile.discounts_of(session, s.id)
     d["checks"] = profile.check_history(session, s.id)
     d["check_result"] = d["checks"][0]["result"] if d["checks"] else "unchecked"
