@@ -22,7 +22,7 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
-from app.pipeline import compare, delivery
+from app.pipeline import compare, delivery, invoices
 from app.pipeline import service as svc
 from app.scoring.scoring import Weights
 
@@ -396,6 +396,66 @@ def delivery_record(po_id: int, session: Session = Depends(get_session)):
 @router.put("/orders/{po_id}/delivery")
 def update_delivery(po_id: int, body: DeliveryIn, session: Session = Depends(get_session)):
     return guarded(delivery.update, session, po_id, **body.model_dump())
+
+
+class InvoiceLineIn(BaseModel):
+    item_id: int
+    quantity: float
+    unit_price: float
+
+
+class SupplierInvoiceIn(BaseModel):
+    entered_by: str
+    number: str = Field(max_length=64)
+    invoice_date: date
+    currency: str
+    total_net: float
+    vat_amount: float | None = None
+    lines: list[InvoiceLineIn] | None = None
+    note: str = Field(default="", max_length=300)
+
+
+class InvoiceActionIn(BaseModel):
+    by: str
+    reason: str = Field(default="", max_length=300)
+
+
+@router.get("/orders/{po_id}/supplier-invoice")
+def supplier_invoice(
+    po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return guarded(invoices.view, session, settings, po_id)
+
+
+@router.put("/orders/{po_id}/supplier-invoice")
+def save_supplier_invoice(
+    po_id: int,
+    body: SupplierInvoiceIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    data = body.model_dump()
+    return guarded(invoices.save, session, settings, po_id, **data)
+
+
+@router.delete("/orders/{po_id}/supplier-invoice")
+def delete_supplier_invoice(
+    po_id: int,
+    removed_by: str,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    return guarded(invoices.remove, session, settings, po_id, removed_by)
+
+
+@router.post("/orders/{po_id}/supplier-invoice/accept")
+def accept_supplier_invoice(
+    po_id: int,
+    body: InvoiceActionIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    return guarded(invoices.accept, session, settings, po_id, body.by, body.reason)
 
 
 @router.get("/requests/{request_id}/price-events")

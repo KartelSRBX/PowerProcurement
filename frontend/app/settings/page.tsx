@@ -18,6 +18,7 @@ export default function Settings() {
   const [usd, setUsd] = useState("");
   const [dhWeight, setDhWeight] = useState("0");
   const [dhMin, setDhMin] = useState("3");
+  const [invTol, setInvTol] = useState("1");
 
   const load = useCallback(async () => {
     try {
@@ -25,6 +26,7 @@ export default function Settings() {
       setD(s); setProvider(s.ai.provider); setModel(s.ai.model);
       setFxSource(s.fx.source); setRsd(String(s.fx.manual_rsd_per_eur)); setUsd(String(s.fx.manual_usd_per_eur));
       setDhWeight(String(s.scoring.delivery_history_weight)); setDhMin(String(s.scoring.delivery_history_min_orders));
+      setInvTol(String(s.invoices.tolerance_pct));
       setErr("");
     } catch (e: any) { setErr(e.message); }
   }, []);
@@ -50,6 +52,10 @@ export default function Settings() {
   const saveScoring = () => run(async () => {
     const s = await api<any>("/settings/scoring", { method: "PUT", json: { changed_by: person, delivery_history_weight: Number(dhWeight), delivery_history_min_orders: Number(dhMin) } });
     setD(s); setNote({ ok: true, text: "Scoring settings saved." });
+  });
+  const saveInvoices = () => run(async () => {
+    const s = await api<any>("/settings/invoices", { method: "PUT", json: { changed_by: person, tolerance_pct: Number(invTol) } });
+    setD(s); setNote({ ok: true, text: "Invoice tolerance saved." });
   });
   const refreshFx = () => run(async () => {
     const s = await api<any>("/settings/fx/refresh", { method: "POST", json: { changed_by: person } });
@@ -116,6 +122,15 @@ export default function Settings() {
           <button className="primary" disabled={!named || !(Number(dhWeight) >= 0 && Number(dhWeight) <= 100) || !(Number(dhMin) >= 2 && Number(dhMin) <= 50)} onClick={saveScoring}>Save</button>
         </div>
         <p className="muted">{d.scoring.delivery_history_weight > 0 ? `In use: weight ${d.scoring.delivery_history_weight}, from ${d.scoring.delivery_history_min_orders} delivered orders.` : "Off."}</p>
+      </section>
+      <section>
+        <h2>Supplier invoices</h2>
+        <p className="muted">An invoice entered on an order is compared with the offer behind it. A difference up to this share of the order total (and of each unit price) counts as a match; quantities must match exactly. Rounding of a few cents is always allowed.</p>
+        <div className="row">
+          <label>Tolerance, % <input type="number" min={0} max={20} step={0.1} style={{ width: "5rem" }} value={invTol} onChange={(e) => setInvTol(e.target.value)} data-testid="inv-tol" /></label>
+          <button className="primary" disabled={!named || !(Number(invTol) >= 0 && Number(invTol) <= 20) || invTol === ""} onClick={saveInvoices}>Save</button>
+        </div>
+        <p className="muted">In use: {d.invoices.tolerance_pct}%.</p>
       </section>
       <Duties />
     </>

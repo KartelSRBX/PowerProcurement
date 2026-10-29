@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     followup_after_days: int = 3
     # A customs tariff whose rate date is older than this many days is flagged in calculations.
     duty_rate_max_age_days: int = Field(default=365, ge=30, le=3650)
+    # How far a supplier invoice may differ from the order (percent of the order total or of a unit price)
+    # before it is shown as differing. Set in Settings.
+    invoice_tolerance_pct: float = Field(default=1.0, ge=0, le=20)
     # Upper limit for a single purchase order, EUR.
     po_budget_limit_eur: float = 50000
 

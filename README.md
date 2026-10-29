@@ -842,6 +842,14 @@ enough quotes (the customer's own history, then the category, then all quotes) a
 **Purchase order checks.** Only after the customer **accepted**; the cost must be within `PO_BUDGET_LIMIT_EUR`
 (50,000 EUR by default); the agreed price must not be below cost; one order per request. The order then gets its delivery record (see Step 8).
 
+**Supplier invoice.** On each order a person can type in the supplier's invoice (number, date, currency, total without VAT, VAT,
+and optionally the lines). Code compares it with the offer behind the order: the total, and with lines each item's quantity
+(exact) and unit price, items missing from the invoice, and whether the lines add up. A gap up to the tolerance in **Settings,
+Supplier invoices** (1% by default) counts as a match; anything else is listed in words. A person accepts the invoice, with a
+reason when it differs; an accepted invoice is frozen. Nothing is paid or posted from here, and VAT is shown but not checked.
+
+![Supplier invoice compared with the order](docs/img/ui/supplier-invoice.png)
+
 ## Safe by default
 
 - **Nothing is sent outside the machine.** All mail goes to Mailpit. Real sending is a separate flag
@@ -941,7 +949,7 @@ Browser ──> frontend (Next.js) ──/api──> backend (FastAPI) ──> P
 | `backend/app/duty/` | Customs duty registry: tariff parser, loader, search, rates for an origin |
 | `backend/app/worktasks/` | Tasks in Bitrix24 / Excel / demo: saved settings, providers, plan, status sync, progress, Excel in and out |
 | `backend/app/assist/` | The assisted steps: supplier pool, letter drafts and their checks, supplier replies, follow-ups, explanations |
-| `backend/migrations/` | Alembic migrations (0001 to 0012) |
+| `backend/migrations/` | Alembic migrations (0001 to 0020) |
 | `docs/` | [Architecture](docs/architecture.md), [how the AI was directed](docs/ai-workflow.md), [decision records](docs/decisions/) |
 
 Everything that talks to the outside world sits behind an adapter so it can be swapped or faked without touching

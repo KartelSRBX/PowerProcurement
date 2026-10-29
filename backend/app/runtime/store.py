@@ -21,8 +21,9 @@ EDITABLE = {
     "duty_rate_max_age_days",
     "weight_delivery_history",
     "delivery_history_min_orders",
+    "invoice_tolerance_pct",
 }
-FLOATS = {"fx_rsd_per_eur", "fx_usd_per_eur"}
+FLOATS = {"fx_rsd_per_eur", "fx_usd_per_eur", "invoice_tolerance_pct"}
 INTS = {"duty_rate_max_age_days", "weight_delivery_history", "delivery_history_min_orders"}
 
 

@@ -78,6 +78,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   orders a supplier needs are set in Settings, Scoring (`PUT /settings/scoring`, saved with the person's name). A supplier with
   fewer orders is scored on the other criteria only and the ranking says why. The request page shows a "delivery" column when
   the criterion is in use. No migration; 6 new tests.
+- **Supplier invoice on an order (day 14):** a person types in the invoice for an order (number, date, currency, total without VAT,
+  VAT, optional lines) and the app compares it with the offer behind the order: total, and per item quantity (exact) and unit
+  price, missing items, and whether the lines add up. The tolerance is a Settings value (`PUT /settings/invoices`, 1% by
+  default). A named person accepts it, with a reason when it differs; an accepted invoice is frozen. One invoice per order.
+  Migration 0020 (`supplier_invoices`), `GET/PUT/DELETE /orders/{id}/supplier-invoice`, `POST .../accept`, 11 new tests.
 
 ## PP1.2
 

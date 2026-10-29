@@ -33,6 +33,11 @@ class ScoringIn(BaseModel):
     delivery_history_min_orders: int = Field(ge=2, le=50)
 
 
+class InvoicesIn(BaseModel):
+    changed_by: str
+    tolerance_pct: float = Field(ge=0, le=20)
+
+
 class WhoIn(BaseModel):
     changed_by: str
 
@@ -71,6 +76,7 @@ def _view(session: Session, base: Settings) -> dict:
                 for r in fx.history(session)
             ],
         },
+        "invoices": {"tolerance_pct": eff.invoice_tolerance_pct},
         "scoring": {
             "delivery_history_weight": eff.weight_delivery_history,
             "delivery_history_min_orders": eff.delivery_history_min_orders,
@@ -187,6 +193,20 @@ def save_scoring(
                 "delivery_history_min_orders": body.delivery_history_min_orders,
             },
         )
+        store.apply(session, settings)
+    except store.SettingsError as exc:
+        session.rollback()
+        raise _bad(exc) from exc
+    return _view(session, settings)
+
+
+@router.put("/invoices")
+def save_invoices(
+    body: InvoicesIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """How far a supplier invoice may differ from its order before it is shown as differing."""
+    try:
+        store.save(session, settings, body.changed_by, {"invoice_tolerance_pct": body.tolerance_pct})
         store.apply(session, settings)
     except store.SettingsError as exc:
         session.rollback()

@@ -325,6 +325,28 @@ class DeliveryEvent(Base):
     changed_by: Mapped[str] = mapped_column(String(128), nullable=False)
 
 
+class SupplierInvoice(Base):
+    """The invoice a supplier sent for an order, as a person entered it. One per order. The comparison with
+    the order is computed when it is read; only a person's acceptance is stored."""
+
+    __tablename__ = "supplier_invoices"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id"), nullable=False, unique=True)
+    number: Mapped[str] = mapped_column(String(64), nullable=False)
+    invoice_date: Mapped[date] = mapped_column(Date, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    total_net: Mapped[float] = mapped_column(Float, nullable=False)  # goods, without VAT
+    vat_amount: Mapped[float | None] = mapped_column(Float)
+    lines: Mapped[list[dict[str, Any]] | None] = mapped_column(JSON)  # [{item_id, quantity, unit_price}]
+    note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    entered_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    entered_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    accepted_by: Mapped[str | None] = mapped_column(String(128))
+    accepted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    accept_reason: Mapped[str | None] = mapped_column(String(300))
+
+
 class InboxEmail(Base):
     """A raw inbound email as it arrived, before (or without) AI parsing. Linked to a request
     by message_id once one exists."""
