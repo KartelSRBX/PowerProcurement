@@ -461,7 +461,7 @@ Sortable columns: supplier, country, status, check, deals, payment days, stock d
 the share delivered on time against the date in force and against the first (calculated) date, how late the late ones were,
 how often the promised date was moved later, and the real lead time (min, max, mean and spread) against the quoted one, with
 the latest orders listed. Fewer than 3 delivered orders are marked as too few to judge by. *In full* is shown as not
-measured, because the delivery record keeps no received quantity. It is information for a person; scoring does not use it yet.
+measured, because the delivery record keeps no received quantity. Scoring can use the on-time record as an optional criterion (Settings, Scoring).
 
 ![Delivery performance](docs/img/ui/performance.png)
 
@@ -818,7 +818,7 @@ score table says which one it used.
 **Hard filters.** A sanctioned supplier and an offer that does not cover every requested item are excluded before
 scoring and shown last with the reason. Suppliers whose newest check says *not working* never reach the shortlist.
 
-**Score** = weighted sum of five criteria, each 0 to 100. Default weights are 30 / 20 / 20 / 15 / 15 and you can
+**Score** = weighted sum of five criteria, each 0 to 100 (a sixth, delivery history, is off until it gets a weight in Settings). Default weights are 30 / 20 / 20 / 15 / 15 and you can
 change them with the sliders on every request (they are normalised, so only the proportions matter).
 
 | Criterion | Default weight | How it is scored |
@@ -828,6 +828,9 @@ change them with the sliders on every request (they are normalised, so only the 
 | Reliability | 20 | 10 + 4 per year in business (up to 10) + 20 if the VAT ID is verified + 2 per past deal (up to 15), minus penalties for flags such as an unverified tax ID |
 | Terms | 15 | 30 for a framework contract + up to 30 for payment days (60 days = full) + up to 25 for warranty (24 months = full) + 15 if the MOQ fits |
 | External risk | 15 | 100 minus a country penalty (RS 5, DE/PL/HU 0, TR 15, CN 20, other 10) minus penalties for flags such as reported customs delays |
+| Delivery history | 0 (off) | Share of the supplier's delivered orders that came on time, averaged over the date in force and the first date (0 to 100). Weight and minimum are set in **Settings, Scoring**; used only for a supplier with at least that many delivered orders that had a promised date (3 by default), otherwise left out for that supplier and the ranking says so |
+
+![Ranking with the delivery history column](docs/img/ui/scoring-delivery.png)
 
 **Quote.** Customer price = landed cost × (1 + markup), converted at the bank rate. The preview shows cost, price
 and margin before anything is created.

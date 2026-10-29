@@ -8,6 +8,7 @@ external risk 15, adjustable). Each criterion is scored 0..100 and weighted.
 from dataclasses import dataclass, field
 
 CRITERIA = ("price", "lead_time", "reliability", "terms", "external_risk")
+DELIVERY = "delivery_history"  # sixth criterion: needs a weight and enough delivered orders
 
 # Demo model of freight + duty as a share of goods value, and a country risk penalty. Proposal, not real data.
 LANDED_COST_RATE = {"RS": 0.03, "DE": 0.05, "PL": 0.05, "HU": 0.05, "TR": 0.12, "CN": 0.18}
@@ -23,9 +24,10 @@ class Weights:
     reliability: int = 20
     terms: int = 15
     external_risk: int = 15
+    delivery_history: int = 0  # set in Settings; 0 means the criterion is not used
 
-    def normalized(self) -> dict[str, float]:
-        raw = {c: getattr(self, c) for c in CRITERIA}
+    def normalized(self, with_delivery: bool = False) -> dict[str, float]:
+        raw = {c: getattr(self, c) for c in (*CRITERIA, DELIVERY) if c != DELIVERY or with_delivery}
         if any(v < 0 for v in raw.values()) or sum(raw.values()) == 0:
             raise ValueError("weights must be non-negative and not all zero")
         total = sum(raw.values())
@@ -43,6 +45,9 @@ class SupplierFacts:
     warranty_months: int
     sanctioned: bool
     flags: list[dict] = field(default_factory=list)
+    # On-time record from delivered orders, 0..100; None when the supplier has too few orders to judge by.
+    delivery_score: float | None = None
+    delivery_note: str | None = None
 
 
 @dataclass(frozen=True)
@@ -111,6 +116,13 @@ def score_external_risk(s: SupplierFacts) -> float:
     )
 
 
+def score_delivery_history(on_time_pct: float | None, on_time_first_pct: float | None) -> float | None:
+    """Share of orders that came on time, averaged over the two measures: the date in force when the goods
+    arrived and the first date (a supplier that keeps moving its date does not score well on the second)."""
+    parts = [p for p in (on_time_pct, on_time_first_pct) if p is not None]
+    return _clamp(sum(parts) / len(parts)) if parts else None
+
+
 def score_offers(
     offers: list[tuple[OfferFacts, SupplierFacts]],
     target_eur: float | None,
@@ -119,7 +131,7 @@ def score_offers(
 ) -> list[ScoreResult]:
     """Hard filters first (sanctions, incomplete coverage), then weighted scoring. Sorted best first;
     excluded offers come last with their reason."""
-    w = weights.normalized()
+    weights.normalized()  # validates
     eligible = [o for o, s in offers if not s.sanctioned and o.covers_all_items]
     reference = target_eur or (min(o.landed_cost_eur for o in eligible) if eligible else 0.0)
     results: list[ScoreResult] = []
@@ -143,8 +155,14 @@ def score_offers(
             "terms": score_terms(sup, offer.moq_ok),
             "external_risk": score_external_risk(sup),
         }
-        total = sum(w[c] * scores[c] for c in CRITERIA)
         notes = [f"{f['label']} ({f['criterion']} -{f['penalty']})" for f in sup.flags]
+        use_delivery = weights.delivery_history > 0 and sup.delivery_score is not None
+        if use_delivery:
+            scores[DELIVERY] = sup.delivery_score
+        elif weights.delivery_history > 0 and sup.delivery_note:
+            notes.append(sup.delivery_note)  # the weight is left out for this supplier, not guessed
+        w = weights.normalized(use_delivery)
+        total = sum(w[c] * scores[c] for c in w)
         results.append(ScoreResult(offer.offer_id, offer.supplier_id, None, scores, round(total, 2), notes))
     results.sort(key=lambda r: (r.excluded is not None, -r.total, r.offer_id))
     return results

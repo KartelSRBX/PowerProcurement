@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     weight_reliability: int = 20
     weight_terms: int = 15
     weight_external_risk: int = 15
+    # Delivery history as a scoring criterion: weight in percent (0 = off) and the number of delivered
+    # orders with a promised date a supplier needs before its record counts. Set in Settings.
+    weight_delivery_history: int = Field(default=0, ge=0, le=100)
+    delivery_history_min_orders: int = Field(default=3, ge=2, le=50)
     # Starting markup until analytics can recommend one (proposal). 0.15 = 15%.
     default_markup: float = 0.15
     # A supplier that has not answered a sent letter after this many days gets a follow-up draft.

@@ -73,6 +73,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   when late, how often the promised date was moved later, the real lead time (min, max, mean, spread) against the quoted one,
   and the latest orders. Fewer than 3 delivered orders are shown with a note that they are too few to judge by. "In full" is
   reported as not measured, because the delivery record has no received quantity. 7 new tests.
+- **Delivery history in the ranking (day 13):** a sixth scoring criterion from the supplier's on-time record (the share of delivered
+  orders on time, averaged over the date in force and the first date). It is off by default; its weight and the number of delivered
+  orders a supplier needs are set in Settings, Scoring (`PUT /settings/scoring`, saved with the person's name). A supplier with
+  fewer orders is scored on the other criteria only and the ranking says why. The request page shows a "delivery" column when
+  the criterion is in use. No migration; 6 new tests.
 
 ## PP1.2
 

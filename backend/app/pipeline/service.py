@@ -3,6 +3,7 @@ Numbers come from code. Letters come from templates, or from the model when AI i
 the checks in app.assist.drafts; the AI-assisted steps live in app.assist."""
 
 import hashlib
+from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import delete, select, update
@@ -40,7 +41,8 @@ from app.pricing.incoterm_notes import carriage_flag
 from app.pricing.offer_cost import cost_for
 from app.pricing.service import fetch_target_prices, target_total_eur
 from app.rfq.templates import ItemLine, pick_language
-from app.scoring.scoring import OfferFacts, SupplierFacts, Weights, score_offers
+from app.scoring.scoring import OfferFacts, SupplierFacts, Weights, score_delivery_history, score_offers
+from app.suppliers.performance import performance
 from app.suppliers.shortlist import build_shortlist, catalog_lines_for
 
 
@@ -425,11 +427,31 @@ def _days_available(req: CustomerRequest, today: date) -> int | None:
     return None if not needed else (date.fromisoformat(needed) - today).days
 
 
+def _delivery_facts(session: Session, settings: Settings, supplier_id: int, today: date) -> dict:
+    """Score from the supplier's delivery record, or the reason it cannot be used. Needs at least
+    `delivery_history_min_orders` delivered orders that had a promised date; fewer say too little."""
+    need = settings.delivery_history_min_orders
+    perf = performance(session, supplier_id, today, min_orders=need)
+    seen = perf["on_time"]["of"]
+    if seen < need:
+        return {
+            "delivery_score": None,
+            "delivery_note": f"delivery history not used: {seen} delivered order(s) with a promised date, "
+            f"at least {need} needed",
+        }
+    return {
+        "delivery_score": score_delivery_history(perf["on_time"]["pct"], perf["on_time_first"]["pct"]),
+        "delivery_note": None,
+    }
+
+
 def score_request(
     session: Session, settings: Settings, request_id: int, weights: Weights, today: date | None = None
 ) -> list[dict]:
     req = get_request(session, request_id)
     today = today or date.today()
+    # The weight of delivery history comes from Settings, not from the sliders on the page.
+    weights = replace(weights, delivery_history=settings.weight_delivery_history)
     offers = list(session.scalars(select(Offer).where(Offer.request_id == request_id)))
     if not offers:
         raise PipelineError("there are no offers to compare yet")
@@ -452,6 +474,7 @@ def score_request(
                     sup.warranty_months,
                     sup.sanctioned,
                     sup.flags,
+                    **(_delivery_facts(session, settings, sup.id, today) if weights.delivery_history else {}),
                 ),
             )
         )

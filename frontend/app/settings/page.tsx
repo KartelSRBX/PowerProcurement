@@ -16,12 +16,15 @@ export default function Settings() {
   const [fxSource, setFxSource] = useState("manual");
   const [rsd, setRsd] = useState("");
   const [usd, setUsd] = useState("");
+  const [dhWeight, setDhWeight] = useState("0");
+  const [dhMin, setDhMin] = useState("3");
 
   const load = useCallback(async () => {
     try {
       const s = await api<any>("/settings");
       setD(s); setProvider(s.ai.provider); setModel(s.ai.model);
       setFxSource(s.fx.source); setRsd(String(s.fx.manual_rsd_per_eur)); setUsd(String(s.fx.manual_usd_per_eur));
+      setDhWeight(String(s.scoring.delivery_history_weight)); setDhMin(String(s.scoring.delivery_history_min_orders));
       setErr("");
     } catch (e: any) { setErr(e.message); }
   }, []);
@@ -43,6 +46,10 @@ export default function Settings() {
   const saveFx = () => run(async () => {
     const s = await api<any>("/settings/fx", { method: "PUT", json: { changed_by: person, source: fxSource, rsd_per_eur: Number(rsd), usd_per_eur: Number(usd) } });
     setD(s); setNote({ ok: true, text: "Exchange rates saved." });
+  });
+  const saveScoring = () => run(async () => {
+    const s = await api<any>("/settings/scoring", { method: "PUT", json: { changed_by: person, delivery_history_weight: Number(dhWeight), delivery_history_min_orders: Number(dhMin) } });
+    setD(s); setNote({ ok: true, text: "Scoring settings saved." });
   });
   const refreshFx = () => run(async () => {
     const s = await api<any>("/settings/fx/refresh", { method: "POST", json: { changed_by: person } });
@@ -99,6 +106,16 @@ export default function Settings() {
             ))}</tbody>
           </table>
         )}
+      </section>
+      <section>
+        <h2>Scoring</h2>
+        <p className="muted">Delivery history is an extra criterion in the supplier ranking, worked out from the delivery records of the supplier’s delivered orders (the share that came on time, against the date in force and against the first date). Weight 0 keeps it off. A supplier counts only with at least the number of delivered orders below; for a supplier with fewer, the criterion is left out and the ranking says so. The other weights are set on each request.</p>
+        <div className="row">
+          <label>Weight of delivery history (0–100) <input type="number" min={0} max={100} style={{ width: "5rem" }} value={dhWeight} onChange={(e) => setDhWeight(e.target.value)} data-testid="dh-weight" /></label>
+          <label>Delivered orders needed <input type="number" min={2} max={50} style={{ width: "5rem" }} value={dhMin} onChange={(e) => setDhMin(e.target.value)} data-testid="dh-min" /></label>
+          <button className="primary" disabled={!named || !(Number(dhWeight) >= 0 && Number(dhWeight) <= 100) || !(Number(dhMin) >= 2 && Number(dhMin) <= 50)} onClick={saveScoring}>Save</button>
+        </div>
+        <p className="muted">{d.scoring.delivery_history_weight > 0 ? `In use: weight ${d.scoring.delivery_history_weight}, from ${d.scoring.delivery_history_min_orders} delivered orders.` : "Off."}</p>
       </section>
       <Duties />
     </>

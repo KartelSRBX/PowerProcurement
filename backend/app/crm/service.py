@@ -453,7 +453,7 @@ def supplier_detail(session: Session, supplier_id: int, settings: Settings) -> d
         "purchase_orders": len(pos),
         "purchase_total_eur": round(sum(p.total_eur for p in pos), 2),
     }
-    d["performance"] = performance(session, s.id)
+    d["performance"] = performance(session, s.id, min_orders=settings.delivery_history_min_orders)
     d["discounts"] = profile.discounts_of(session, s.id)
     d["checks"] = profile.check_history(session, s.id)
     d["check_result"] = d["checks"][0]["result"] if d["checks"] else "unchecked"

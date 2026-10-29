@@ -19,9 +19,11 @@ EDITABLE = {
     "fx_rsd_per_eur",
     "fx_usd_per_eur",
     "duty_rate_max_age_days",
+    "weight_delivery_history",
+    "delivery_history_min_orders",
 }
 FLOATS = {"fx_rsd_per_eur", "fx_usd_per_eur"}
-INTS = {"duty_rate_max_age_days"}
+INTS = {"duty_rate_max_age_days", "weight_delivery_history", "delivery_history_min_orders"}
 
 
 class SettingsError(ValueError):

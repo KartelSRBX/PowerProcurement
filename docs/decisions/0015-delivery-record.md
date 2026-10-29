@@ -44,6 +44,16 @@ question to the supplier come on day 11.
 - **Too few orders.** Under 3 delivered orders the figures are shown with a note that they are too few; day 13 uses the same
   threshold before delivery history may affect scoring.
 
+## Delivery history in scoring (day 13)
+
+- **Off by default.** The weight is a Settings value (`weight_delivery_history`, 0 to 100); at 0 rankings are exactly what they were.
+  It is set once for the app, not per request, because it changes with the data a company has, not with the request.
+- **Needs enough orders.** A supplier counts only with at least `delivery_history_min_orders` (default 3, at least 2) delivered orders
+  that had a promised date. Otherwise the criterion is left out for that supplier, the other weights are renormalised, and a note
+  on the row says why. A supplier is never given an invented neutral score for lack of history.
+- **Score.** The average of the on-time share against the date in force and against the first date. Late-by-how-much and lead-time
+  spread stay on the profile for a person to read; they are not in the number.
+
 ## Not decided here
 
 - Partial deliveries, several shipments per order, and goods received against order lines. The record is one date and one status

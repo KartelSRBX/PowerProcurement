@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -25,6 +25,12 @@ class FxIn(BaseModel):
     source: str
     rsd_per_eur: float | None = None
     usd_per_eur: float | None = None
+
+
+class ScoringIn(BaseModel):
+    changed_by: str
+    delivery_history_weight: int = Field(ge=0, le=100)
+    delivery_history_min_orders: int = Field(ge=2, le=50)
 
 
 class WhoIn(BaseModel):
@@ -64,6 +70,10 @@ def _view(session: Session, base: Settings) -> dict:
                 }
                 for r in fx.history(session)
             ],
+        },
+        "scoring": {
+            "delivery_history_weight": eff.weight_delivery_history,
+            "delivery_history_min_orders": eff.delivery_history_min_orders,
         },
     }
 
@@ -156,6 +166,28 @@ def save_fx(body: FxIn, session: Session = Depends(get_session), settings: Setti
     except fx.FxError as exc:
         session.rollback()
         raise HTTPException(502, f"Could not fetch National Bank of Serbia rates: {exc}") from exc
+    except store.SettingsError as exc:
+        session.rollback()
+        raise _bad(exc) from exc
+    return _view(session, settings)
+
+
+@router.put("/scoring")
+def save_scoring(
+    body: ScoringIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """Weight of the delivery-history criterion and how many delivered orders a supplier needs for it."""
+    try:
+        store.save(
+            session,
+            settings,
+            body.changed_by,
+            {
+                "weight_delivery_history": body.delivery_history_weight,
+                "delivery_history_min_orders": body.delivery_history_min_orders,
+            },
+        )
+        store.apply(session, settings)
     except store.SettingsError as exc:
         session.rollback()
         raise _bad(exc) from exc
