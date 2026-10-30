@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./lib/api";
 import { usePerson } from "./lib/person";
+import { InvoiceMismatches } from "./components/InvoiceMismatches";
 import { Overdue } from "./components/Overdue";
 
 type Req = { id: number; status: string; sender: string; subject: string };
@@ -43,6 +44,7 @@ export default function Home() {
       <p className="muted">Backend: {health ? `up · AI: ${health.ai_provider} · mail: ${health.mail_mode}` : "unreachable"}</p>
       {err && <div className="err">{err}</div>}
       <Overdue />
+      <InvoiceMismatches />
       <section>
         <h2>New request (entered by a person; email parsing needs an AI key)</h2>
         <div className="row"><input value={f.sender} onChange={(e) => setF({ ...f, sender: e.target.value })} />

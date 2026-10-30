@@ -28,7 +28,19 @@ to stand on.
 - **Accepting is a person's act.** A differing invoice needs a reason; the acceptance, with the differences present at that moment,
   goes to the audit log. An accepted invoice is frozen. Nothing is paid or posted anywhere.
 
+## Mismatch list (day 15)
+
+- **Findings have kinds.** `compare` returns `issues` (a kind, words, the item where there is one) as well as the plain `reasons`:
+  total, price, quantity, missing_item, lines_sum, foreign_line, duplicate_number. The list is built from the same function, so it
+  cannot disagree with the order's own view.
+- **Duplicate number** means the same supplier has another invoice whose number is the same after dropping everything but letters
+  and digits and ignoring case. It is a warning to look, not proof: two different invoices can share a short number such as `1`.
+  Another supplier's identical number is not a duplicate.
+- **A currency difference is a note.** The same money in another currency matches; a gap caused by the rate shows as a total
+  difference. (Day 14 treated the note itself as a difference; that was wrong.)
+- **Largest amount first** in EUR, so the invoice that matters most is on top. Open invoices by default; accepted ones stay visible
+  under their own filter with the reason they were accepted.
+
 ## Not decided here
 
-- A duplicate invoice number across orders and a list of everything that differs (plan day 15).
 - Savings against the baseline from matched invoices (plan day 16).

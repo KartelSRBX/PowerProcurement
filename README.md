@@ -850,6 +850,14 @@ reason when it differs; an accepted invoice is frozen. Nothing is paid or posted
 
 ![Supplier invoice compared with the order](docs/img/ui/supplier-invoice.png)
 
+**Invoices that differ.** The Requests page lists every invoice that differs from its order, largest amount first, with what
+differs: *total*, *unit price*, *quantity*, *missing item*, *lines don't add up*, *unknown line* and *duplicate number* (the same
+supplier already has an invoice with that number on another order; case, spaces and dashes are ignored, so `INV-2026/7` and
+`inv 2026 7` count as one). Filter by kind, and switch between invoices not yet accepted, accepted with differences, or all.
+`GET /supplier-invoices/mismatches`. A different currency is only a note, not a difference.
+
+![Invoices that differ from their orders](docs/img/ui/invoice-mismatches.png)
+
 ## Safe by default
 
 - **Nothing is sent outside the machine.** All mail goes to Mailpit. Real sending is a separate flag

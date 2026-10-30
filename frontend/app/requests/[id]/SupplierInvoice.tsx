@@ -76,6 +76,7 @@ export function SupplierInvoice({ po, who }: { po: any; who: string }) {
       {inv && c && <>
         <div className="muted">Ordered {money(c.ordered_total, c.compared_in)} · invoiced {money(c.invoiced_total, c.compared_in)} · difference {money(c.difference, c.compared_in)}{c.difference_pct != null && ` (${c.difference_pct > 0 ? "+" : ""}${c.difference_pct}%)`} · tolerance {c.tolerance_pct}% (Settings)</div>
         {c.reasons.map((r: string, i: number) => <div key={i} className="err">{r}</div>)}
+        {c.notes?.map((r: string, i: number) => <div key={i} className="muted">{r}</div>)}
         {c.lines.length > 0 && <table><thead><tr><th>Item</th><th>Ordered</th><th>Invoiced</th><th>Unit price ordered</th><th>Unit price invoiced</th></tr></thead><tbody>
           {c.lines.map((r: any) => <tr key={r.item_id}><td>{r.description}</td><td className="num">{r.ordered_quantity ?? "-"}</td>
             <td className={`num ${ok(r.quantity_ok)}`}>{r.invoiced_quantity ?? "not invoiced"}</td>

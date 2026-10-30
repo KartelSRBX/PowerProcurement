@@ -420,6 +420,16 @@ class InvoiceActionIn(BaseModel):
     reason: str = Field(default="", max_length=300)
 
 
+@router.get("/supplier-invoices/mismatches")
+def invoice_mismatches(
+    kind: str | None = None,
+    show: str = "open",
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    return guarded(invoices.mismatches, session, settings, kind, show)
+
+
 @router.get("/orders/{po_id}/supplier-invoice")
 def supplier_invoice(
     po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)

@@ -102,8 +102,9 @@ def test_another_currency_is_compared_in_eur_and_said_so(client):  # noqa: F811
     cmp = _inv(c, po, currency="USD", total_net=round(45000 * SETTINGS.fx_usd_per_eur, 2)).json()[
         "comparison"
     ]
-    assert cmp["compared_in"] == "EUR" and cmp["status"] == "differs"
-    assert any("compared in EUR" in r for r in cmp["reasons"])
+    # the currency is a note, not a difference: the same money in another currency matches
+    assert cmp["compared_in"] == "EUR" and cmp["status"] == "matches"
+    assert any("compared in EUR" in n for n in cmp["notes"])
     assert abs(cmp["difference"]) < 1
 
 

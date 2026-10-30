@@ -83,6 +83,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   price, missing items, and whether the lines add up. The tolerance is a Settings value (`PUT /settings/invoices`, 1% by
   default). A named person accepts it, with a reason when it differs; an accepted invoice is frozen. One invoice per order.
   Migration 0020 (`supplier_invoices`), `GET/PUT/DELETE /orders/{id}/supplier-invoice`, `POST .../accept`, 11 new tests.
+- **Mismatch list (day 15):** `GET /supplier-invoices/mismatches` and a list on the Requests page show every invoice that differs
+  from its order, largest amount first, with each difference named: total, unit price, quantity, missing item, lines that do not
+  add up, unknown line, and a duplicate invoice number (same supplier, case, spaces and dashes ignored). Filter by kind; open,
+  accepted or all. The duplicate check also shows on the order's own comparison. Change to day 14: a different currency is now a
+  note on the comparison, not a difference by itself. No migration; 6 new tests.
 
 ## PP1.2
 
