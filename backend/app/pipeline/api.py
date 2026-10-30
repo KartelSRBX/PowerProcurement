@@ -22,7 +22,7 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
-from app.pipeline import compare, delivery, invoices
+from app.pipeline import compare, delivery, invoices, savings
 from app.pipeline import service as svc
 from app.scoring.scoring import Weights
 
@@ -466,6 +466,54 @@ def accept_supplier_invoice(
     settings: Settings = Depends(get_settings),
 ):
     return guarded(invoices.accept, session, settings, po_id, body.by, body.reason)
+
+
+class BaselineIn(BaseModel):
+    set_by: str
+    basis: str
+    amount_eur: float | None = None
+    note: str = Field(default="", max_length=300)
+
+
+@router.get("/orders/{po_id}/savings")
+def order_savings(
+    po_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return guarded(savings.view, session, settings, po_id)
+
+
+@router.put("/orders/{po_id}/savings/baseline")
+def set_baseline(
+    po_id: int,
+    body: BaselineIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    return guarded(savings.set_baseline, session, settings, po_id, **body.model_dump())
+
+
+@router.delete("/orders/{po_id}/savings/baseline")
+def clear_baseline(
+    po_id: int,
+    cleared_by: str,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    return guarded(savings.clear_baseline, session, settings, po_id, cleared_by)
+
+
+@router.get("/savings")
+def savings_ledger(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
+    return savings.ledger(session, settings)
+
+
+@router.get("/savings/export.xlsx")
+def savings_export(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
+    return Response(
+        savings.ledger_xlsx(session, settings),
+        media_type=compare.XLSX,
+        headers={"content-disposition": 'attachment; filename="savings-ledger.xlsx"'},
+    )
 
 
 @router.get("/requests/{request_id}/price-events")

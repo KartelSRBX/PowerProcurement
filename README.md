@@ -591,6 +591,21 @@ warning: the rate you typed is still used and the result is not marked incomplet
 
 ![A saved calculation](docs/img/ui/calculator-saved.png)
 
+### Savings
+
+A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the
+goods would have cost without the work. Its basis is always stated: the dearest offer on the same request that covered every item,
+the market target price (where prices were fetched), or an amount typed with a note saying where it comes from. For the first two
+the amount is taken from the data at the moment it is set and kept, so later offers do not rewrite the ledger.
+
+- **Negotiated saving** = baseline minus the offer behind the order (what was agreed).
+- **Realized saving** = baseline minus the supplier's invoice, counted only once a person has **accepted** that invoice (see Supplier
+  invoice under Step 8). The realized totals cover only those orders, and say how many were accepted with a difference.
+- Goods without VAT, in EUR at the Settings rates. Freight and duty are not in this ledger. A negative figure is shown as it is.
+- **Export to Excel** gives the rows and the totals. `GET /savings`, `GET /savings/export.xlsx`, `PUT/DELETE /orders/{id}/savings/baseline`.
+
+![Savings ledger](docs/img/ui/savings.png)
+
 ### Tasks (Bitrix24, Excel)
 
 ![Tasks of a request with progress](docs/img/ui/tasks-request.png)
@@ -957,7 +972,7 @@ Browser ──> frontend (Next.js) ──/api──> backend (FastAPI) ──> P
 | `backend/app/duty/` | Customs duty registry: tariff parser, loader, search, rates for an origin |
 | `backend/app/worktasks/` | Tasks in Bitrix24 / Excel / demo: saved settings, providers, plan, status sync, progress, Excel in and out |
 | `backend/app/assist/` | The assisted steps: supplier pool, letter drafts and their checks, supplier replies, follow-ups, explanations |
-| `backend/migrations/` | Alembic migrations (0001 to 0020) |
+| `backend/migrations/` | Alembic migrations (0001 to 0021) |
 | `docs/` | [Architecture](docs/architecture.md), [how the AI was directed](docs/ai-workflow.md), [decision records](docs/decisions/) |
 
 Everything that talks to the outside world sits behind an adapter so it can be swapped or faked without touching

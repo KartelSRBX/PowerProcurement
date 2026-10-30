@@ -88,6 +88,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   add up, unknown line, and a duplicate invoice number (same supplier, case, spaces and dashes ignored). Filter by kind; open,
   accepted or all. The duplicate check also shows on the order's own comparison. Change to day 14: a different currency is now a
   note on the comparison, not a difference by itself. No migration; 6 new tests.
+- **Savings ledger (day 16):** a **Savings** tab. On each order a named person sets a baseline (what the goods would have cost): the
+  dearest offer that covered every item, the market target price, or a typed amount with a note. Code works out the negotiated saving
+  (baseline minus the offer behind the order) and the realized saving (baseline minus an accepted invoice), with totals, and
+  exports the ledger to Excel. Amounts are goods without VAT in EUR; the baseline is kept as set. Changes are logged. Migration
+  0021 (`savings_baselines`), `GET /savings`, `GET /savings/export.xlsx`, `PUT/DELETE /orders/{id}/savings/baseline`, 7 new tests.
 
 ## PP1.2
 

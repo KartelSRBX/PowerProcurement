@@ -9,6 +9,7 @@ import { AiOff, aiTag, useAi } from "../../lib/ai";
 import { TasksPanel } from "./Tasks";
 import { LegalPanel } from "./LegalPanel";
 import { Delivery } from "./Delivery";
+import { SavingsBaseline } from "./SavingsBaseline";
 import { SupplierInvoice } from "./SupplierInvoice";
 import { Comparison, CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
 
@@ -125,6 +126,7 @@ export default function RequestPage() {
             : <InvoiceRequest po={o} who={who} act={act} post={post} />}
           <Delivery po={o} who={who} />
           <SupplierInvoice po={o} who={who} />
+          <SavingsBaseline po={o} who={who} />
           <OrderLetters {...ctx} po={o} />
         </div>)}
       </section>

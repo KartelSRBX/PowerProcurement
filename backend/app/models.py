@@ -347,6 +347,21 @@ class SupplierInvoice(Base):
     accept_reason: Mapped[str | None] = mapped_column(String(300))
 
 
+class SavingsBaseline(Base):
+    """What an order would have cost without the buyer's work, and on what basis a named person said so.
+    The amount is kept as it was when set, so later offers or prices do not rewrite the ledger."""
+
+    __tablename__ = "savings_baselines"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id"), nullable=False, unique=True)
+    basis: Mapped[str] = mapped_column(String(16), nullable=False)  # highest_offer | target_price | manual
+    amount_eur: Mapped[float] = mapped_column(Float, nullable=False)  # goods, without VAT
+    note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    set_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class InboxEmail(Base):
     """A raw inbound email as it arrived, before (or without) AI parsing. Linked to a request
     by message_id once one exists."""
