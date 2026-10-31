@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     # How far a supplier invoice may differ from the order (percent of the order total or of a unit price)
     # before it is shown as differing. Set in Settings.
     invoice_tolerance_pct: float = Field(default=1.0, ge=0, le=20)
+    # Article signals: a unit price at least this many percent above the last paid or ordered one, or a lead
+    # time at least this many days and percent longer than the last order, is flagged. Set in Settings.
+    signal_price_rise_pct: float = Field(default=10.0, ge=0, le=500)
+    signal_lead_rise_pct: float = Field(default=25.0, ge=0, le=1000)
+    signal_lead_rise_days: int = Field(default=3, ge=0, le=365)
     # Upper limit for a single purchase order, EUR.
     po_budget_limit_eur: float = 50000
 

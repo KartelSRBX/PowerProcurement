@@ -22,9 +22,23 @@ EDITABLE = {
     "weight_delivery_history",
     "delivery_history_min_orders",
     "invoice_tolerance_pct",
+    "signal_price_rise_pct",
+    "signal_lead_rise_pct",
+    "signal_lead_rise_days",
 }
-FLOATS = {"fx_rsd_per_eur", "fx_usd_per_eur", "invoice_tolerance_pct"}
-INTS = {"duty_rate_max_age_days", "weight_delivery_history", "delivery_history_min_orders"}
+FLOATS = {
+    "fx_rsd_per_eur",
+    "fx_usd_per_eur",
+    "invoice_tolerance_pct",
+    "signal_price_rise_pct",
+    "signal_lead_rise_pct",
+}
+INTS = {
+    "duty_rate_max_age_days",
+    "weight_delivery_history",
+    "delivery_history_min_orders",
+    "signal_lead_rise_days",
+}
 
 
 class SettingsError(ValueError):

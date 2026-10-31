@@ -22,7 +22,7 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
-from app.pipeline import compare, delivery, invoices, savings
+from app.pipeline import compare, delivery, invoices, savings, signals
 from app.pipeline import service as svc
 from app.scoring.scoring import Weights
 
@@ -514,6 +514,13 @@ def savings_export(session: Session = Depends(get_session), settings: Settings =
         media_type=compare.XLSX,
         headers={"content-disposition": 'attachment; filename="savings-ledger.xlsx"'},
     )
+
+
+@router.get("/requests/{request_id}/signals")
+def article_signals(
+    request_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return guarded(signals.for_request, session, settings, request_id)
 
 
 @router.get("/requests/{request_id}/price-events")

@@ -482,6 +482,9 @@ def score_request(
     targets = {i.id: _median_target(session, i, settings) for i in items}
     target = target_total_eur(session, request_id, targets)
     results = score_offers(pairs, target, _days_available(req, today), weights)
+    from app.pipeline.signals import for_request as article_signals  # signals imports this module
+
+    seen = {o["offer_id"]: o["signals"] for o in article_signals(session, settings, request_id)["offers"]}
     out = []
     for r in results:
         o, sup, landed, basis = by_offer[r.offer_id]
@@ -494,6 +497,7 @@ def score_request(
                 "total": r.total,
                 "scores": {k: round(v, 1) for k, v in r.scores.items()},
                 "flags": r.notes,
+                "signals": seen.get(o.id, []),
                 "offer_total": o.total_price,
                 "currency": o.currency,
                 "landed_cost_eur": round(landed, 2),

@@ -93,6 +93,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   (baseline minus the offer behind the order) and the realized saving (baseline minus an accepted invoice), with totals, and
   exports the ledger to Excel. Amounts are goods without VAT in EUR; the baseline is kept as set. Changes are logged. Migration
   0021 (`savings_baselines`), `GET /savings`, `GET /savings/export.xlsx`, `PUT/DELETE /orders/{id}/savings/baseline`, 7 new tests.
+- **Article signals (day 17):** the ranking on a request flags an offer whose unit price for an article is above the last price paid
+  (accepted invoice with lines) or ordered for the same article by a threshold, or whose lead time is longer than the last order's
+  by a number of days and percent. Warnings only; scores are unchanged. Articles are matched by part number, else description.
+  Thresholds in Settings (`PUT /settings/signals`: 10%, 25% and 3 days by default). `GET /requests/{id}/signals` gives per-item
+  detail. No migration; 8 new tests.
 
 ## PP1.2
 

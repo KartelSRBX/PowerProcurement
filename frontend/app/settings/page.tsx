@@ -19,6 +19,7 @@ export default function Settings() {
   const [dhWeight, setDhWeight] = useState("0");
   const [dhMin, setDhMin] = useState("3");
   const [invTol, setInvTol] = useState("1");
+  const [sig, setSig] = useState({ price: "10", pct: "25", days: "3" });
 
   const load = useCallback(async () => {
     try {
@@ -27,6 +28,7 @@ export default function Settings() {
       setFxSource(s.fx.source); setRsd(String(s.fx.manual_rsd_per_eur)); setUsd(String(s.fx.manual_usd_per_eur));
       setDhWeight(String(s.scoring.delivery_history_weight)); setDhMin(String(s.scoring.delivery_history_min_orders));
       setInvTol(String(s.invoices.tolerance_pct));
+      setSig({ price: String(s.signals.price_rise_pct), pct: String(s.signals.lead_rise_pct), days: String(s.signals.lead_rise_days) });
       setErr("");
     } catch (e: any) { setErr(e.message); }
   }, []);
@@ -52,6 +54,10 @@ export default function Settings() {
   const saveScoring = () => run(async () => {
     const s = await api<any>("/settings/scoring", { method: "PUT", json: { changed_by: person, delivery_history_weight: Number(dhWeight), delivery_history_min_orders: Number(dhMin) } });
     setD(s); setNote({ ok: true, text: "Scoring settings saved." });
+  });
+  const saveSignals = () => run(async () => {
+    const s = await api<any>("/settings/signals", { method: "PUT", json: { changed_by: person, price_rise_pct: Number(sig.price), lead_rise_pct: Number(sig.pct), lead_rise_days: Number(sig.days) } });
+    setD(s); setNote({ ok: true, text: "Signal thresholds saved." });
   });
   const saveInvoices = () => run(async () => {
     const s = await api<any>("/settings/invoices", { method: "PUT", json: { changed_by: person, tolerance_pct: Number(invTol) } });
@@ -123,6 +129,18 @@ export default function Settings() {
         </div>
         <p className="muted">{d.scoring.delivery_history_weight > 0 ? `In use: weight ${d.scoring.delivery_history_weight}, from ${d.scoring.delivery_history_min_orders} delivered orders.` : "Off."}</p>
       </section>
+      <section>
+        <h2>Article signals</h2>
+        <p className="muted">On a request, an offer is flagged when its unit price for an article is this many percent above the last price paid (from an accepted invoice with lines) or ordered for the same article, or when its lead time is longer than the last order’s by both the days and the percent below. The history is this company’s own orders only; a flag is a warning and never changes a score.</p>
+        <div className="row">
+          <label>Price rise, % <input type="number" min={0} max={500} style={{ width: "5rem" }} value={sig.price} onChange={(e) => setSig({ ...sig, price: e.target.value })} data-testid="sig-price" /></label>
+          <label>Lead time rise, % <input type="number" min={0} max={1000} style={{ width: "5rem" }} value={sig.pct} onChange={(e) => setSig({ ...sig, pct: e.target.value })} /></label>
+          <label>and at least, days <input type="number" min={0} max={365} style={{ width: "5rem" }} value={sig.days} onChange={(e) => setSig({ ...sig, days: e.target.value })} /></label>
+          <button className="primary" disabled={!named || [sig.price, sig.pct, sig.days].some((x) => x === "" || Number(x) < 0)} onClick={saveSignals}>Save</button>
+        </div>
+        <p className="muted">In use: price +{d.signals.price_rise_pct}%, lead time +{d.signals.lead_rise_pct}% and +{d.signals.lead_rise_days} days.</p>
+      </section>
+
       <section>
         <h2>Supplier invoices</h2>
         <p className="muted">An invoice entered on an order is compared with the offer behind it. A difference up to this share of the order total (and of each unit price) counts as a match; quantities must match exactly. Rounding of a few cents is always allowed.</p>

@@ -38,6 +38,13 @@ class InvoicesIn(BaseModel):
     tolerance_pct: float = Field(ge=0, le=20)
 
 
+class SignalsIn(BaseModel):
+    changed_by: str
+    price_rise_pct: float = Field(ge=0, le=500)
+    lead_rise_pct: float = Field(ge=0, le=1000)
+    lead_rise_days: int = Field(ge=0, le=365)
+
+
 class WhoIn(BaseModel):
     changed_by: str
 
@@ -75,6 +82,11 @@ def _view(session: Session, base: Settings) -> dict:
                 }
                 for r in fx.history(session)
             ],
+        },
+        "signals": {
+            "price_rise_pct": eff.signal_price_rise_pct,
+            "lead_rise_pct": eff.signal_lead_rise_pct,
+            "lead_rise_days": eff.signal_lead_rise_days,
         },
         "invoices": {"tolerance_pct": eff.invoice_tolerance_pct},
         "scoring": {
@@ -207,6 +219,29 @@ def save_invoices(
     """How far a supplier invoice may differ from its order before it is shown as differing."""
     try:
         store.save(session, settings, body.changed_by, {"invoice_tolerance_pct": body.tolerance_pct})
+        store.apply(session, settings)
+    except store.SettingsError as exc:
+        session.rollback()
+        raise _bad(exc) from exc
+    return _view(session, settings)
+
+
+@router.put("/signals")
+def save_signals(
+    body: SignalsIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """Thresholds for the article signals on a request's offers."""
+    try:
+        store.save(
+            session,
+            settings,
+            body.changed_by,
+            {
+                "signal_price_rise_pct": body.price_rise_pct,
+                "signal_lead_rise_pct": body.lead_rise_pct,
+                "signal_lead_rise_days": body.lead_rise_days,
+            },
+        )
         store.apply(session, settings)
     except store.SettingsError as exc:
         session.rollback()

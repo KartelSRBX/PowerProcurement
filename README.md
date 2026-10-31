@@ -591,6 +591,24 @@ warning: the rate you typed is still used and the result is not marked incomplet
 
 ![A saved calculation](docs/img/ui/calculator-saved.png)
 
+### Article signals
+
+On a request's ranking, an offer is flagged when it looks worse than this company's own history for the same article. Two signals,
+both warnings for a person that never change a score or block anything:
+
+- **Price rise:** the offer's unit price is at least N% (10 by default) above the last price **paid** for the article (the unit price
+  on an accepted supplier invoice that had lines), or, where there is none, the last price **ordered** (the unit price of the offer
+  behind an order). A newer order with no price for the article does not hide an older one that has it.
+- **Lead-time rise:** the offer's lead time is longer than the last order's by at least N days and N% (3 days and 25% by default). The
+  last lead time is what the order actually took if it was delivered, else the lead time quoted. The offer's lead time is for the
+  whole order, so it is set against the longest last lead among its items.
+
+An article is identified by its part number where the request item has one (letters and digits, case ignored), otherwise by its
+description (case and spacing ignored). There is no market data and no AI here. Thresholds are set in **Settings, Article signals**.
+`GET /requests/{id}/signals` gives the detail per item.
+
+![Signals under a supplier in the ranking](docs/img/ui/signals.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the
