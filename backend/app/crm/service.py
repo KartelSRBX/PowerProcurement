@@ -493,6 +493,10 @@ def update_supplier(session: Session, supplier_id: int, changes: dict, changed_b
             if len(value) != 2:
                 raise ValueError("country must be a 2-letter code")
         setattr(row, key, value)
+    known = {b.lower() for b in row.brands}
+    unknown = [b for b in row.authorized_brands if b.lower() not in known]
+    if unknown:
+        raise ValueError(f"authorized brands must be among the supplier's brands: {', '.join(unknown)}")
     _audit(session, by, "supplier.updated", supplier_id=row.id, fields=sorted(changes))
     session.commit()
     return row

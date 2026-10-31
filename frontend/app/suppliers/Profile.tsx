@@ -17,7 +17,7 @@ export function ProfilePanel({ d, person, run, reopen }: { d: any; person: strin
   const [disc, setDisc] = useState({ brand: "", description: "" });
   useEffect(() => {
     setF({
-      brands: d.brands.join(", "), product_types: d.product_types.join(", "), brand_tiers: { ...d.brand_tiers },
+      brands: d.brands.join(", "), authorized: [...(d.authorized_brands ?? [])], product_types: d.product_types.join(", "), brand_tiers: { ...d.brand_tiers },
       stock_delivery_days: d.stock_delivery_days ?? "", payment_type: d.payment_type ?? "", partner_status: d.partner_status ?? "",
       website: d.website ?? "", contract_note: d.contract_note ?? "", has_credit_line: d.has_credit_line,
       credit_line_note: d.credit_line_note ?? "", rebates: d.rebates ?? "",
@@ -26,7 +26,7 @@ export function ProfilePanel({ d, person, run, reopen }: { d: any; person: strin
   if (!f) return null;
   const brands = list(f.brands);
   const save = () => run(() => api(`/suppliers/${d.id}`, { method: "PATCH", json: { changed_by: person, changes: {
-    brands, product_types: list(f.product_types),
+    brands, authorized_brands: f.authorized.filter((b: string) => brands.some((x) => x.toLowerCase() === b.toLowerCase())), product_types: list(f.product_types),
     brand_tiers: Object.fromEntries(brands.filter((b) => f.brand_tiers[b]).map((b) => [b, f.brand_tiers[b]])),
     stock_delivery_days: f.stock_delivery_days === "" ? null : Number(f.stock_delivery_days),
     payment_type: f.payment_type || null, partner_status: f.partner_status || null, website: f.website || null,
@@ -45,6 +45,13 @@ export function ProfilePanel({ d, person, run, reopen }: { d: any; person: strin
         <div className="row">{brands.map((b) => (
           <label key={b}>{b} <select value={f.brand_tiers[b] ?? ""} onChange={(e) => setF({ ...f, brand_tiers: { ...f.brand_tiers, [b]: e.target.value } })}>
             <option value="">role not set</option>{TIERS.map((t) => <option key={t} value={t}>{label(t)}</option>)}</select></label>))}
+        </div>
+      )}
+      {brands.length > 0 && (
+        <div className="row" data-testid="authorized-brands"><span className="muted" title="Brands the manufacturer has authorized this supplier to sell. Enter it only when you have seen proof; an article of a brand the supplier is not marked for is flagged on offers.">Authorized channel for:</span>
+          {brands.map((b) => (
+            <label key={b}><input type="checkbox" checked={f.authorized.some((x: string) => x.toLowerCase() === b.toLowerCase())}
+              onChange={(e) => setF({ ...f, authorized: e.target.checked ? [...f.authorized, b] : f.authorized.filter((x: string) => x.toLowerCase() !== b.toLowerCase()) })} /> {b}</label>))}
         </div>
       )}
       <div className="row"><label style={{ flex: 1 }}>Product types (comma separated) <input style={{ width: "100%" }} value={f.product_types} onChange={(e) => setF({ ...f, product_types: e.target.value })} /></label></div>

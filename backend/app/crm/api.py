@@ -9,6 +9,7 @@ from app.config import Settings, get_settings
 from app.crm import service as svc
 from app.db import get_session
 from app.pipeline.api import guarded
+from app.suppliers import articles as articles_notes
 from app.suppliers import profile
 
 router = APIRouter(tags=["crm"])
@@ -242,6 +243,53 @@ def articles(
     q: str = "", session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
 ):
     return svc.search_articles(session, settings, q)
+
+
+class ArticleRecordIn(BaseModel):
+    set_by: str
+    part_number: str | None = None
+    description: str | None = None
+    brand: str | None = None
+    eol: bool = False
+    eol_since: date | None = None
+    eol_note: str = Field(default="", max_length=300)
+
+
+class ArticleAlternateIn(BaseModel):
+    set_by: str
+    part_number: str | None = None
+    description: str | None = None
+    alt_part_number: str | None = None
+    alt_description: str | None = None
+    kind: str
+    note: str = Field(default="", max_length=300)
+
+
+@router.get("/articles/notes")
+def article_notes(q: str = "", session: Session = Depends(get_session)):
+    return articles_notes.listing(session, q)
+
+
+@router.put("/articles/notes")
+def set_article_note(body: ArticleRecordIn, session: Session = Depends(get_session)):
+    return guarded(articles_notes.set_record, session, **body.model_dump())
+
+
+@router.delete("/articles/notes/{record_id}")
+def remove_article_note(record_id: int, removed_by: str, session: Session = Depends(get_session)):
+    guarded(articles_notes.remove_record, session, record_id, removed_by)
+    return articles_notes.listing(session)
+
+
+@router.post("/articles/alternates")
+def add_article_alternate(body: ArticleAlternateIn, session: Session = Depends(get_session)):
+    return guarded(articles_notes.add_alternate, session, **body.model_dump())
+
+
+@router.delete("/articles/alternates/{alt_id}")
+def remove_article_alternate(alt_id: int, removed_by: str, session: Session = Depends(get_session)):
+    guarded(articles_notes.remove_alternate, session, alt_id, removed_by)
+    return articles_notes.listing(session)
 
 
 @router.get("/requests/{request_id}/articles")

@@ -98,6 +98,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   by a number of days and percent. Warnings only; scores are unchanged. Articles are matched by part number, else description.
   Thresholds in Settings (`PUT /settings/signals`: 10%, 25% and 3 days by default). `GET /requests/{id}/signals` gives per-item
   detail. No migration; 8 new tests.
+- **Alternates, end of life, authorized channel (day 18):** a person records, on the Article matching tab, a manufacturer and an
+  end-of-life mark for an article and links articles as replacement or equivalent; on a supplier's profile they tick the brands the
+  manufacturer authorized it to sell. A request shows end-of-life articles with their replacements, and an offer from a supplier not
+  marked authorized for the article's manufacturer is flagged. Warnings only; the app decides none of it. Migration 0022
+  (`article_records`, `article_alternates`, `suppliers.authorized_brands`), 8 new tests.
 
 ## PP1.2
 

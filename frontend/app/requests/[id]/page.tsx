@@ -9,6 +9,7 @@ import { AiOff, aiTag, useAi } from "../../lib/ai";
 import { TasksPanel } from "./Tasks";
 import { LegalPanel } from "./LegalPanel";
 import { Delivery } from "./Delivery";
+import { ItemNotes } from "./ItemNotes";
 import { SavingsBaseline } from "./SavingsBaseline";
 import { SupplierInvoice } from "./SupplierInvoice";
 import { Comparison, CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
@@ -95,6 +96,7 @@ export default function RequestPage() {
         <div className="row"><label>Markup % <input type="number" style={{ width: "5rem" }} value={markup} onChange={(e) => setMarkup(Number(e.target.value))} /></label>
           <select value={cur} onChange={(e) => setCur(e.target.value)}><option>EUR</option><option>RSD</option><option>USD</option></select>
           <span className="muted">Scores are computed by code, not by AI. Demo exchange rates.</span></div>
+        <ItemNotes id={id} refresh={ranked} />
         <ExplainScores id={id} ai={ai} w={w} disabled={d.offers.length === 0} />
         <Comparison id={id} offers={d.offers.length} />
       </section>

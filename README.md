@@ -609,6 +609,26 @@ description (case and spacing ignored). There is no market data and no AI here. 
 
 ![Signals under a supplier in the ranking](docs/img/ui/signals.png)
 
+### Alternates, end of life and authorized channel
+
+A person records what they know; the app repeats it where an offer for the article is weighed, and decides none of it. On the
+**Article matching** tab, under *Notes*:
+
+- **Manufacturer and end of life.** A manufacturer (brand) for an article, and an *end of life* mark with an optional date and note
+  (for example a last-time buy). An end-of-life article, and the replacements linked to it, are listed on the request next to the ranking.
+- **Replacements and equivalents.** Link two articles: *replacement* (the second takes over from the first) or *equivalent* (either can
+  stand in). Each link is shown from both sides ("replaced by", "replaces"), with a mark when the other article is itself end of life.
+- **Authorized channel.** On a supplier's profile, tick the brands the manufacturer has authorized it to sell (only among its brands, and
+  only when you have seen proof). When an article has a manufacturer and an offer comes from a supplier not marked for that brand, the
+  ranking says so and asks for proof of authorization before ordering. An article with no manufacturer entered gets no such warning.
+
+An article is its part number (letters and digits, case ignored), else its description: the same key the article signals use. Every
+change is logged with the person's name. `GET/PUT /articles/notes`, `POST /articles/alternates`, `GET /requests/{id}/signals`.
+
+![Article notes](docs/img/ui/article-notes.png)
+
+![An authorized-channel warning and an end-of-life note on a request](docs/img/ui/article-warnings.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the
@@ -990,7 +1010,7 @@ Browser ──> frontend (Next.js) ──/api──> backend (FastAPI) ──> P
 | `backend/app/duty/` | Customs duty registry: tariff parser, loader, search, rates for an origin |
 | `backend/app/worktasks/` | Tasks in Bitrix24 / Excel / demo: saved settings, providers, plan, status sync, progress, Excel in and out |
 | `backend/app/assist/` | The assisted steps: supplier pool, letter drafts and their checks, supplier replies, follow-ups, explanations |
-| `backend/migrations/` | Alembic migrations (0001 to 0021) |
+| `backend/migrations/` | Alembic migrations (0001 to 0022) |
 | `docs/` | [Architecture](docs/architecture.md), [how the AI was directed](docs/ai-workflow.md), [decision records](docs/decisions/) |
 
 Everything that talks to the outside world sits behind an adapter so it can be swapped or faked without touching

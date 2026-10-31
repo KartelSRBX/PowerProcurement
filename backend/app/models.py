@@ -100,6 +100,10 @@ class Supplier(Base):
     rebates: Mapped[str | None] = mapped_column(String(300))
     partner_status: Mapped[str | None] = mapped_column(String(16))  # new | approved | preferred | on_hold
     website: Mapped[str | None] = mapped_column(String(300))
+    # brands the manufacturer has authorized this supplier to sell, as a person recorded them
+    authorized_brands: Mapped[list[str]] = mapped_column(
+        JSON, nullable=False, default=list, server_default="[]"
+    )
 
 
 class CatalogPrice(Base):
@@ -357,6 +361,41 @@ class SavingsBaseline(Base):
     order_id: Mapped[int] = mapped_column(ForeignKey("purchase_orders.id"), nullable=False, unique=True)
     basis: Mapped[str] = mapped_column(String(16), nullable=False)  # highest_offer | target_price | manual
     amount_eur: Mapped[float] = mapped_column(Float, nullable=False)  # goods, without VAT
+    note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    set_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ArticleRecord(Base):
+    """What a person knows about an article: its manufacturer and whether it is end of life. Identified by an
+    article key (part number, else description), because there is no article master table."""
+
+    __tablename__ = "article_records"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(String(200), unique=True, nullable=False)
+    label: Mapped[str] = mapped_column(String(200), nullable=False)
+    brand: Mapped[str | None] = mapped_column(String(100))
+    eol: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    eol_since: Mapped[date | None] = mapped_column(Date)
+    eol_note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    set_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ArticleAlternate(Base):
+    """A link a person made between two articles: a replacement (the second takes over from the first) or an
+    equivalent (either can stand in for the other)."""
+
+    __tablename__ = "article_alternates"
+    __table_args__ = (UniqueConstraint("key", "alternate_key"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    key: Mapped[str] = mapped_column(String(200), nullable=False)
+    label: Mapped[str] = mapped_column(String(200), nullable=False)
+    alternate_key: Mapped[str] = mapped_column(String(200), nullable=False)
+    alternate_label: Mapped[str] = mapped_column(String(200), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # replacement | equivalent
     note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
     set_by: Mapped[str] = mapped_column(String(128), nullable=False)
     set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -15,6 +15,7 @@ PROFILE_FIELDS = (
     "brands",
     "product_types",
     "brand_tiers",
+    "authorized_brands",
     "stock_delivery_days",
     "payment_type",
     "contract_note",
@@ -69,7 +70,7 @@ def _words(values) -> list[str]:
 def clean_profile(changes: dict) -> dict:
     """Validate and normalise the profile fields in `changes`; other keys pass through untouched."""
     out = dict(changes)
-    for key in ("brands", "product_types"):
+    for key in ("brands", "product_types", "authorized_brands"):
         if key in out:
             out[key] = _words(out[key])
     if "brand_tiers" in out:

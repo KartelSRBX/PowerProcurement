@@ -17,12 +17,11 @@ from app.config import Settings
 from app.currency import to_eur
 from app.models import Offer, OfferLine, PurchaseOrder, RequestItem, Supplier, SupplierInvoice
 from app.pipeline.service import get_request, items_of
+from app.suppliers.articles import about, item_key
 
 
 def article_key(item: RequestItem) -> str:
-    if item.part_number and item.part_number.strip():
-        return "pn:" + "".join(ch for ch in item.part_number.casefold() if ch.isalnum())
-    return "d:" + " ".join(item.description.casefold().split())
+    return item_key(item)
 
 
 def _history(
@@ -74,6 +73,15 @@ def for_request(session: Session, settings: Settings, request_id: int) -> dict:
         settings.signal_lead_rise_pct,
         settings.signal_lead_rise_days,
     )
+    item_notes = []
+    brand_of: dict[int, str] = {}
+    for it in items:
+        info = about(session, article_key(it))
+        rec = info["record"]
+        if rec and rec["brand"]:
+            brand_of[it.id] = rec["brand"]
+        if rec or info["links"]:
+            item_notes.append({"item_id": it.id, "description": it.description, **info})
     offers = []
     for o in session.scalars(select(Offer).where(Offer.request_id == request_id).order_by(Offer.id)):
         sup = session.get(Supplier, o.supplier_id)
@@ -107,6 +115,14 @@ def for_request(session: Session, settings: Settings, request_id: int) -> dict:
                         f"(order #{last['order_id']}, {last['supplier']}); threshold {price_limit:g}%"
                     )
             rows.append(row)
+        authorized = {b.lower() for b in sup.authorized_brands}
+        for it in items:
+            brand = brand_of.get(it.id)
+            if brand and brand.lower() not in authorized and it.id in lines:
+                texts.append(
+                    f"{it.description}: {sup.name} is not marked as an authorized channel for {brand}; "
+                    "ask for proof of authorization before ordering"
+                )
         lead = {
             "offer_days": o.lead_time_days,
             "last_days": None,
@@ -145,5 +161,6 @@ def for_request(session: Session, settings: Settings, request_id: int) -> dict:
     return {
         "request_id": request_id,
         "thresholds": {"price_rise_pct": price_limit, "lead_rise_pct": lead_pct, "lead_rise_days": lead_days},
+        "item_notes": item_notes,
         "offers": offers,
     }

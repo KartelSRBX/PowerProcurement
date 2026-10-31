@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { api, eur } from "../lib/api";
+import { usePerson } from "../lib/person";
+import { Notes } from "./Notes";
 
 function Lines({ g, qty }: { g: any; qty?: number | null }) {
   const best = g.lines.find((l: any) => !l.sanctioned && !l.expired);
@@ -36,7 +38,8 @@ function Group({ g, qty }: { g: any; qty?: number | null }) {
 
 function Inner() {
   const params = useSearchParams();
-  const [mode, setMode] = useState<"catalog" | "request">(params.get("request") ? "request" : "catalog");
+  const { person } = usePerson();
+  const [mode, setMode] = useState<"catalog" | "request" | "notes">(params.get("request") ? "request" : "catalog");
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<any[]>([]);
   const [reqs, setReqs] = useState<any[]>([]);
@@ -53,6 +56,7 @@ function Inner() {
       <div className="tabs">
         <div className={`tab ${mode === "catalog" ? "active" : ""}`} onClick={() => setMode("catalog")}>Catalog search</div>
         <div className={`tab ${mode === "request" ? "active" : ""}`} onClick={() => setMode("request")}>Request items</div>
+        <div className={`tab ${mode === "notes" ? "active" : ""}`} onClick={() => setMode("notes")}>Notes: end of life, replacements</div>
       </div>
       {err && <div className="err">{err}</div>}
       {mode === "catalog" && (
@@ -62,6 +66,7 @@ function Inner() {
           {hits.length === 0 && <p className="muted">Nothing found. Add a price line on the “Suppliers” tab.</p>}
         </>
       )}
+      {mode === "notes" && <Notes person={person} />}
       {mode === "request" && (
         <>
           <div className="row"><select value={rid} onChange={(e) => setRid(e.target.value)}><option value="">select a request</option>
