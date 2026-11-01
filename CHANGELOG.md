@@ -103,6 +103,13 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   manufacturer authorized it to sell. A request shows end-of-life articles with their replacements, and an offer from a supplier not
   marked authorized for the article's manufacturer is flagged. Warnings only; the app decides none of it. Migration 0022
   (`article_records`, `article_alternates`, `suppliers.authorized_brands`), 8 new tests.
+- **Supplier bank details (day 19):** an account is never typed straight in. A person proposes it on the supplier's profile with a
+  record of the call that confirmed it (who at the supplier, on which date, and where the number called came from: the contract, a
+  verified record, the official website or an explained source, never the mail that announced the change), and a different person
+  approves or rejects it. The old account stays in force until then. The IBAN check digits are verified; the approver is warned when
+  the IBAN country, the holder name or an account already used by another supplier does not fit. Stored encrypted with a hash for
+  finding duplicates (day 20). A "Pays to" line on the order shows the account and warns for 30 days after a change.
+  Migration 0023 (`supplier_bank_accounts`, `supplier_bank_changes`), 9 new tests, ADR 0020.
 
 ## PP1.2
 

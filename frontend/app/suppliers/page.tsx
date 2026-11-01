@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, eur } from "../lib/api";
 import { usePerson } from "../lib/person";
+import { BankPanel } from "./Bank";
 import { CHECK_LABEL, CHECK_TAG, ChecksPanel, PerformancePanel, ProfilePanel, STATUSES, TIERS } from "./Profile";
 
 const blank = { name: "", country: "RS", email: "", categories: "electronics", languages: "sr,en", age_years: 0, deals_count: 0, payment_terms_days: 0, warranty_months: 12, vat_verified: false, framework_contract: false };
@@ -135,6 +136,7 @@ export default function Suppliers() {
               <PerformancePanel p={d.performance} />
               <ProfilePanel d={d} person={person} run={run} reopen={d.id} />
               <ChecksPanel d={d} person={person} run={run} reopen={d.id} />
+              <BankPanel supplierId={d.id} person={person} />
               <h2 style={{ marginTop: "1rem" }}>Price list ({d.catalog.length})</h2>
               <table>
                 <thead><tr><th>Article / key</th><th>Price</th><th>≈ EUR</th><th>MOQ</th><th>Lead time, days</th><th>Until</th></tr></thead>

@@ -629,6 +629,25 @@ change is logged with the person's name. `GET/PUT /articles/notes`, `POST /artic
 
 ![An authorized-channel warning and an end-of-life note on a request](docs/img/ui/article-warnings.png)
 
+### Supplier bank details
+
+A bank account is the thing a fraudster wants changed, so it is never typed straight in. On a supplier's profile, under *Bank details*:
+
+- **Propose.** A person enters the account (an IBAN, whose check digits are verified, or a domestic number), the holder, and a reason,
+  and records the call that confirmed it: who at the supplier, on which date, and where the number called came from (the contract, an
+  earlier verified record, the official website, or another source that has to be explained). The mail that announced the change is
+  not a source.
+- **Approve.** A *different* person approves or rejects (a rejection needs a comment). The proposer can withdraw. The account in force
+  does not change until it is approved. The approver sees warnings: the IBAN country differs from the supplier's, the holder does not
+  look like the supplier's name, the account is already used by another supplier.
+- **See it where it matters.** The order panel shows "Pays to" with the account in force, and a warning for 30 days after a change.
+
+The account is stored encrypted; every step is in the audit log. Without sign-in this is a process aid, not a lock (see
+`docs/decisions/0020-supplier-bank-details.md`). `GET /suppliers/{id}/bank`, `POST /suppliers/{id}/bank/proposals`,
+`POST /bank-proposals/{id}/decision`, `POST /bank-proposals/{id}/withdraw`, `GET /bank-proposals` (those waiting).
+
+![Bank details of a supplier](docs/img/ui/supplier-bank.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the

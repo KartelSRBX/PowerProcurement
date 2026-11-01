@@ -10,7 +10,7 @@ from app.crm import service as svc
 from app.db import get_session
 from app.pipeline.api import guarded
 from app.suppliers import articles as articles_notes
-from app.suppliers import profile
+from app.suppliers import bank, profile
 
 router = APIRouter(tags=["crm"])
 
@@ -290,6 +290,74 @@ def add_article_alternate(body: ArticleAlternateIn, session: Session = Depends(g
 def remove_article_alternate(alt_id: int, removed_by: str, session: Session = Depends(get_session)):
     guarded(articles_notes.remove_alternate, session, alt_id, removed_by)
     return articles_notes.listing(session)
+
+
+# ---- supplier bank details: a proposal, a call, a second person ----------------------------------
+
+
+class BankProposalIn(BaseModel):
+    proposed_by: str
+    account: str = Field(max_length=60)
+    holder: str = Field(max_length=200)
+    bank_name: str | None = Field(default=None, max_length=200)
+    swift: str | None = Field(default=None, max_length=11)
+    reason: str = Field(max_length=300)
+    callback_by: str
+    callback_person: str = Field(max_length=200)
+    callback_source: str
+    callback_on: date
+    callback_note: str = Field(default="", max_length=300)
+
+
+class BankDecisionIn(BaseModel):
+    decided_by: str
+    approve: bool
+    comment: str = Field(default="", max_length=300)
+
+
+@router.get("/suppliers/{supplier_id}/bank")
+def supplier_bank(
+    supplier_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return guarded(bank.view, session, settings, supplier_id)
+
+
+@router.post("/suppliers/{supplier_id}/bank/proposals")
+def propose_bank(
+    supplier_id: int,
+    body: BankProposalIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    guarded(bank.propose, session, settings, supplier_id, **body.model_dump())
+    return bank.view(session, settings, supplier_id)
+
+
+@router.get("/bank-proposals")
+def bank_proposals(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
+    return bank.pending_list(session, settings)
+
+
+@router.post("/bank-proposals/{change_id}/decision")
+def decide_bank(
+    change_id: int,
+    body: BankDecisionIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    row = guarded(bank.decide, session, settings, change_id, body.decided_by, body.approve, body.comment)
+    return bank.view(session, settings, row["supplier_id"])
+
+
+@router.post("/bank-proposals/{change_id}/withdraw")
+def withdraw_bank(
+    change_id: int,
+    by: str,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    row = guarded(bank.withdraw, session, settings, change_id, by)
+    return bank.view(session, settings, row["supplier_id"])
 
 
 @router.get("/requests/{request_id}/articles")

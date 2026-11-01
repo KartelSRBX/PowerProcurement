@@ -12,6 +12,7 @@ import { Delivery } from "./Delivery";
 import { ItemNotes } from "./ItemNotes";
 import { SavingsBaseline } from "./SavingsBaseline";
 import { SupplierInvoice } from "./SupplierInvoice";
+import { PaysTo } from "../../suppliers/Bank";
 import { Comparison, CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
 
 export default function RequestPage() {
@@ -127,6 +128,7 @@ export default function RequestPage() {
           {o.invoice_requested_by ? <span className="muted">Invoice requested by {o.invoice_requested_by}</span>
             : <InvoiceRequest po={o} who={who} act={act} post={post} />}
           <Delivery po={o} who={who} />
+          <PaysTo supplierId={o.supplier_id} />
           <SupplierInvoice po={o} who={who} />
           <SavingsBaseline po={o} who={who} />
           <OrderLetters {...ctx} po={o} />

@@ -366,6 +366,56 @@ class SavingsBaseline(Base):
     set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class SupplierBankAccount(Base):
+    """The bank account a supplier is paid into, as last approved by a second person. Encrypted at rest;
+    the hash lets two suppliers with the same account be found without opening it."""
+
+    __tablename__ = "supplier_bank_accounts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False, unique=True)
+    account_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    account_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)  # iban | domestic
+    holder: Mapped[str] = mapped_column(String(200), nullable=False)
+    bank_name: Mapped[str | None] = mapped_column(String(200))
+    swift: Mapped[str | None] = mapped_column(String(11))
+    change_id: Mapped[int] = mapped_column(Integer, nullable=False)  # the approved proposal that set it
+    confirmed_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    confirmed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SupplierBankChange(Base):
+    """A proposal to set or change a supplier's bank account. One person proposes with a record of the call
+    that confirmed it; a different person approves or rejects it. Nothing changes until it is approved."""
+
+    __tablename__ = "supplier_bank_changes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
+    account_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    account_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    holder: Mapped[str] = mapped_column(String(200), nullable=False)
+    bank_name: Mapped[str | None] = mapped_column(String(200))
+    swift: Mapped[str | None] = mapped_column(String(11))
+    reason: Mapped[str] = mapped_column(String(300), nullable=False)
+    warnings: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    proposed_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    proposed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    callback_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    callback_person: Mapped[str] = mapped_column(String(200), nullable=False)  # who at the supplier confirmed
+    callback_source: Mapped[str] = mapped_column(
+        String(24), nullable=False
+    )  # where the number called came from
+    callback_on: Mapped[date] = mapped_column(Date, nullable=False)
+    callback_note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    status: Mapped[str] = mapped_column(String(12), nullable=False, default="pending")
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    decision_comment: Mapped[str | None] = mapped_column(String(300))
+
+
 class ArticleRecord(Base):
     """What a person knows about an article: its manufacturer and whether it is end of life. Identified by an
     article key (part number, else description), because there is no article master table."""
