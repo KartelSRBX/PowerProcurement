@@ -19,7 +19,7 @@ export function ProfilePanel({ d, person, run, reopen }: { d: any; person: strin
     setF({
       brands: d.brands.join(", "), authorized: [...(d.authorized_brands ?? [])], product_types: d.product_types.join(", "), brand_tiers: { ...d.brand_tiers },
       stock_delivery_days: d.stock_delivery_days ?? "", payment_type: d.payment_type ?? "", partner_status: d.partner_status ?? "",
-      website: d.website ?? "", contract_note: d.contract_note ?? "", has_credit_line: d.has_credit_line,
+      website: d.website ?? "", tax_id: d.tax_id ?? "", contract_note: d.contract_note ?? "", has_credit_line: d.has_credit_line,
       credit_line_note: d.credit_line_note ?? "", rebates: d.rebates ?? "",
     });
   }, [d]);
@@ -29,7 +29,7 @@ export function ProfilePanel({ d, person, run, reopen }: { d: any; person: strin
     brands, authorized_brands: f.authorized.filter((b: string) => brands.some((x) => x.toLowerCase() === b.toLowerCase())), product_types: list(f.product_types),
     brand_tiers: Object.fromEntries(brands.filter((b) => f.brand_tiers[b]).map((b) => [b, f.brand_tiers[b]])),
     stock_delivery_days: f.stock_delivery_days === "" ? null : Number(f.stock_delivery_days),
-    payment_type: f.payment_type || null, partner_status: f.partner_status || null, website: f.website || null,
+    payment_type: f.payment_type || null, partner_status: f.partner_status || null, website: f.website || null, tax_id: f.tax_id || null,
     contract_note: f.contract_note || null, has_credit_line: f.has_credit_line, credit_line_note: f.credit_line_note || null, rebates: f.rebates || null,
   } } }), reopen);
   return (
@@ -57,6 +57,7 @@ export function ProfilePanel({ d, person, run, reopen }: { d: any; person: strin
       <div className="row"><label style={{ flex: 1 }}>Product types (comma separated) <input style={{ width: "100%" }} value={f.product_types} onChange={(e) => setF({ ...f, product_types: e.target.value })} /></label></div>
       <div className="row">
         <label style={{ flex: 1 }}>Website <input style={{ width: "100%" }} value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} /></label>
+        <label style={{ flex: 1 }}>Tax number <input style={{ width: "100%" }} value={f.tax_id} onChange={(e) => setF({ ...f, tax_id: e.target.value })} /></label>
         <label style={{ flex: 1 }}>Contract note <input style={{ width: "100%" }} value={f.contract_note} onChange={(e) => setF({ ...f, contract_note: e.target.value })} /></label>
       </div>
       <div className="row">

@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { api, eur } from "../lib/api";
 import { usePerson } from "../lib/person";
 import { BankPanel } from "./Bank";
+import { DuplicateWarning, DuplicatesList } from "./Duplicates";
 import { CHECK_LABEL, CHECK_TAG, ChecksPanel, PerformancePanel, ProfilePanel, STATUSES, TIERS } from "./Profile";
 
-const blank = { name: "", country: "RS", email: "", categories: "electronics", languages: "sr,en", age_years: 0, deals_count: 0, payment_terms_days: 0, warranty_months: 12, vat_verified: false, framework_contract: false };
+const blank = { name: "", country: "RS", email: "", tax_id: "", categories: "electronics", languages: "sr,en", age_years: 0, deals_count: 0, payment_terms_days: 0, warranty_months: 12, vat_verified: false, framework_contract: false };
 const today = new Date().toISOString().slice(0, 10);
 const CSV_TEMPLATE = "keyword,description,unit_price,currency,moq,lead_time_days,valid_until\nlm358,LM358 dual op-amp,0.21,EUR,100,5,2027-12-31\n";
 const blankLine = { keyword: "", description: "", unit_price: 0, currency: "EUR", moq: 1, lead_time_days: 7, valid_until: `${new Date().getFullYear() + 1}-12-31` };
@@ -27,6 +28,7 @@ export default function Suppliers() {
   const [sel, setSel] = useState<number | null>(null);
   const [d, setD] = useState<any>(null);
   const [adding, setAdding] = useState(false);
+  const [dups, setDups] = useState(false);
   const [form, setForm] = useState<any>(blank);
   const [line, setLine] = useState<any>(blankLine);
   const [err, setErr] = useState("");
@@ -40,7 +42,7 @@ export default function Suppliers() {
       .then(([r, f]) => { setRows(r); setFacets(f); }).catch((e) => setErr(e.message));
   }, [q, country, category, brand, tier, check, status, sort, dir]);
   useEffect(() => { const t = setTimeout(load, 150); return () => clearTimeout(t); }, [load]);
-  const open = useCallback((id: number) => { setCsv(""); setPrev(null); setSel(id); setAdding(false); api(`/suppliers/${id}`).then(setD).catch((e) => setErr(e.message)); }, []);
+  const open = useCallback((id: number) => { setCsv(""); setPrev(null); setSel(id); setAdding(false); setDups(false); api(`/suppliers/${id}`).then(setD).catch((e) => setErr(e.message)); }, []);
 
   async function run(fn: () => Promise<unknown>, reopen?: number) {
     setErr("");
@@ -65,7 +67,8 @@ export default function Suppliers() {
           <div className="pane-h">
             <div className="row" style={{ margin: 0 }}>
               <input placeholder="Search name, email, brand, product type" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: 1 }} />
-              <button className="primary" onClick={() => { setAdding(true); setSel(null); setD(null); }}>+ Supplier</button>
+              <button onClick={() => { setDups(true); setAdding(false); setSel(null); setD(null); }}>Duplicates</button>
+              <button className="primary" onClick={() => { setAdding(true); setDups(false); setSel(null); setD(null); }}>+ Supplier</button>
             </div>
             <div className="row" style={{ margin: ".4rem 0 0" }}>
               <select value={country} onChange={(e) => { setCountry(e.target.value); setCategory(""); setBrand(""); }}><option value="">all countries</option>{facets.countries.map((c: any) => <option key={c.value} value={c.value}>{c.value} ({c.count})</option>)}</select>
@@ -96,7 +99,8 @@ export default function Suppliers() {
               <h2>New supplier</h2>
               <div className="row"><input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
                 <input style={{ width: "4rem" }} maxLength={2} placeholder="RS" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
-                <input placeholder="email sales team" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+                <input placeholder="email sales team" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+                <input placeholder="tax number (optional)" value={form.tax_id} onChange={(e) => setForm({ ...form, tax_id: e.target.value })} /></div>
               <div className="row"><label>categories <input value={form.categories} onChange={(e) => setForm({ ...form, categories: e.target.value })} /></label>
                 <label>languages <input style={{ width: "6rem" }} value={form.languages} onChange={(e) => setForm({ ...form, languages: e.target.value })} /></label></div>
               <div className="row">
@@ -113,11 +117,13 @@ export default function Suppliers() {
               {!person.trim() && <span className="muted"> Enter your name at the top.</span>}
             </>
           )}
-          {!adding && !d && <div className="muted">Pick a supplier on the left or add a new one. Every change is logged under your name.</div>}
+          {!adding && !d && dups && <DuplicatesList person={person} onOpen={open} />}
+          {!adding && !d && !dups && <div className="muted">Pick a supplier on the left or add a new one. Every change is logged under your name.</div>}
           {!adding && d && d.id === sel && (
             <>
               <h2>{d.name} <span className="tag">{d.country}</span> {d.sanctioned && <span className="tag bad">sanctioned: excluded from mailings</span>}</h2>
               <div className="muted">{d.email} · categories: {d.categories.join(", ")} · languages: {d.languages.join(", ")}</div>
+              <DuplicateWarning d={d} person={person} onChanged={() => open(d.id)} />
               <div className="kpis" style={{ marginTop: ".8rem" }}>
                 {([["RFQs sent", d.history.rfqs_sent], ["offers", d.history.offers], ["orders", d.history.purchase_orders], ["purchased, EUR", eur(d.history.purchase_total_eur)]] as const).map(([l, v]) => (
                   <div className="kpi" key={l}><div className="v" style={{ fontSize: "1.2rem" }}>{v}</div><div className="l">{l}</div></div>))}

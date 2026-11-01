@@ -24,6 +24,7 @@ PROFILE_FIELDS = (
     "rebates",
     "partner_status",
     "website",
+    "tax_id",
 )
 
 _STATUS_ORDER = {s: i for i, s in enumerate(("preferred", "approved", "new", "on_hold"))}
@@ -85,10 +86,20 @@ def clean_profile(changes: dict) -> dict:
         raise ValueError(f"payment_type must be one of {', '.join(PAYMENT_TYPES)}")
     if out.get("partner_status") and out["partner_status"] not in PARTNER_STATUSES:
         raise ValueError(f"partner_status must be one of {', '.join(PARTNER_STATUSES)}")
+    if out.get("tax_id") and len(out["tax_id"].strip()) > 40:
+        raise ValueError("the tax number is at most 40 characters")
     days = out.get("stock_delivery_days")
     if days is not None and (not isinstance(days, int) or days < 0 or days > 365):
         raise ValueError("stock_delivery_days must be a whole number of days, 0 to 365")
-    for key in ("payment_type", "partner_status", "website", "contract_note", "credit_line_note", "rebates"):
+    for key in (
+        "payment_type",
+        "partner_status",
+        "website",
+        "contract_note",
+        "credit_line_note",
+        "rebates",
+        "tax_id",
+    ):
         if key in out and isinstance(out[key], str):
             out[key] = out[key].strip() or None
     return out

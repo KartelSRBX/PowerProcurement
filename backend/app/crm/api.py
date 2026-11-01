@@ -10,7 +10,7 @@ from app.crm import service as svc
 from app.db import get_session
 from app.pipeline.api import guarded
 from app.suppliers import articles as articles_notes
-from app.suppliers import bank, profile
+from app.suppliers import bank, duplicates, profile
 
 router = APIRouter(tags=["crm"])
 
@@ -96,6 +96,7 @@ class SupplierIn(BaseModel):
     brands: list[str] = Field(default_factory=list)
     product_types: list[str] = Field(default_factory=list)
     brand_tiers: dict[str, str] = Field(default_factory=dict)
+    tax_id: str | None = None
     changed_by: str
 
 
@@ -119,6 +120,38 @@ class CatalogImportIn(BaseModel):
     csv: str
     changed_by: str
     dry_run: bool = True
+
+
+class DuplicateReviewIn(BaseModel):
+    supplier_a_id: int
+    supplier_b_id: int
+    verdict: str
+    note: str = Field(max_length=300)
+    reviewed_by: str
+
+
+@router.get("/suppliers/duplicates")
+def supplier_duplicates(include_reviewed: bool = False, session: Session = Depends(get_session)):
+    return duplicates.listing(session, include_reviewed)
+
+
+@router.post("/suppliers/duplicates/review")
+def review_duplicate(body: DuplicateReviewIn, session: Session = Depends(get_session)):
+    return guarded(
+        duplicates.review,
+        session,
+        body.supplier_a_id,
+        body.supplier_b_id,
+        body.verdict,
+        body.note,
+        body.reviewed_by,
+    )
+
+
+@router.delete("/suppliers/duplicates/review/{review_id}")
+def clear_duplicate_review(review_id: int, removed_by: str, session: Session = Depends(get_session)):
+    guarded(duplicates.clear_review, session, review_id, removed_by)
+    return duplicates.listing(session)
 
 
 @router.get("/suppliers/overview")
@@ -213,7 +246,7 @@ def supplier(
 def create_supplier(body: SupplierIn, session: Session = Depends(get_session)):
     data = body.model_dump(exclude={"changed_by"})
     row = guarded(svc.create_supplier, session, data, body.changed_by)
-    return {"id": row.id}
+    return {"id": row.id, "possible_duplicates": duplicates.for_supplier(session, row.id)}
 
 
 @router.patch("/suppliers/{supplier_id}")

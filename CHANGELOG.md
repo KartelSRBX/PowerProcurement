@@ -110,6 +110,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   the IBAN country, the holder name or an account already used by another supplier does not fit. Stored encrypted with a hash for
   finding duplicates (day 20). A "Pays to" line on the order shows the account and warns for 30 days after a change.
   Migration 0023 (`supplier_bank_accounts`, `supplier_bank_changes`), 9 new tests, ADR 0020.
+- **Duplicate supplier finder (day 20):** lists pairs of suppliers that may be one company: the same tax number (a new optional
+  profile field), the same bank account (compared by hash, nothing decrypted) or the same or a very similar name once legal forms and
+  spelling are ignored. A list on the Suppliers tab, a warning on a supplier's profile and on creating one. A person marks each pair
+  "different companies" or "the same company" with a reason; a dismissed pair comes back when a new signal appears. Nothing is merged
+  or blocked. Migration 0024 (`suppliers.tax_id`, `supplier_duplicate_reviews`), 9 new tests, ADR 0021.
 
 ## PP1.2
 

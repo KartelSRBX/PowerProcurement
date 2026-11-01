@@ -648,6 +648,21 @@ The account is stored encrypted; every step is in the audit log. Without sign-in
 
 ![Bank details of a supplier](docs/img/ui/supplier-bank.png)
 
+### Duplicate suppliers
+
+The **Duplicates** button on the Suppliers tab lists pairs that may be one company entered twice. A pair is listed when the two share:
+
+- a **tax number** (a profile field you fill in; spaces, dots, dashes and a country prefix like `RS` are ignored),
+- a **bank account** (compared without opening it; accounts proposed but not yet approved count too),
+- the **same name** once case, punctuation and legal forms (GmbH, d.o.o., Ltd...) are ignored, or a **very similar** name.
+
+Each pair shows why it was found. You mark it *different companies* or *the same company*, with a reason; nothing is merged, hidden or blocked
+by the app. A pair marked different comes back if a new signal appears later. A supplier's own profile shows the pairs it is in, and creating
+a supplier answers with its possible duplicates. `GET /suppliers/duplicates`, `POST /suppliers/duplicates/review`,
+`DELETE /suppliers/duplicates/review/{id}`. See `docs/decisions/0021-duplicate-suppliers.md`.
+
+![Possible duplicate suppliers](docs/img/ui/supplier-duplicates.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the

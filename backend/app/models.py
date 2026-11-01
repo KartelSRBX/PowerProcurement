@@ -104,6 +104,7 @@ class Supplier(Base):
     authorized_brands: Mapped[list[str]] = mapped_column(
         JSON, nullable=False, default=list, server_default="[]"
     )
+    tax_id: Mapped[str | None] = mapped_column(String(40))  # company tax / registration number, as typed
 
 
 class CatalogPrice(Base):
@@ -364,6 +365,23 @@ class SavingsBaseline(Base):
     note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
     set_by: Mapped[str] = mapped_column(String(128), nullable=False)
     set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SupplierDuplicateReview(Base):
+    """A person's verdict on a pair of suppliers the finder put side by side: different companies, or the
+    same one. The signals seen at the time are kept, so a new signal brings the pair back for another look."""
+
+    __tablename__ = "supplier_duplicate_reviews"
+    __table_args__ = (UniqueConstraint("supplier_a_id", "supplier_b_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplier_a_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)  # the smaller id
+    supplier_b_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False)
+    verdict: Mapped[str] = mapped_column(String(12), nullable=False)  # different | same
+    note: Mapped[str] = mapped_column(String(300), nullable=False)
+    signals: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    reviewed_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class SupplierBankAccount(Base):
