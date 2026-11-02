@@ -53,6 +53,9 @@ question to the supplier come on day 11.
   on the row says why. A supplier is never given an invented neutral score for lack of history.
 - **Score.** The average of the on-time share against the date in force and against the first date. Late-by-how-much and lead-time
   spread stay on the profile for a person to read; they are not in the number.
+- **Confirmed by the user on 2 Nov 2026:** the criterion, its score, the rule of a minimum number of delivered orders and the default weight
+  of 0 (off) are approved as built. Turning it on is a decision for the company, made in Settings, Scoring, once the delivery records
+  hold enough orders to mean something.
 
 ## Not decided here
 
