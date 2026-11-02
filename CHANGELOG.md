@@ -129,6 +129,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   a second person, invoices that differ, overdue screenings, duplicate suppliers to review. Each section shows its count and the first lines, each line links
   to where it is handled; the menu shows the total. Nothing new is stored and nothing is sent. Limits (days of silence, days before an offer or a contract
   runs out) are in Settings. No migration; 7 new tests, ADR 0024.
+- **Sign-in (day 24):** users with scrypt-hashed passwords and cookie sessions. Off by default (the old "name at the top" mode); an administrator creates
+  the first user in Settings, adds the others and turns it on. From then on every request needs a signed-in user and every field naming the person
+  acting must be that user's name, so no action can be recorded under another name. Lock after five wrong passwords, session expiry, sign-out, password
+  change and reset (which end other sessions), an audit trail of sign-in events, `AUTH_FORCE_OFF=true` for recovery. Roles are stored here and enforced on
+  day 25. Migration 0027 (`users`, `auth_sessions`), 14 new tests, ADR 0025.
 
 ## PP1.2
 

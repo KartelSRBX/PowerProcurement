@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, fmtDate } from "../lib/api";
 import { usePerson } from "../lib/person";
 import { Duties } from "./Duties";
+import { UsersPanel } from "./Users";
 
 export default function Settings() {
   const { person } = usePerson();
@@ -158,6 +159,8 @@ export default function Settings() {
         </div>
         <p className="muted">In use: price +{d.signals.price_rise_pct}%, lead time +{d.signals.lead_rise_pct}% and +{d.signals.lead_rise_days} days.</p>
       </section>
+
+      <UsersPanel />
 
       <section>
         <h2>Daily summary</h2>

@@ -8,6 +8,7 @@ export async function api<T = any>(path: string, init?: RequestInit & { json?: u
   });
   const text = await res.text();
   const data = text ? JSON.parse(text) : null;
+  if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) window.dispatchEvent(new Event("pp-auth"));
   if (!res.ok) throw new Error(typeof data?.detail === "string" ? data.detail : JSON.stringify(data?.detail ?? data));
   return data as T;
 }

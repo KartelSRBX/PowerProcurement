@@ -31,6 +31,7 @@ EDITABLE = {
     "summary_silent_days",
     "summary_offer_days",
     "summary_contract_days",
+    "auth_enabled",
 }
 FLOATS = {
     "fx_rsd_per_eur",
@@ -50,6 +51,7 @@ INTS = {
     "summary_silent_days",
     "summary_offer_days",
     "summary_contract_days",
+    "auth_enabled",
 }
 
 

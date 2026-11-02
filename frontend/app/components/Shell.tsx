@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { PersonProvider, usePerson } from "../lib/person";
+import { Login } from "./Login";
 
 const NAV = [
   { href: "/today", ico: "◔", label: "Today" },
@@ -45,7 +46,7 @@ function ThemeSwitch() {
 }
 
 function Top({ title }: { title: string }) {
-  const { person, setPerson } = usePerson();
+  const { person, setPerson, auth, refreshAuth } = usePerson();
   const [health, setHealth] = useState<any>(null);
   const [down, setDown] = useState(false);
   useEffect(() => {
@@ -62,11 +63,22 @@ function Top({ title }: { title: string }) {
       {health && <span className="chip warn">mail: {health.mail_mode}</span>}
       <ThemeSwitch />
       <a className="chip" href="http://localhost:8025" target="_blank" rel="noreferrer">Mailpit ↗</a>
-      <label className="person">Working as:
-        <input placeholder="your name (needed for approvals)" value={person} onChange={(e) => setPerson(e.target.value)} />
-      </label>
+      {auth?.enabled && auth.user ? (
+        <span className="person" data-testid="signed-in">Signed in: <b>{auth.user.name}</b> <span className="muted">({auth.user.roles.join(", ")})</span>{" "}
+          <button onClick={async () => { await api("/auth/logout", { method: "POST" }); await refreshAuth(); }}>Sign out</button></span>
+      ) : (
+        <label className="person">Working as:
+          <input placeholder="your name (needed for approvals)" value={person} onChange={(e) => setPerson(e.target.value)} />
+        </label>
+      )}
     </header>
   );
+}
+
+function Gate({ children }: { children: React.ReactNode }) {
+  const { auth } = usePerson();
+  if (auth?.enabled && !auth.user) return <Login />;
+  return <>{children}</>;
 }
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -74,8 +86,13 @@ export default function Shell({ children }: { children: React.ReactNode }) {
   const [waiting, setWaiting] = useState(0);
   const [today, setToday] = useState(0);
   useEffect(() => {
-    api<any[]>("/approvals").then((a) => setWaiting(a.length)).catch(() => setWaiting(0));
-    api<any>("/summary/today").then((a) => setToday(a.total)).catch(() => setToday(0));
+    const load = () => {
+      api<any[]>("/approvals").then((a) => setWaiting(a.length)).catch(() => setWaiting(0));
+      api<any>("/summary/today").then((a) => setToday(a.total)).catch(() => setToday(0));
+    };
+    load();
+    window.addEventListener("pp-signed-in", load);
+    return () => window.removeEventListener("pp-signed-in", load);
   }, [path]);
   const active = (href: string) => (href === "/" ? path === "/" || path.startsWith("/requests") : path.startsWith(href));
   const current = NAV.find((n) => active(n.href));
@@ -95,7 +112,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           <div className="side-foot">Demo: synthetic data, email goes only to Mailpit. Every outgoing email is sent only after a person approves it.</div>
         </nav>
         <Top title={current?.label ?? "PowerProcurement"} />
-        <main className={`hud-main ${narrow ? "narrow" : ""}`}>{children}</main>
+        <main className={`hud-main ${narrow ? "narrow" : ""}`}><Gate>{children}</Gate></main>
       </div>
     </PersonProvider>
   );

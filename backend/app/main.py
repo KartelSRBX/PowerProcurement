@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.analytics.api import router as analytics_router
 from app.assist.api import router as assist_router
+from app.auth.api import router as auth_router
+from app.auth.middleware import AuthMiddleware
 from app.config import get_settings
 from app.crm.api import router as crm_router
 from app.db import get_session
@@ -36,6 +38,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="PowerProcurement", version="0.1.0", lifespan=lifespan)
+app.include_router(auth_router)
 app.include_router(requests_router)
 app.include_router(pipeline_router)
 app.include_router(crm_router)
@@ -47,6 +50,8 @@ app.include_router(worktasks_router)
 app.include_router(legal_router)
 app.include_router(duty_router)
 app.include_router(pricing_router)
+
+app.add_middleware(AuthMiddleware)
 
 
 @app.get("/health")

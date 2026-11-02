@@ -716,6 +716,24 @@ The three limits (3 days, 3 days, 90 days) are in **Settings, Daily summary**. `
 
 ![The Today page](docs/img/ui/today.png)
 
+### Sign-in
+
+By default the name typed at the top is only a label in the log. To make it mean something, open **Settings, Sign-in and users**:
+
+1. **Create the first administrator** (name and a password of 10 or more characters). This works only while there are no users.
+2. **Add the other users** with their roles (admin, buyer, approver, legal; enforced from day 25).
+3. **Turn sign-in on.** Everyone now signs in; the name at the top becomes the signed-in user's name and cannot be changed. Every action the app records
+   is under that name, and a request that names anyone else is refused.
+
+Five wrong passwords lock an account for 15 minutes. A session ends after 12 hours or 2 hours idle, on sign-out, and when the password is changed or reset
+or the user is deactivated. An administrator resets a forgotten password. There is always at least one active administrator. If nobody can sign in, start the
+server with `AUTH_FORCE_OFF=true`, fix it in Settings and remove the variable. Session lengths are `AUTH_SESSION_HOURS` and `AUTH_IDLE_MINUTES`.
+
+`GET /auth/state`, `POST /auth/bootstrap|login|logout|password`, `PUT /auth/enabled`, `GET|POST /users`, `PATCH /users/{id}`, `POST /users/{id}/password`.
+See `docs/decisions/0025-sign-in.md`.
+
+![Users and the sign-in switch](docs/img/ui/users.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the

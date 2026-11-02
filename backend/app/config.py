@@ -71,6 +71,13 @@ class Settings(BaseSettings):
     summary_silent_days: int = Field(default=3, ge=1, le=60)
     summary_offer_days: int = Field(default=3, ge=0, le=30)
     summary_contract_days: int = Field(default=90, ge=1, le=365)
+    # Sign-in. 0 = the old mode (a name typed at the top, a label in the log); 1 = every request needs a
+    # signed-in user and every logged name is that user. Switched in Settings by an administrator.
+    # AUTH_FORCE_OFF=true in the environment overrides it for recovery when nobody can sign in.
+    auth_enabled: int = Field(default=0, ge=0, le=1)
+    auth_force_off: bool = False
+    auth_session_hours: int = Field(default=12, ge=1, le=168)
+    auth_idle_minutes: int = Field(default=120, ge=5, le=1440)
     # Upper limit for a single purchase order, EUR.
     po_budget_limit_eur: float = 50000
 
