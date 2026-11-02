@@ -134,6 +134,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   acting must be that user's name, so no action can be recorded under another name. Lock after five wrong passwords, session expiry, sign-out, password
   change and reset (which end other sessions), an audit trail of sign-in events, `AUTH_FORCE_OFF=true` for recovery. Roles are stored here and enforced on
   day 25. Migration 0027 (`users`, `auth_sessions`), 14 new tests, ADR 0025.
+- **Roles in action (day 25):** with sign-in on, each request needs a role (buyer, approver, legal, admin; a user may hold several): approvals only for
+  approvers, settings and users only for administrators, the legal pages for legal and approvers. Whoever edited an RFQ, quote or letter, or entered a
+  supplier invoice, cannot approve it. Refusals are audited as `auth.denied` with the reason. The vault `person` field is now checked against the
+  signed-in name. One table of rules (`app/auth/rules.py`) with a test that every route is named. Migration 0028 (`edited_by` on RFQs, quotes and
+  letters), 28 new tests, ADR 0026.
 
 ## PP1.2
 

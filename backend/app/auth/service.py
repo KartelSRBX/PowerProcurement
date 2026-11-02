@@ -20,10 +20,10 @@ from app.pipeline.service import PipelineError
 from app.runtime import store
 
 ROLES = {
-    "admin": "users, settings and everything else",
-    "buyer": "requests, suppliers, offers, quotes and orders",
-    "approver": "approves letters, quotes, orders, invoices, bank changes and vault access",
-    "legal": "reads and edits contracts and legal rules",
+    "admin": "everything, including users, settings and turning sign-in on or off",
+    "buyer": "works on requests, suppliers, offers, orders and mail; cannot approve",
+    "approver": "approves RFQs, quotes, letters, orders, invoices, bank changes, vault access",
+    "legal": "reads and edits contracts and legal rules; reads the rest",
 }
 MAX_FAILURES = 5
 LOCK_MINUTES = 15

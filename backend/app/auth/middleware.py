@@ -104,6 +104,11 @@ class AuthMiddleware:
         if user is None:
             return await JSONResponse({"detail": "sign in first"}, status_code=401)(scope, receive, send)
         scope["auth_user"] = user
+        if not rules.allowed(user["roles"], method, path):
+            why = f"needs {rules.describe(method, path)}"
+            await run_in_threadpool(_denied, app, user["name"], method, path, why)
+            msg = f"{user['name']} may not do this: it needs {rules.describe(method, path)}"
+            return await JSONResponse({"detail": msg}, status_code=403)(scope, receive, send)
 
         fields = dict(parse_qsl(scope.get("query_string", b"").decode()))
         if method in ("POST", "PUT", "PATCH", "DELETE"):

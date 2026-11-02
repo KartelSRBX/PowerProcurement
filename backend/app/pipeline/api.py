@@ -1,10 +1,11 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.auth import guard
 from app.config import Settings, get_settings
 from app.currency import to_eur
 from app.db import get_session
@@ -249,17 +250,23 @@ def list_rfqs(request_id: int, session: Session = Depends(get_session)):
 
 
 @router.patch("/rfqs/{rfq_id}")
-def edit_rfq(rfq_id: int, body: RfqEditIn, session: Session = Depends(get_session)):
-    return _dump(guarded(svc.edit_rfq, session, rfq_id, body.subject, body.body))
+def edit_rfq(rfq_id: int, body: RfqEditIn, request: Request, session: Session = Depends(get_session)):
+    rfq = guarded(svc.edit_rfq, session, rfq_id, body.subject, body.body)
+    guard.remember_editor(request, rfq)
+    session.commit()
+    return _dump(rfq)
 
 
 @router.post("/rfqs/{rfq_id}/decision")
 def decide_rfq(
     rfq_id: int,
     body: DecisionIn,
+    request: Request,
     session: Session = Depends(get_session),
     sender: MailSender = Depends(get_sender),
 ):
+    rfq = session.get(Rfq, rfq_id)
+    guard.not_author(request, rfq.edited_by if rfq else None, "this RFQ")
     return _dump(guarded(svc.decide_rfq, session, sender, rfq_id, body.approve, body.decided_by))
 
 
@@ -347,13 +354,14 @@ def quotes(
 
 
 @router.patch("/quotes/{quote_id}")
-def edit_quote(quote_id: int, body: RfqEditIn, session: Session = Depends(get_session)):
+def edit_quote(quote_id: int, body: RfqEditIn, request: Request, session: Session = Depends(get_session)):
     q = session.get(CustomerQuote, quote_id)
     if q is None:
         raise HTTPException(404, "quote not found")
     if q.status != "draft":
         raise HTTPException(409, "only drafts can be edited")
     q.subject, q.body = body.subject or q.subject, body.body or q.body
+    guard.remember_editor(request, q)
     session.commit()
     return _dump(q)
 
@@ -362,9 +370,12 @@ def edit_quote(quote_id: int, body: RfqEditIn, session: Session = Depends(get_se
 def decide_quote(
     quote_id: int,
     body: DecisionIn,
+    request: Request,
     session: Session = Depends(get_session),
     sender: MailSender = Depends(get_sender),
 ):
+    quote = session.get(CustomerQuote, quote_id)
+    guard.not_author(request, quote.edited_by if quote else None, "this quote")
     return _dump(guarded(svc.decide_quote, session, sender, quote_id, body.approve, body.decided_by))
 
 
@@ -499,9 +510,12 @@ def delete_supplier_invoice(
 def accept_supplier_invoice(
     po_id: int,
     body: InvoiceActionIn,
+    request: Request,
     session: Session = Depends(get_session),
     settings: Settings = Depends(get_settings),
 ):
+    entered = invoices._get(session, po_id)
+    guard.not_author(request, entered.entered_by if entered else None, "this invoice")
     return guarded(invoices.accept, session, settings, po_id, body.by, body.reason)
 
 

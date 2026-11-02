@@ -734,6 +734,23 @@ See `docs/decisions/0025-sign-in.md`.
 
 ![Users and the sign-in switch](docs/img/ui/users.png)
 
+#### Roles
+
+With sign-in on, what a user may do depends on their roles (a user may have several; an administrator may do everything):
+
+| Role | May |
+| --- | --- |
+| buyer | work on requests, suppliers, offers, orders, mail and tasks; not approve |
+| approver | approve RFQs, quotes, letters, orders, supplier invoices, bank changes and vault access; read the rest |
+| legal | edit contracts and legal rules; read the rest |
+| admin | everything, including users, settings, tariff import and vault entries |
+
+Everyone signed in can read, except the legal pages (legal, approver, admin) and the vault list (buyer, approver, admin). Whoever edited an RFQ, a quote or a
+letter, or entered a supplier invoice, cannot be the one who approves it. A refused action is answered with the missing role and written to the audit log
+as `auth.denied`. With sign-in off, roles are not checked. The table is `backend/app/auth/rules.py`; see `docs/decisions/0026-roles-in-action.md`.
+
+![Roles](docs/img/ui/roles.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the

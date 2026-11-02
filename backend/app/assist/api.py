@@ -2,12 +2,13 @@ import base64
 import binascii
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.assist import files, followups, insight, replies
+from app.auth import guard
 from app.config import Settings, get_settings
 from app.db import get_session
 from app.mail.sender import MailSender
@@ -184,17 +185,25 @@ def list_letters(request_id: int, session: Session = Depends(get_session)):
 
 
 @router.patch("/letters/{letter_id}")
-def edit_letter(letter_id: int, body: LetterEditIn, session: Session = Depends(get_session)):
-    return followups.letter_dict(guarded(followups.edit_letter, session, letter_id, body.subject, body.body))
+def edit_letter(
+    letter_id: int, body: LetterEditIn, request: Request, session: Session = Depends(get_session)
+):
+    letter = guarded(followups.edit_letter, session, letter_id, body.subject, body.body)
+    guard.remember_editor(request, letter)
+    session.commit()
+    return followups.letter_dict(letter)
 
 
 @router.post("/letters/{letter_id}/decision")
 def decide_letter(
     letter_id: int,
     body: LetterDecisionIn,
+    request: Request,
     session: Session = Depends(get_session),
     sender: MailSender = Depends(get_sender),
 ):
+    letter = session.get(Letter, letter_id)
+    guard.not_author(request, letter.edited_by if letter else None, "this letter")
     return followups.letter_dict(
         guarded(followups.decide_letter, session, sender, letter_id, body.approve, body.decided_by)
     )

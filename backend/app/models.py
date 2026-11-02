@@ -182,6 +182,7 @@ class Rfq(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     decided_by: Mapped[str | None] = mapped_column(String(128))
+    edited_by: Mapped[str | None] = mapped_column(String(128))
     sent_to: Mapped[str | None] = mapped_column(String(32))
     drafted_by: Mapped[str] = mapped_column(
         String(120), nullable=False, default="template", server_default="template"
@@ -240,6 +241,7 @@ class CustomerQuote(Base):
     body: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     decided_by: Mapped[str | None] = mapped_column(String(128))
+    edited_by: Mapped[str | None] = mapped_column(String(128))
     sent_to: Mapped[str | None] = mapped_column(String(32))
     drafted_by: Mapped[str] = mapped_column(
         String(120), nullable=False, default="template", server_default="template"
@@ -728,6 +730,7 @@ class Letter(Base):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     drafted_by: Mapped[str] = mapped_column(String(120), nullable=False, default="template")
     decided_by: Mapped[str | None] = mapped_column(String(128))
+    edited_by: Mapped[str | None] = mapped_column(String(128))
     sent_to: Mapped[str | None] = mapped_column(String(32))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

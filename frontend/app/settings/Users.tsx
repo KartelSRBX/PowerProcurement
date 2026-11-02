@@ -83,6 +83,10 @@ export function UsersPanel() {
           {roles.map((r) => <label key={r} title={list.roles[r]}><input type="checkbox" checked={f.roles.includes(r)} onChange={() => setF({ ...f, roles: toggle(f.roles, r) })} /> {r}</label>)}
           <button className="primary" disabled={!f.name.trim() || !f.password || f.roles.length === 0} onClick={() => run(() => api("/users", { method: "POST", json: f }), "User added.").then(() => setF({ name: "", password: "", roles: ["buyer"] }))}>Add user</button>
         </div>
+        <ul className="muted" data-testid="role-legend">
+          {roles.map((r) => <li key={r}><b>{r}</b>: {list.roles[r]}</li>)}
+          <li>A user may do whatever any of their roles allows. Whoever edited a letter, RFQ or quote, or entered an invoice, cannot be the one to approve it.</li>
+        </ul>
         <div className="row">
           {!auth.enabled
             ? <button className="primary" onClick={() => confirm("Turn sign-in on? Everyone will have to sign in; make sure you know your password.") && run(() => api("/auth/enabled", { method: "PUT", json: { enabled: true } }), "Sign-in is on.")}>Turn sign-in on</button>
