@@ -22,7 +22,7 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
-from app.pipeline import compare, delivery, invoices, savings, signals
+from app.pipeline import compare, delivery, invoices, savings, signals, urgency
 from app.pipeline import service as svc
 from app.scoring.scoring import Weights
 
@@ -146,6 +146,38 @@ def manual_request(body: ManualRequestIn, session: Session = Depends(get_session
         body.message_id,
     )
     return {"id": row.id, "status": row.status}
+
+
+class UrgencyIn(BaseModel):
+    changed_by: str
+    urgent: bool = False
+    respond_by: date | None = None
+    note: str = Field(default="", max_length=300)
+
+
+@router.get("/requests/urgent")
+def urgent_board(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
+    return urgency.board(session, settings)
+
+
+@router.get("/requests/{request_id}/urgency")
+def request_urgency(
+    request_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return urgency.describe(guarded(svc.get_request, session, request_id), settings)
+
+
+@router.put("/requests/{request_id}/urgency")
+def set_request_urgency(
+    request_id: int,
+    body: UrgencyIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    req = guarded(
+        urgency.set_urgency, session, request_id, body.changed_by, body.urgent, body.respond_by, body.note
+    )
+    return urgency.describe(req, settings)
 
 
 @router.get("/requests/{request_id}/pipeline")

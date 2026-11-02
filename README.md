@@ -681,6 +681,19 @@ needing attention. `GET /suppliers/rechecks`, `GET /suppliers/{id}/compliance`, 
 
 ![Supplier re-checks](docs/img/ui/supplier-rechecks.png)
 
+### Request urgency
+
+On a request, set **urgent**, a **reply-by** date (when the customer has to get a quote) and an optional reason. The **Urgent requests** board on the
+Requests page lists every flagged or dated request that has not yet had its quote sent: overdue first, then due today, then the rest, each with its
+step and next action. A request leaves the board when its quote is sent; a draft quote does not count. The customer's own "needed by" date from the mail
+is shown next to it but is a different thing (the goods, not the answer).
+
+Urgency is set by a named person and logged; the app does not guess it from the mail and it changes no score, price or letter. A date in the past is
+refused when set. **Settings, Request urgency** sets how many days ahead a request is shown as coming up (2 by default).
+`GET /requests/urgent`, `GET/PUT /requests/{id}/urgency`, `PUT /settings/urgency`. See `docs/decisions/0023-request-urgency.md`.
+
+![The urgent requests board](docs/img/ui/urgent-board.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the

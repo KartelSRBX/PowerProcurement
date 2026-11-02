@@ -64,6 +64,8 @@ class Settings(BaseSettings):
     # current, and how many days ahead the list shows what is coming due. Set in Settings.
     recheck_months: int = Field(default=12, ge=1, le=60)
     recheck_warn_days: int = Field(default=30, ge=0, le=365)
+    # Request urgency: a request whose reply-by date is this many days away or fewer is shown as coming up.
+    urgency_warn_days: int = Field(default=2, ge=0, le=30)
     # Upper limit for a single purchase order, EUR.
     po_budget_limit_eur: float = 50000
 

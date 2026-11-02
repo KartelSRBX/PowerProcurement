@@ -27,6 +27,7 @@ EDITABLE = {
     "signal_lead_rise_days",
     "recheck_months",
     "recheck_warn_days",
+    "urgency_warn_days",
 }
 FLOATS = {
     "fx_rsd_per_eur",
@@ -42,6 +43,7 @@ INTS = {
     "signal_lead_rise_days",
     "recheck_months",
     "recheck_warn_days",
+    "urgency_warn_days",
 }
 
 

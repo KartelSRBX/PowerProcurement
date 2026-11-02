@@ -20,6 +20,7 @@ export default function Settings() {
   const [dhMin, setDhMin] = useState("3");
   const [invTol, setInvTol] = useState("1");
   const [sig, setSig] = useState({ price: "10", pct: "25", days: "3" });
+  const [urg, setUrg] = useState("2");
   const [rc, setRc] = useState({ months: "12", warn: "30" });
 
   const load = useCallback(async () => {
@@ -30,6 +31,7 @@ export default function Settings() {
       setDhWeight(String(s.scoring.delivery_history_weight)); setDhMin(String(s.scoring.delivery_history_min_orders));
       setInvTol(String(s.invoices.tolerance_pct));
       setSig({ price: String(s.signals.price_rise_pct), pct: String(s.signals.lead_rise_pct), days: String(s.signals.lead_rise_days) });
+      setUrg(String(s.urgency.warn_days));
       setRc({ months: String(s.rechecks.months), warn: String(s.rechecks.warn_days) });
       setErr("");
     } catch (e: any) { setErr(e.message); }
@@ -60,6 +62,10 @@ export default function Settings() {
   const saveSignals = () => run(async () => {
     const s = await api<any>("/settings/signals", { method: "PUT", json: { changed_by: person, price_rise_pct: Number(sig.price), lead_rise_pct: Number(sig.pct), lead_rise_days: Number(sig.days) } });
     setD(s); setNote({ ok: true, text: "Signal thresholds saved." });
+  });
+  const saveUrgency = () => run(async () => {
+    const s = await api<any>("/settings/urgency", { method: "PUT", json: { changed_by: person, warn_days: Number(urg) } });
+    setD(s); setNote({ ok: true, text: "Urgency setting saved." });
   });
   const saveRechecks = () => run(async () => {
     const s = await api<any>("/settings/rechecks", { method: "PUT", json: { changed_by: person, months: Number(rc.months), warn_days: Number(rc.warn) } });
@@ -145,6 +151,16 @@ export default function Settings() {
           <button className="primary" disabled={!named || [sig.price, sig.pct, sig.days].some((x) => x === "" || Number(x) < 0)} onClick={saveSignals}>Save</button>
         </div>
         <p className="muted">In use: price +{d.signals.price_rise_pct}%, lead time +{d.signals.lead_rise_pct}% and +{d.signals.lead_rise_days} days.</p>
+      </section>
+
+      <section>
+        <h2>Request urgency</h2>
+        <p className="muted">A request with a reply-by date is shown as coming up when that date is this many days away or fewer. Overdue and due-today are always flagged. Urgency is set by a person on the request and changes no score, price or letter.</p>
+        <div className="row">
+          <label>Warn, days ahead <input type="number" min={0} max={30} style={{ width: "5rem" }} value={urg} onChange={(e) => setUrg(e.target.value)} data-testid="urg-days" /></label>
+          <button className="primary" disabled={!named || !(Number(urg) >= 0 && Number(urg) <= 30)} onClick={saveUrgency}>Save</button>
+        </div>
+        <p className="muted">In use: {d.urgency.warn_days} day(s).</p>
       </section>
 
       <section>

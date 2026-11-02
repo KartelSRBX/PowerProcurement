@@ -12,6 +12,7 @@ import { Delivery } from "./Delivery";
 import { ItemNotes } from "./ItemNotes";
 import { SavingsBaseline } from "./SavingsBaseline";
 import { SupplierInvoice } from "./SupplierInvoice";
+import { UrgencyPanel } from "../../components/Urgency";
 import { PaysTo } from "../../suppliers/Bank";
 import { Comparison, CustomerReply, ExplainScores, Followups, InvoiceRequest, OrderLetters, ReplyPanel } from "./Assist";
 
@@ -55,6 +56,7 @@ export default function RequestPage() {
       <h1>Request #{id} <span className="tag">{d.pipeline.stage}</span></h1>
       <p className="muted">Next: {d.pipeline.next}</p>
             {err && <div className="err">{err}</div>}
+      <UrgencyPanel id={id} who={who} />
 
       <section><h2>Items</h2>
         <table><tbody>{d.items.map((i: any) => <tr key={i.id}><td>{i.quantity ?? "?"} ×</td><td>{i.description}</td></tr>)}</tbody></table>

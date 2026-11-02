@@ -41,6 +41,8 @@ def _out(r: CustomerRequest) -> dict:
         "model": r.model,
         "prompt_version": r.prompt_version,
         "confirmed_by": r.confirmed_by,
+        "urgent": r.urgent,
+        "respond_by": r.respond_by.isoformat() if r.respond_by else None,
     }
 
 

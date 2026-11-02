@@ -51,6 +51,11 @@ class RechecksIn(BaseModel):
     warn_days: int = Field(ge=0, le=365)
 
 
+class UrgencyIn(BaseModel):
+    changed_by: str
+    warn_days: int = Field(ge=0, le=30)
+
+
 class WhoIn(BaseModel):
     changed_by: str
 
@@ -95,6 +100,7 @@ def _view(session: Session, base: Settings) -> dict:
             "lead_rise_days": eff.signal_lead_rise_days,
         },
         "invoices": {"tolerance_pct": eff.invoice_tolerance_pct},
+        "urgency": {"warn_days": eff.urgency_warn_days},
         "rechecks": {"months": eff.recheck_months, "warn_days": eff.recheck_warn_days},
         "scoring": {
             "delivery_history_weight": eff.weight_delivery_history,
@@ -268,6 +274,20 @@ def save_rechecks(
             body.changed_by,
             {"recheck_months": body.months, "recheck_warn_days": body.warn_days},
         )
+        store.apply(session, settings)
+    except store.SettingsError as exc:
+        session.rollback()
+        raise _bad(exc) from exc
+    return _view(session, settings)
+
+
+@router.put("/urgency")
+def save_urgency(
+    body: UrgencyIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """How many days before its reply-by date a request is shown as coming up."""
+    try:
+        store.save(session, settings, body.changed_by, {"urgency_warn_days": body.warn_days})
         store.apply(session, settings)
     except store.SettingsError as exc:
         session.rollback()

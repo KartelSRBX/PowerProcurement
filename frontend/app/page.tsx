@@ -5,8 +5,9 @@ import { api } from "./lib/api";
 import { usePerson } from "./lib/person";
 import { InvoiceMismatches } from "./components/InvoiceMismatches";
 import { Overdue } from "./components/Overdue";
+import { UrgentBoard } from "./components/Urgency";
 
-type Req = { id: number; status: string; sender: string; subject: string };
+type Req = { id: number; status: string; sender: string; subject: string; urgent?: boolean; respond_by?: string | null };
 
 const DEMO_ITEMS = "500 x STM32F407VGT6 microcontroller\n2000 x 100nF 0603 capacitors";
 
@@ -43,6 +44,7 @@ export default function Home() {
       <h1>Requests</h1>
       <p className="muted">Backend: {health ? `up · AI: ${health.ai_provider} · mail: ${health.mail_mode}` : "unreachable"}</p>
       {err && <div className="err">{err}</div>}
+      <UrgentBoard />
       <Overdue />
       <InvoiceMismatches />
       <section>
@@ -61,7 +63,7 @@ export default function Home() {
         <table>
           <thead><tr><th>#</th><th>Customer</th><th>Subject</th><th>Status</th></tr></thead>
           <tbody>{reqs.map((r) => (
-            <tr key={r.id}><td><a href={`/requests/${r.id}`}>{r.id}</a></td><td>{r.sender}</td><td>{r.subject}</td><td><span className="tag">{r.status}</span></td></tr>
+            <tr key={r.id}><td><a href={`/requests/${r.id}`}>{r.id}</a></td><td>{r.sender}</td><td>{r.subject}</td><td><span className="tag">{r.status}</span> {r.urgent && <span className="tag bad">urgent</span>} {r.respond_by && <span className="muted">reply by {r.respond_by}</span>}</td></tr>
           ))}</tbody>
         </table>
         {reqs.length === 0 && <p className="muted">No requests yet.</p>}

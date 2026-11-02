@@ -120,6 +120,10 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   changeable in Settings or per supplier, or a date a person sets) and a **Re-checks** list on the Suppliers tab shows what is overdue, never
   screened, coming due, or has a result needing attention. No list is downloaded and nothing is blocked or scored. The order panel's "Pays to"
   line flags an unscreened or overdue supplier. Migration 0025 (`supplier_screenings`, `supplier_compliance`), 9 new tests, ADR 0022.
+- **Request urgency (day 22):** a person marks a request *urgent*, gives a reply-by date for the customer's quote and an optional note. An **Urgent
+  requests** board on the Requests page lists what is still waiting for a sent quote: overdue first, then due today, then the rest, with the step and
+  the next action. The flag and date show in the requests list; the warning window (2 days) is in Settings. Nothing is guessed from the mail text and
+  nothing else changes. Migration 0026 (`customer_requests.urgent, respond_by, urgency_note, urgency_by`), 5 new tests, ADR 0023.
 
 ## PP1.2
 

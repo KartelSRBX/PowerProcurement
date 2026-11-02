@@ -60,6 +60,11 @@ class CustomerRequest(Base):
     model: Mapped[str] = mapped_column(String(64), nullable=False)
     prompt_version: Mapped[str] = mapped_column(String(32), nullable=False)
     confirmed_by: Mapped[str | None] = mapped_column(String(128))
+    # Urgency, set by a person: a flag, and by when the customer has to be answered with a quote
+    urgent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    respond_by: Mapped[date | None] = mapped_column(Date)
+    urgency_note: Mapped[str | None] = mapped_column(String(300))
+    urgency_by: Mapped[str | None] = mapped_column(String(128))
 
 
 # ---- Suppliers, prices, and the rest of the pipeline (synthetic data in the demo) ----
