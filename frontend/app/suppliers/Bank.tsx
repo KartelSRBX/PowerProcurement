@@ -8,7 +8,11 @@ const group = (a: string | null) => (a ? a.replace(/(.{4})/g, "$1 ").trim() : "-
 /** The line shown where an order is paid: the account in force, and a warning when it is new. */
 export function PaysTo({ supplierId }: { supplierId: number }) {
   const [v, setV] = useState<any>(null);
-  useEffect(() => { api<any>(`/suppliers/${supplierId}/bank`).then(setV).catch(() => setV(null)); }, [supplierId]);
+  const [co, setCo] = useState<any>(null);
+  useEffect(() => {
+    api<any>(`/suppliers/${supplierId}/bank`).then(setV).catch(() => setV(null));
+    api<any>(`/suppliers/${supplierId}/compliance`).then(setCo).catch(() => setCo(null));
+  }, [supplierId]);
   if (!v) return null;
   const c = v.current;
   return (
@@ -18,6 +22,9 @@ export function PaysTo({ supplierId }: { supplierId: number }) {
       {c && <><span>{c.holder} · {group(c.account)}</span>
         {c.recent && <span className="tag warn">account changed {c.days_in_force} day(s) ago: check it before paying</span>}</>}
       {v.pending && <span className="tag warn">a new account is waiting for a second person</span>}
+      {co && co.screening.attention && <span className="tag bad">last sanctions screening needs attention</span>}
+      {co && co.screening.status === "never" && <span className="tag warn">never screened against a sanctions list</span>}
+      {co && co.screening.status === "overdue" && <span className="tag warn">sanctions screening overdue</span>}
     </div>
   );
 }

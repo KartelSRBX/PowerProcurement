@@ -663,6 +663,24 @@ a supplier answers with its possible duplicates. `GET /suppliers/duplicates`, `P
 
 ![Possible duplicate suppliers](docs/img/ui/supplier-duplicates.png)
 
+### Supplier re-checks
+
+On a supplier's profile, under *Sanctions screening and beneficiary*, and on the **Re-checks** list of the Suppliers tab:
+
+- **Screening.** You check the supplier against a sanctions list yourself and record the date, the list (you name it), the result (nothing
+  found, a possible match, could not be decided) and a note. The app downloads no list and decides no match. A match or an undecided result
+  keeps the supplier on the list as *needing attention* until a later screening says otherwise; it does not mark the supplier sanctioned.
+- **Next date.** Last screening plus a period: 12 months by default (**Settings, Supplier re-checks**), or a period or a date you set for
+  one supplier. The list shows what is overdue, never screened, or due within the warning days (30 by default).
+- **Beneficiary.** Who owns the company in the end: names, the source (register extract, supplier declaration, other), and who confirmed
+  it and when. It is reconfirmed on the same period. With no natural person owner, record it with a note.
+
+Suppliers on hold are left out of the list. The order panel's "Pays to" line shows a tag for a supplier never screened, overdue, or with a result
+needing attention. `GET /suppliers/rechecks`, `GET /suppliers/{id}/compliance`, `POST /suppliers/{id}/screenings`,
+`PUT /suppliers/{id}/recheck-schedule`, `PUT /suppliers/{id}/beneficiary`, `PUT /settings/rechecks`. See `docs/decisions/0022-supplier-rechecks.md`.
+
+![Supplier re-checks](docs/img/ui/supplier-rechecks.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the

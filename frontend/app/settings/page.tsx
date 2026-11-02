@@ -20,6 +20,7 @@ export default function Settings() {
   const [dhMin, setDhMin] = useState("3");
   const [invTol, setInvTol] = useState("1");
   const [sig, setSig] = useState({ price: "10", pct: "25", days: "3" });
+  const [rc, setRc] = useState({ months: "12", warn: "30" });
 
   const load = useCallback(async () => {
     try {
@@ -29,6 +30,7 @@ export default function Settings() {
       setDhWeight(String(s.scoring.delivery_history_weight)); setDhMin(String(s.scoring.delivery_history_min_orders));
       setInvTol(String(s.invoices.tolerance_pct));
       setSig({ price: String(s.signals.price_rise_pct), pct: String(s.signals.lead_rise_pct), days: String(s.signals.lead_rise_days) });
+      setRc({ months: String(s.rechecks.months), warn: String(s.rechecks.warn_days) });
       setErr("");
     } catch (e: any) { setErr(e.message); }
   }, []);
@@ -58,6 +60,10 @@ export default function Settings() {
   const saveSignals = () => run(async () => {
     const s = await api<any>("/settings/signals", { method: "PUT", json: { changed_by: person, price_rise_pct: Number(sig.price), lead_rise_pct: Number(sig.pct), lead_rise_days: Number(sig.days) } });
     setD(s); setNote({ ok: true, text: "Signal thresholds saved." });
+  });
+  const saveRechecks = () => run(async () => {
+    const s = await api<any>("/settings/rechecks", { method: "PUT", json: { changed_by: person, months: Number(rc.months), warn_days: Number(rc.warn) } });
+    setD(s); setNote({ ok: true, text: "Re-check settings saved." });
   });
   const saveInvoices = () => run(async () => {
     const s = await api<any>("/settings/invoices", { method: "PUT", json: { changed_by: person, tolerance_pct: Number(invTol) } });
@@ -139,6 +145,17 @@ export default function Settings() {
           <button className="primary" disabled={!named || [sig.price, sig.pct, sig.days].some((x) => x === "" || Number(x) < 0)} onClick={saveSignals}>Save</button>
         </div>
         <p className="muted">In use: price +{d.signals.price_rise_pct}%, lead time +{d.signals.lead_rise_pct}% and +{d.signals.lead_rise_days} days.</p>
+      </section>
+
+      <section>
+        <h2>Supplier re-checks</h2>
+        <p className="muted">A sanctions screening or a beneficiary confirmation counts for this many months (a supplier can have its own period on its profile). The Re-checks list on the Suppliers tab shows what is overdue, never done, or falls due within the warning days.</p>
+        <div className="row">
+          <label>Months <input type="number" min={1} max={60} style={{ width: "5rem" }} value={rc.months} onChange={(e) => setRc({ ...rc, months: e.target.value })} data-testid="rc-months" /></label>
+          <label>Warn, days ahead <input type="number" min={0} max={365} style={{ width: "5rem" }} value={rc.warn} onChange={(e) => setRc({ ...rc, warn: e.target.value })} /></label>
+          <button className="primary" disabled={!named || !(Number(rc.months) >= 1 && Number(rc.months) <= 60) || !(Number(rc.warn) >= 0 && Number(rc.warn) <= 365)} onClick={saveRechecks}>Save</button>
+        </div>
+        <p className="muted">In use: {d.rechecks.months} months, warning {d.rechecks.warn_days} days ahead.</p>
       </section>
 
       <section>

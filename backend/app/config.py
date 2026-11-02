@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     signal_price_rise_pct: float = Field(default=10.0, ge=0, le=500)
     signal_lead_rise_pct: float = Field(default=25.0, ge=0, le=1000)
     signal_lead_rise_days: int = Field(default=3, ge=0, le=365)
+    # Supplier re-checks: how many months a sanctions screening or a beneficiary confirmation stays
+    # current, and how many days ahead the list shows what is coming due. Set in Settings.
+    recheck_months: int = Field(default=12, ge=1, le=60)
+    recheck_warn_days: int = Field(default=30, ge=0, le=365)
     # Upper limit for a single purchase order, EUR.
     po_budget_limit_eur: float = 50000
 

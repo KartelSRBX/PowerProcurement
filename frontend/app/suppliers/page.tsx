@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, eur } from "../lib/api";
 import { usePerson } from "../lib/person";
 import { BankPanel } from "./Bank";
+import { CompliancePanel, RecheckList } from "./Compliance";
 import { DuplicateWarning, DuplicatesList } from "./Duplicates";
 import { CHECK_LABEL, CHECK_TAG, ChecksPanel, PerformancePanel, ProfilePanel, STATUSES, TIERS } from "./Profile";
 
@@ -29,6 +30,7 @@ export default function Suppliers() {
   const [d, setD] = useState<any>(null);
   const [adding, setAdding] = useState(false);
   const [dups, setDups] = useState(false);
+  const [rech, setRech] = useState(false);
   const [form, setForm] = useState<any>(blank);
   const [line, setLine] = useState<any>(blankLine);
   const [err, setErr] = useState("");
@@ -42,7 +44,7 @@ export default function Suppliers() {
       .then(([r, f]) => { setRows(r); setFacets(f); }).catch((e) => setErr(e.message));
   }, [q, country, category, brand, tier, check, status, sort, dir]);
   useEffect(() => { const t = setTimeout(load, 150); return () => clearTimeout(t); }, [load]);
-  const open = useCallback((id: number) => { setCsv(""); setPrev(null); setSel(id); setAdding(false); setDups(false); api(`/suppliers/${id}`).then(setD).catch((e) => setErr(e.message)); }, []);
+  const open = useCallback((id: number) => { setCsv(""); setPrev(null); setSel(id); setAdding(false); setDups(false); setRech(false); api(`/suppliers/${id}`).then(setD).catch((e) => setErr(e.message)); }, []);
 
   async function run(fn: () => Promise<unknown>, reopen?: number) {
     setErr("");
@@ -67,8 +69,9 @@ export default function Suppliers() {
           <div className="pane-h">
             <div className="row" style={{ margin: 0 }}>
               <input placeholder="Search name, email, brand, product type" value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: 1 }} />
-              <button onClick={() => { setDups(true); setAdding(false); setSel(null); setD(null); }}>Duplicates</button>
-              <button className="primary" onClick={() => { setAdding(true); setDups(false); setSel(null); setD(null); }}>+ Supplier</button>
+              <button onClick={() => { setRech(true); setDups(false); setAdding(false); setSel(null); setD(null); }}>Re-checks</button>
+              <button onClick={() => { setDups(true); setRech(false); setAdding(false); setSel(null); setD(null); }}>Duplicates</button>
+              <button className="primary" onClick={() => { setAdding(true); setDups(false); setRech(false); setSel(null); setD(null); }}>+ Supplier</button>
             </div>
             <div className="row" style={{ margin: ".4rem 0 0" }}>
               <select value={country} onChange={(e) => { setCountry(e.target.value); setCategory(""); setBrand(""); }}><option value="">all countries</option>{facets.countries.map((c: any) => <option key={c.value} value={c.value}>{c.value} ({c.count})</option>)}</select>
@@ -118,7 +121,8 @@ export default function Suppliers() {
             </>
           )}
           {!adding && !d && dups && <DuplicatesList person={person} onOpen={open} />}
-          {!adding && !d && !dups && <div className="muted">Pick a supplier on the left or add a new one. Every change is logged under your name.</div>}
+          {!adding && !d && rech && <RecheckList onOpen={open} />}
+          {!adding && !d && !dups && !rech && <div className="muted">Pick a supplier on the left or add a new one. Every change is logged under your name.</div>}
           {!adding && d && d.id === sel && (
             <>
               <h2>{d.name} <span className="tag">{d.country}</span> {d.sanctioned && <span className="tag bad">sanctioned: excluded from mailings</span>}</h2>
@@ -142,6 +146,7 @@ export default function Suppliers() {
               <PerformancePanel p={d.performance} />
               <ProfilePanel d={d} person={person} run={run} reopen={d.id} />
               <ChecksPanel d={d} person={person} run={run} reopen={d.id} />
+              <CompliancePanel supplierId={d.id} person={person} />
               <BankPanel supplierId={d.id} person={person} />
               <h2 style={{ marginTop: "1rem" }}>Price list ({d.catalog.length})</h2>
               <table>

@@ -367,6 +367,39 @@ class SavingsBaseline(Base):
     set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class SupplierScreening(Base):
+    """A record that a person checked the supplier against a named sanctions or watch list on a date. The app
+    downloads no list and decides nothing: it keeps who looked, where, when and what they found."""
+
+    __tablename__ = "supplier_screenings"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False, index=True)
+    checked_on: Mapped[date] = mapped_column(Date, nullable=False)
+    list_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    result: Mapped[str] = mapped_column(String(12), nullable=False)  # clear | match | unclear
+    note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    checked_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SupplierCompliance(Base):
+    """Per supplier: how often it is re-checked, an optional date set by a person, and who owns it in the end
+    (the beneficiary), as a person recorded it with the source."""
+
+    __tablename__ = "supplier_compliance"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    supplier_id: Mapped[int] = mapped_column(ForeignKey("suppliers.id"), nullable=False, unique=True)
+    period_months: Mapped[int | None] = mapped_column(Integer)  # None: the default from Settings
+    next_check_on: Mapped[date | None] = mapped_column(Date)  # None: counted from the last screening
+    beneficial_owners: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    beneficial_source: Mapped[str | None] = mapped_column(String(24))
+    beneficial_note: Mapped[str | None] = mapped_column(String(300))
+    beneficial_on: Mapped[date | None] = mapped_column(Date)
+    beneficial_by: Mapped[str | None] = mapped_column(String(128))
+
+
 class SupplierDuplicateReview(Base):
     """A person's verdict on a pair of suppliers the finder put side by side: different companies, or the
     same one. The signals seen at the time are kept, so a new signal brings the pair back for another look."""

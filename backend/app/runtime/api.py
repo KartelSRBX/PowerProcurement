@@ -45,6 +45,12 @@ class SignalsIn(BaseModel):
     lead_rise_days: int = Field(ge=0, le=365)
 
 
+class RechecksIn(BaseModel):
+    changed_by: str
+    months: int = Field(ge=1, le=60)
+    warn_days: int = Field(ge=0, le=365)
+
+
 class WhoIn(BaseModel):
     changed_by: str
 
@@ -89,6 +95,7 @@ def _view(session: Session, base: Settings) -> dict:
             "lead_rise_days": eff.signal_lead_rise_days,
         },
         "invoices": {"tolerance_pct": eff.invoice_tolerance_pct},
+        "rechecks": {"months": eff.recheck_months, "warn_days": eff.recheck_warn_days},
         "scoring": {
             "delivery_history_weight": eff.weight_delivery_history,
             "delivery_history_min_orders": eff.delivery_history_min_orders,
@@ -241,6 +248,25 @@ def save_signals(
                 "signal_lead_rise_pct": body.lead_rise_pct,
                 "signal_lead_rise_days": body.lead_rise_days,
             },
+        )
+        store.apply(session, settings)
+    except store.SettingsError as exc:
+        session.rollback()
+        raise _bad(exc) from exc
+    return _view(session, settings)
+
+
+@router.put("/rechecks")
+def save_rechecks(
+    body: RechecksIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """How long a supplier screening stays current, and how far ahead the re-check list looks."""
+    try:
+        store.save(
+            session,
+            settings,
+            body.changed_by,
+            {"recheck_months": body.months, "recheck_warn_days": body.warn_days},
         )
         store.apply(session, settings)
     except store.SettingsError as exc:

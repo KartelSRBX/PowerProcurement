@@ -25,6 +25,8 @@ EDITABLE = {
     "signal_price_rise_pct",
     "signal_lead_rise_pct",
     "signal_lead_rise_days",
+    "recheck_months",
+    "recheck_warn_days",
 }
 FLOATS = {
     "fx_rsd_per_eur",
@@ -38,6 +40,8 @@ INTS = {
     "weight_delivery_history",
     "delivery_history_min_orders",
     "signal_lead_rise_days",
+    "recheck_months",
+    "recheck_warn_days",
 }
 
 

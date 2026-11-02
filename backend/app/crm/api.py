@@ -10,7 +10,7 @@ from app.crm import service as svc
 from app.db import get_session
 from app.pipeline.api import guarded
 from app.suppliers import articles as articles_notes
-from app.suppliers import bank, duplicates, profile
+from app.suppliers import bank, compliance, duplicates, profile
 
 router = APIRouter(tags=["crm"])
 
@@ -152,6 +152,86 @@ def review_duplicate(body: DuplicateReviewIn, session: Session = Depends(get_ses
 def clear_duplicate_review(review_id: int, removed_by: str, session: Session = Depends(get_session)):
     guarded(duplicates.clear_review, session, review_id, removed_by)
     return duplicates.listing(session)
+
+
+class ScreeningIn(BaseModel):
+    checked_by: str
+    checked_on: date
+    list_name: str = Field(max_length=160)
+    result: str
+    note: str = Field(default="", max_length=300)
+
+
+class ScheduleIn(BaseModel):
+    changed_by: str
+    period_months: int | None = Field(default=None, ge=1, le=60)
+    next_check_on: date | None = None
+
+
+class BeneficiaryIn(BaseModel):
+    confirmed_by: str
+    owners: list[str] = Field(default_factory=list, max_length=20)
+    source: str
+    confirmed_on: date
+    note: str = Field(default="", max_length=300)
+
+
+@router.get("/suppliers/rechecks")
+def supplier_rechecks(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
+    return compliance.rechecks(session, settings)
+
+
+@router.get("/suppliers/{supplier_id}/compliance")
+def supplier_compliance(
+    supplier_id: int, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    return guarded(compliance.view, session, settings, supplier_id)
+
+
+@router.post("/suppliers/{supplier_id}/screenings")
+def add_screening(
+    supplier_id: int,
+    body: ScreeningIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    guarded(compliance.record_screening, session, supplier_id, **body.model_dump())
+    return compliance.view(session, settings, supplier_id)
+
+
+@router.delete("/screenings/{screening_id}")
+def remove_screening(
+    screening_id: int,
+    removed_by: str,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    supplier_id = guarded(compliance.remove_screening, session, screening_id, removed_by)
+    return compliance.view(session, settings, supplier_id)
+
+
+@router.put("/suppliers/{supplier_id}/recheck-schedule")
+def set_recheck_schedule(
+    supplier_id: int,
+    body: ScheduleIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    guarded(
+        compliance.set_schedule, session, supplier_id, body.changed_by, body.period_months, body.next_check_on
+    )
+    return compliance.view(session, settings, supplier_id)
+
+
+@router.put("/suppliers/{supplier_id}/beneficiary")
+def set_beneficiary(
+    supplier_id: int,
+    body: BeneficiaryIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    guarded(compliance.set_beneficiary, session, supplier_id, **body.model_dump())
+    return compliance.view(session, settings, supplier_id)
 
 
 @router.get("/suppliers/overview")

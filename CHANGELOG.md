@@ -115,6 +115,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   spelling are ignored. A list on the Suppliers tab, a warning on a supplier's profile and on creating one. A person marks each pair
   "different companies" or "the same company" with a reason; a dismissed pair comes back when a new signal appears. Nothing is merged
   or blocked. Migration 0024 (`suppliers.tax_id`, `supplier_duplicate_reviews`), 9 new tests, ADR 0021.
+- **Supplier re-checks (day 21):** a person records a sanctions screening on a supplier (date, the list checked, result, note) and the
+  beneficiary (owner names, source, who confirmed and when). The app works out the next date from a period (12 months by default,
+  changeable in Settings or per supplier, or a date a person sets) and a **Re-checks** list on the Suppliers tab shows what is overdue, never
+  screened, coming due, or has a result needing attention. No list is downloaded and nothing is blocked or scored. The order panel's "Pays to"
+  line flags an unscreened or overdue supplier. Migration 0025 (`supplier_screenings`, `supplier_compliance`), 9 new tests, ADR 0022.
 
 ## PP1.2
 
