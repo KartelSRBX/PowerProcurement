@@ -22,7 +22,7 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
-from app.pipeline import compare, delivery, invoices, savings, signals, urgency
+from app.pipeline import compare, delivery, invoices, savings, signals, summary, urgency
 from app.pipeline import service as svc
 from app.scoring.scoring import Weights
 
@@ -153,6 +153,11 @@ class UrgencyIn(BaseModel):
     urgent: bool = False
     respond_by: date | None = None
     note: str = Field(default="", max_length=300)
+
+
+@router.get("/summary/today")
+def summary_today(session: Session = Depends(get_session), settings: Settings = Depends(get_settings)):
+    return summary.daily(session, settings)
 
 
 @router.get("/requests/urgent")

@@ -28,6 +28,9 @@ EDITABLE = {
     "recheck_months",
     "recheck_warn_days",
     "urgency_warn_days",
+    "summary_silent_days",
+    "summary_offer_days",
+    "summary_contract_days",
 }
 FLOATS = {
     "fx_rsd_per_eur",
@@ -44,6 +47,9 @@ INTS = {
     "recheck_months",
     "recheck_warn_days",
     "urgency_warn_days",
+    "summary_silent_days",
+    "summary_offer_days",
+    "summary_contract_days",
 }
 
 

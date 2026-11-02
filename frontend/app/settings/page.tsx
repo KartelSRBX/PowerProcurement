@@ -20,6 +20,7 @@ export default function Settings() {
   const [dhMin, setDhMin] = useState("3");
   const [invTol, setInvTol] = useState("1");
   const [sig, setSig] = useState({ price: "10", pct: "25", days: "3" });
+  const [sm, setSm] = useState({ silent: "3", offer: "3", contract: "90" });
   const [urg, setUrg] = useState("2");
   const [rc, setRc] = useState({ months: "12", warn: "30" });
 
@@ -31,6 +32,7 @@ export default function Settings() {
       setDhWeight(String(s.scoring.delivery_history_weight)); setDhMin(String(s.scoring.delivery_history_min_orders));
       setInvTol(String(s.invoices.tolerance_pct));
       setSig({ price: String(s.signals.price_rise_pct), pct: String(s.signals.lead_rise_pct), days: String(s.signals.lead_rise_days) });
+      setSm({ silent: String(s.summary.silent_days), offer: String(s.summary.offer_days), contract: String(s.summary.contract_days) });
       setUrg(String(s.urgency.warn_days));
       setRc({ months: String(s.rechecks.months), warn: String(s.rechecks.warn_days) });
       setErr("");
@@ -62,6 +64,10 @@ export default function Settings() {
   const saveSignals = () => run(async () => {
     const s = await api<any>("/settings/signals", { method: "PUT", json: { changed_by: person, price_rise_pct: Number(sig.price), lead_rise_pct: Number(sig.pct), lead_rise_days: Number(sig.days) } });
     setD(s); setNote({ ok: true, text: "Signal thresholds saved." });
+  });
+  const saveSummary = () => run(async () => {
+    const s = await api<any>("/settings/summary", { method: "PUT", json: { changed_by: person, silent_days: Number(sm.silent), offer_days: Number(sm.offer), contract_days: Number(sm.contract) } });
+    setD(s); setNote({ ok: true, text: "Summary limits saved." });
   });
   const saveUrgency = () => run(async () => {
     const s = await api<any>("/settings/urgency", { method: "PUT", json: { changed_by: person, warn_days: Number(urg) } });
@@ -151,6 +157,18 @@ export default function Settings() {
           <button className="primary" disabled={!named || [sig.price, sig.pct, sig.days].some((x) => x === "" || Number(x) < 0)} onClick={saveSignals}>Save</button>
         </div>
         <p className="muted">In use: price +{d.signals.price_rise_pct}%, lead time +{d.signals.lead_rise_pct}% and +{d.signals.lead_rise_days} days.</p>
+      </section>
+
+      <section>
+        <h2>Daily summary</h2>
+        <p className="muted">The Today page lists a supplier as silent when a request for quotation went out this many days ago with no offer entered; an offer when its validity date is this many days away or past; a contract when it ends within this many days or has ended.</p>
+        <div className="row">
+          <label>Silent after, days <input type="number" min={1} max={60} style={{ width: "5rem" }} value={sm.silent} onChange={(e) => setSm({ ...sm, silent: e.target.value })} data-testid="sum-silent" /></label>
+          <label>Offer runs out within, days <input type="number" min={0} max={30} style={{ width: "5rem" }} value={sm.offer} onChange={(e) => setSm({ ...sm, offer: e.target.value })} /></label>
+          <label>Contract ends within, days <input type="number" min={1} max={365} style={{ width: "5rem" }} value={sm.contract} onChange={(e) => setSm({ ...sm, contract: e.target.value })} /></label>
+          <button className="primary" disabled={!named || !(Number(sm.silent) >= 1 && Number(sm.silent) <= 60) || !(Number(sm.offer) >= 0 && Number(sm.offer) <= 30) || !(Number(sm.contract) >= 1 && Number(sm.contract) <= 365)} onClick={saveSummary}>Save</button>
+        </div>
+        <p className="muted">In use: silent after {d.summary.silent_days} day(s), offers within {d.summary.offer_days}, contracts within {d.summary.contract_days}.</p>
       </section>
 
       <section>

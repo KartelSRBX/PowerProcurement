@@ -124,6 +124,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   requests** board on the Requests page lists what is still waiting for a sent quote: overdue first, then due today, then the rest, with the step and
   the next action. The flag and date show in the requests list; the warning window (2 days) is in Settings. Nothing is guessed from the mail text and
   nothing else changes. Migration 0026 (`customer_requests.urgent, respond_by, urgency_note, urgency_by`), 5 new tests, ADR 0023.
+- **Daily summary (day 23):** a **Today** tab with one list of what needs a person: urgent requests waiting for a quote, letters to approve, late
+  deliveries, offers past or near their validity date, suppliers that have not answered a request for quotation, contracts ending, bank details waiting for
+  a second person, invoices that differ, overdue screenings, duplicate suppliers to review. Each section shows its count and the first lines, each line links
+  to where it is handled; the menu shows the total. Nothing new is stored and nothing is sent. Limits (days of silence, days before an offer or a contract
+  runs out) are in Settings. No migration; 7 new tests, ADR 0024.
 
 ## PP1.2
 

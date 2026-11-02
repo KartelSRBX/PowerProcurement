@@ -56,6 +56,13 @@ class UrgencyIn(BaseModel):
     warn_days: int = Field(ge=0, le=30)
 
 
+class SummaryIn(BaseModel):
+    changed_by: str
+    silent_days: int = Field(ge=1, le=60)
+    offer_days: int = Field(ge=0, le=30)
+    contract_days: int = Field(ge=1, le=365)
+
+
 class WhoIn(BaseModel):
     changed_by: str
 
@@ -100,6 +107,11 @@ def _view(session: Session, base: Settings) -> dict:
             "lead_rise_days": eff.signal_lead_rise_days,
         },
         "invoices": {"tolerance_pct": eff.invoice_tolerance_pct},
+        "summary": {
+            "silent_days": eff.summary_silent_days,
+            "offer_days": eff.summary_offer_days,
+            "contract_days": eff.summary_contract_days,
+        },
         "urgency": {"warn_days": eff.urgency_warn_days},
         "rechecks": {"months": eff.recheck_months, "warn_days": eff.recheck_warn_days},
         "scoring": {
@@ -288,6 +300,29 @@ def save_urgency(
     """How many days before its reply-by date a request is shown as coming up."""
     try:
         store.save(session, settings, body.changed_by, {"urgency_warn_days": body.warn_days})
+        store.apply(session, settings)
+    except store.SettingsError as exc:
+        session.rollback()
+        raise _bad(exc) from exc
+    return _view(session, settings)
+
+
+@router.put("/summary")
+def save_summary(
+    body: SummaryIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """Thresholds for the daily summary."""
+    try:
+        store.save(
+            session,
+            settings,
+            body.changed_by,
+            {
+                "summary_silent_days": body.silent_days,
+                "summary_offer_days": body.offer_days,
+                "summary_contract_days": body.contract_days,
+            },
+        )
         store.apply(session, settings)
     except store.SettingsError as exc:
         session.rollback()

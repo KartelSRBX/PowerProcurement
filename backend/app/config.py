@@ -66,6 +66,11 @@ class Settings(BaseSettings):
     recheck_warn_days: int = Field(default=30, ge=0, le=365)
     # Request urgency: a request whose reply-by date is this many days away or fewer is shown as coming up.
     urgency_warn_days: int = Field(default=2, ge=0, le=30)
+    # Daily summary: days without an answer to a request for quotation before a supplier is listed as silent,
+    # days before an offer's validity date or a contract's end that put it on the list. Set in Settings.
+    summary_silent_days: int = Field(default=3, ge=1, le=60)
+    summary_offer_days: int = Field(default=3, ge=0, le=30)
+    summary_contract_days: int = Field(default=90, ge=1, le=365)
     # Upper limit for a single purchase order, EUR.
     po_budget_limit_eur: float = 50000
 

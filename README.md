@@ -694,6 +694,28 @@ refused when set. **Settings, Request urgency** sets how many days ahead a reque
 
 ![The urgent requests board](docs/img/ui/urgent-board.png)
 
+### Today
+
+The **Today** tab (with the total in the menu) is one list of what needs a person. It stores nothing of its own; it reads what the app already tracks and
+links each line to the place where it is handled:
+
+| Section | A line appears when |
+|---|---|
+| Urgent requests | flagged or dated, and no quote sent yet (see Request urgency) |
+| Letters waiting for approval | a letter to a supplier or customer is drafted and not yet decided |
+| Late deliveries | an order's promised date has passed and it is neither delivered nor cancelled |
+| Offers past or near their date | the validity date is past or within 3 days, and the request has no order |
+| Suppliers that have not answered | a request for quotation went out 3 or more days ago and no offer from that supplier is entered |
+| Contracts running out | the end date entered on the contract is past or within 90 days |
+| Bank details waiting | a proposed account is waiting for a second person |
+| Invoices that differ | a supplier invoice differs from its order and is not yet accepted |
+| Screenings overdue | a screening is overdue or its last result needs attention (suppliers never screened are counted in a note) |
+| Duplicate suppliers | a pair with the same tax number, bank account or name, not yet reviewed |
+
+The three limits (3 days, 3 days, 90 days) are in **Settings, Daily summary**. `GET /summary/today`. See `docs/decisions/0024-daily-summary.md`.
+
+![The Today page](docs/img/ui/today.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the
