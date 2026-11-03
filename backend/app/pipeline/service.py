@@ -37,6 +37,7 @@ from app.models import (
     Supplier,
 )
 from app.orders.templates import po_letter
+from app.pipeline import second
 from app.pricing.incoterm_notes import carriage_flag
 from app.pricing.offer_cost import cost_for
 from app.pricing.service import fetch_target_prices, target_total_eur
@@ -684,10 +685,21 @@ def record_outcome(
 # ---- Step 8: purchase order and invoice request -----------------------------------------------------
 
 
+class SecondPersonNeeded(PipelineError):
+    """The order meets a risk rule: a different person has to confirm it before it is created."""
+
+
 def create_po(
-    session: Session, sender: MailSender, settings: Settings, request_id: int, approved_by: str
+    session: Session,
+    sender: MailSender,
+    settings: Settings,
+    request_id: int,
+    approved_by: str,
+    second_by: str | None = None,
 ) -> PurchaseOrder:
     by = _need_person(approved_by)
+    if second_by is not None and _need_person(second_by).casefold() == by.casefold():
+        raise PipelineError("a different person has to confirm: the first approver cannot be the second")
     quote = session.scalar(
         select(CustomerQuote)
         .where(CustomerQuote.request_id == request_id, CustomerQuote.status == "sent")
@@ -722,6 +734,11 @@ def create_po(
     held = legal_blocker(session, request_id)
     if held:
         raise PipelineError(f"legal sign-off is required: {held}")
+    risks = second.assess(session, settings, request_id, sup, cost_eur)
+    if risks and second_by is None:
+        second.ask(session, request_id, by, risks)
+        reasons = "; ".join(r["text"] for r in risks)
+        raise SecondPersonNeeded(f"a second person has to confirm this order: {reasons}")
     req = get_request(session, request_id)
     subject, body = po_letter(
         pick_language(sup.languages),
@@ -739,6 +756,7 @@ def create_po(
         budget_checks=checks,
         status="sent",
         approved_by=by,
+        second_by=second_by.strip() if second_by else None,
     )
     session.add(po)
     try:
@@ -748,7 +766,68 @@ def create_po(
         raise PipelineError("a purchase order already exists for this request") from exc
     _start_delivery(session, po, offer, date.today(), by)
     sender.send(OutboundMail(sup.email, subject, body, approved_by=by))
-    _audit(session, "human", by, "po.approved", request_id=req.id, checks=checks)
+    _audit(
+        session,
+        "human",
+        by,
+        "po.approved",
+        request_id=req.id,
+        checks=checks,
+        second_by=po.second_by,
+        risks=risks,
+    )
+    session.commit()
+    return po
+
+
+def order_risks(session: Session, settings: Settings, request_id: int) -> dict:
+    """What would make this order need a second person, before anyone approves it."""
+    quote = session.scalar(
+        select(CustomerQuote)
+        .where(CustomerQuote.request_id == request_id, CustomerQuote.status == "sent")
+        .order_by(CustomerQuote.id.desc())
+    )
+    pending = second.pending_for(session, request_id)
+    out = {"risks": [], "pending": second.view(pending) if pending else None}
+    if quote is None:
+        return out
+    offer = session.get(Offer, quote.offer_id)
+    sup = session.get(Supplier, offer.supplier_id)
+    cost_eur = cost_for(session, settings, offer, sup).cost_eur
+    out["risks"] = second.assess(session, settings, request_id, sup, cost_eur)
+    return out
+
+
+def decide_second(
+    session: Session,
+    sender: MailSender,
+    settings: Settings,
+    request_id: int,
+    decided_by: str,
+    approve: bool,
+    comment: str = "",
+) -> PurchaseOrder | dict:
+    """A different person confirms or rejects an order that needs two. Confirming creates the order, with the
+    first approver as the one who approved it and this person as the second."""
+    by = _need_person(decided_by)
+    row = second.pending_for(session, request_id)
+    if row is None:
+        raise LookupError("no order is waiting for a second person on this request")
+    if by.casefold() == row.requested_by.casefold():
+        raise PipelineError("a different person has to decide: the one who approved first cannot confirm")
+    comment = comment.strip()
+    if not approve:
+        if len(comment) < 3:
+            raise ValueError("say why it is rejected")
+        row.status, row.decided_by, row.decided_at = "rejected", by, datetime.now(UTC)
+        row.comment = comment[:300]
+        _audit(session, "human", by, "po.second_rejected", request_id=request_id, first=row.requested_by)
+        session.commit()
+        return second.view(row)
+    po = create_po(session, sender, settings, request_id, row.requested_by, second_by=by)
+    row.status, row.decided_by, row.decided_at = "confirmed", by, datetime.now(UTC)
+    row.comment = comment[:300] or None
+    _audit(session, "human", by, "po.second_confirmed", request_id=request_id, first=row.requested_by)
     session.commit()
     return po
 

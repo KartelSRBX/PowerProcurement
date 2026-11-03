@@ -21,7 +21,7 @@ from app.models import (
     Supplier,
     SupplierBankChange,
 )
-from app.pipeline import delivery, invoices, urgency
+from app.pipeline import delivery, invoices, second, urgency
 from app.suppliers import compliance, duplicates
 
 SHOWN = 8  # lines shown per section; the count is always the full one
@@ -188,6 +188,19 @@ def _second_person(session: Session) -> dict:
     return _section("bank", "Bank details waiting for a second person", "/suppliers", rows)
 
 
+def _orders_waiting(session: Session) -> dict:
+    rows = [
+        _line(
+            f"Request #{a['request_id']}: order approved by {a['requested_by']} waits for a different person"
+            f" ({'; '.join(r['text'] for r in a['risks'])})",
+            f"/requests/{a['request_id']}",
+            "warn",
+        )
+        for a in second.listing(session)
+    ]
+    return _section("orders", "Orders waiting for a second person", "/", rows)
+
+
 def _invoices(session: Session, settings: Settings) -> dict:
     rows = [
         _line(
@@ -244,6 +257,7 @@ def daily(session: Session, settings: Settings, today: date | None = None) -> di
         _silent(session, settings, today, ordered),
         _contracts(session, settings, today),
         _second_person(session),
+        _orders_waiting(session),
         _invoices(session, settings),
         _rechecks(session, settings, today),
         _duplicates(session),

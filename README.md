@@ -751,6 +751,23 @@ as `auth.denied`. With sign-in off, roles are not checked. The table is `backend
 
 ![Roles](docs/img/ui/roles.png)
 
+### Second person for risky orders
+
+In **Settings, Second person for risky orders** the company chooses which orders must not go out on one person's word. Every rule is off until set:
+
+- a total above a number of EUR;
+- a supplier with no delivered order with us yet;
+- a supplier whose bank account was changed in the last N days;
+- a linked contract with an open red remark.
+
+An order that meets a rule you switched on is held: when the first person approves it the app records that a second person is needed (nothing goes to the supplier),
+and a different person opens the request page and presses **Confirm the order** (or **Reject**, with a reason). Only the confirmation creates the order and sends the letter;
+the order then shows both names. The same budget, cost and legal checks run again at confirmation. A met rule never changes a score or a price. The Today page lists orders
+waiting for a second person. `GET /requests/{id}/order-risks`, `POST /requests/{id}/second-approval`, `GET /second-approvals`, `PUT /settings/second`. See `docs/decisions/0027-second-person-by-risk.md`.
+
+![Second person rules](docs/img/ui/second-rules.png)
+![A waiting order](docs/img/ui/second-person.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the

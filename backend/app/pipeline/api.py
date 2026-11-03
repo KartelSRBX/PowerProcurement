@@ -1,6 +1,7 @@
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -23,7 +24,7 @@ from app.models import (
     ShortlistEntry,
     Supplier,
 )
-from app.pipeline import compare, delivery, invoices, savings, signals, summary, urgency
+from app.pipeline import compare, delivery, invoices, savings, second, signals, summary, urgency
 from app.pipeline import service as svc
 from app.scoring.scoring import Weights
 
@@ -403,7 +404,55 @@ def order(
     settings: Settings = Depends(get_settings),
     sender: MailSender = Depends(get_sender),
 ):
-    return _dump(guarded(svc.create_po, session, sender, settings, request_id, body.approved_by))
+    def attempt():
+        try:
+            return svc.create_po(session, sender, settings, request_id, body.approved_by)
+        except svc.SecondPersonNeeded as exc:
+            return exc
+
+    out = guarded(attempt)
+    if isinstance(out, svc.SecondPersonNeeded):
+        # The risk rules want a second person: that is not a failure, the order waits for them.
+        content = {"needs_second_person": True, "detail": str(out)}
+        content.update(svc.order_risks(session, settings, request_id))
+        return JSONResponse(status_code=202, content=content)
+    return _dump(out)
+
+
+class SecondDecisionIn(BaseModel):
+    decided_by: str
+    approve: bool
+    comment: str = ""
+
+
+@router.get("/requests/{request_id}/order-risks")
+def order_risks(
+    request_id: int,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+):
+    """What would make this order need a second person, and the ask that is waiting, if any."""
+    return guarded(svc.order_risks, session, settings, request_id)
+
+
+@router.post("/requests/{request_id}/second-approval")
+def decide_second_approval(
+    request_id: int,
+    body: SecondDecisionIn,
+    session: Session = Depends(get_session),
+    settings: Settings = Depends(get_settings),
+    sender: MailSender = Depends(get_sender),
+):
+    """A different person confirms (the order is created) or rejects an order that needs two."""
+    out = guarded(
+        svc.decide_second, session, sender, settings, request_id, body.decided_by, body.approve, body.comment
+    )
+    return out if isinstance(out, dict) else _dump(out)
+
+
+@router.get("/second-approvals")
+def second_approvals(status: str = "pending", session: Session = Depends(get_session)):
+    return guarded(second.listing, session, status)
 
 
 @router.post("/orders/{po_id}/invoice-request")

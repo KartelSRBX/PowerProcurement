@@ -310,6 +310,7 @@ class PurchaseOrder(Base):
     budget_checks: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="sent")
     approved_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    second_by: Mapped[str | None] = mapped_column(String(128))  # the second person, when the risk rules asked
     invoice_requested_by: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     # delivery record: when the supplier is expected to deliver, and where the goods are
@@ -925,3 +926,20 @@ class DutyRate(Base):
     rate_date: Mapped[date | None] = mapped_column(Date)  # the date the rates are valid from
     imported_by: Mapped[str] = mapped_column(String(128), nullable=False)
     imported_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class SecondApproval(Base):
+    """A purchase order that the risk rules say needs a second person. The first approver asks, a different
+    person confirms or rejects; only a confirmation creates the order. One row per ask."""
+
+    __tablename__ = "second_approvals"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    request_id: Mapped[int] = mapped_column(ForeignKey("customer_requests.id"), nullable=False, index=True)
+    risks: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    requested_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    status: Mapped[str] = mapped_column(String(12), nullable=False, default="pending")
+    decided_by: Mapped[str | None] = mapped_column(String(128))
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    comment: Mapped[str | None] = mapped_column(String(300))

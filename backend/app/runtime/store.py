@@ -32,6 +32,10 @@ EDITABLE = {
     "summary_offer_days",
     "summary_contract_days",
     "auth_enabled",
+    "second_over_eur",
+    "second_new_supplier",
+    "second_bank_days",
+    "second_legal_red",
 }
 FLOATS = {
     "fx_rsd_per_eur",
@@ -39,6 +43,7 @@ FLOATS = {
     "invoice_tolerance_pct",
     "signal_price_rise_pct",
     "signal_lead_rise_pct",
+    "second_over_eur",
 }
 INTS = {
     "duty_rate_max_age_days",
@@ -52,6 +57,9 @@ INTS = {
     "summary_offer_days",
     "summary_contract_days",
     "auth_enabled",
+    "second_new_supplier",
+    "second_bank_days",
+    "second_legal_red",
 }
 
 

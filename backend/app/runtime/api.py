@@ -56,6 +56,14 @@ class UrgencyIn(BaseModel):
     warn_days: int = Field(ge=0, le=30)
 
 
+class SecondIn(BaseModel):
+    changed_by: str
+    over_eur: float = Field(ge=0, le=100_000_000)
+    new_supplier: bool
+    bank_days: int = Field(ge=0, le=365)
+    legal_red: bool
+
+
 class SummaryIn(BaseModel):
     changed_by: str
     silent_days: int = Field(ge=1, le=60)
@@ -113,6 +121,12 @@ def _view(session: Session, base: Settings) -> dict:
             "contract_days": eff.summary_contract_days,
         },
         "urgency": {"warn_days": eff.urgency_warn_days},
+        "second": {
+            "over_eur": eff.second_over_eur,
+            "new_supplier": bool(eff.second_new_supplier),
+            "bank_days": eff.second_bank_days,
+            "legal_red": bool(eff.second_legal_red),
+        },
         "rechecks": {"months": eff.recheck_months, "warn_days": eff.recheck_warn_days},
         "scoring": {
             "delivery_history_weight": eff.weight_delivery_history,
@@ -300,6 +314,30 @@ def save_urgency(
     """How many days before its reply-by date a request is shown as coming up."""
     try:
         store.save(session, settings, body.changed_by, {"urgency_warn_days": body.warn_days})
+        store.apply(session, settings)
+    except store.SettingsError as exc:
+        session.rollback()
+        raise _bad(exc) from exc
+    return _view(session, settings)
+
+
+@router.put("/second")
+def save_second(
+    body: SecondIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """When a purchase order needs a second person. Each rule is off until it is set."""
+    try:
+        store.save(
+            session,
+            settings,
+            body.changed_by,
+            {
+                "second_over_eur": body.over_eur,
+                "second_new_supplier": int(body.new_supplier),
+                "second_bank_days": body.bank_days,
+                "second_legal_red": int(body.legal_red),
+            },
+        )
         store.apply(session, settings)
     except store.SettingsError as exc:
         session.rollback()

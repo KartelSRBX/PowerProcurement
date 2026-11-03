@@ -69,6 +69,8 @@ def test_every_field_that_names_a_person_is_checked_against_the_signed_in_user()
         (["buyer"], "POST", "/requests/1/orders", False),
         (["approver"], "POST", "/rfqs/1/decision", True),
         (["approver"], "POST", "/orders/1/supplier-invoice/accept", True),
+        (["approver"], "POST", "/requests/1/second-approval", True),
+        (["buyer"], "POST", "/requests/1/second-approval", False),
         (["approver"], "POST", "/suppliers", False),
         (["approver"], "GET", "/suppliers", True),
         (["legal"], "POST", "/legal/contracts", True),

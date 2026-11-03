@@ -33,7 +33,7 @@ def _ago(days):
 def test_an_empty_day_has_nothing_to_do(client):  # noqa: F811
     s = _today(client)
     assert s["total"] == 0 and s["date"] == date.today().isoformat()
-    keys = "urgent approvals deliveries offers silent contracts bank invoices rechecks duplicates"
+    keys = "urgent approvals deliveries offers silent contracts bank orders invoices rechecks duplicates"
     assert [x["key"] for x in s["sections"]] == keys.split()
     assert all(x["count"] == 0 and x["items"] == [] for x in s["sections"])
 

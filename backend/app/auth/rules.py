@@ -49,7 +49,7 @@ _ALL = ("GET", "HEAD", *_MUTATING)
 _APPROVALS = (
     r"^/(rfqs|quotes|letters)/\d+/decision$|^/requests/\d+/orders$|^/orders/\d+/supplier-invoice/accept$"
 )
-_APPROVALS += r"|^/bank-proposals/\d+/decision$|^/vault/requests/\d+/decide$"
+_APPROVALS += r"|^/bank-proposals/\d+/decision$|^/vault/requests/\d+/decide$|^/requests/\d+/second-approval$"
 
 # Buyer work: everything that moves a request, a supplier or an order along.
 _BUYER_AREAS = "|".join(

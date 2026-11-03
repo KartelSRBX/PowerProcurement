@@ -71,6 +71,14 @@ class Settings(BaseSettings):
     summary_silent_days: int = Field(default=3, ge=1, le=60)
     summary_offer_days: int = Field(default=3, ge=0, le=30)
     summary_contract_days: int = Field(default=90, ge=1, le=365)
+    # Second person by risk. A purchase order that meets any rule that is switched on needs a second,
+    # different person to confirm it before it is created. All are off (0) until the company sets them in
+    # Settings: a total above this many EUR; a supplier with no delivered order yet; a supplier whose bank
+    # account was changed in the last N days; a linked contract with an open red remark.
+    second_over_eur: float = Field(default=0, ge=0, le=100_000_000)
+    second_new_supplier: int = Field(default=0, ge=0, le=1)
+    second_bank_days: int = Field(default=0, ge=0, le=365)
+    second_legal_red: int = Field(default=0, ge=0, le=1)
     # Sign-in. 0 = the old mode (a name typed at the top, a label in the log); 1 = every request needs a
     # signed-in user and every logged name is that user. Switched in Settings by an administrator.
     # AUTH_FORCE_OFF=true in the environment overrides it for recovery when nobody can sign in.

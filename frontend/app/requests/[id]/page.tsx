@@ -9,6 +9,7 @@ import { AiOff, aiTag, useAi } from "../../lib/ai";
 import { TasksPanel } from "./Tasks";
 import { LegalPanel } from "./LegalPanel";
 import { Delivery } from "./Delivery";
+import { SecondPerson } from "./SecondPerson";
 import { ItemNotes } from "./ItemNotes";
 import { SavingsBaseline } from "./SavingsBaseline";
 import { SupplierInvoice } from "./SupplierInvoice";
@@ -125,8 +126,9 @@ export default function RequestPage() {
       <section><h2>Step 8 · Purchase order and invoice request</h2>
         <p className="muted">Only possible after the customer accepted. The budget check must pass.</p>
         <button className="primary" disabled={!who || !lastQuote} onClick={() => act(() => post(`/requests/${id}/orders`, { approved_by: who }))}>Approve purchase order</button>
+        {!d.orders.length && <SecondPerson id={id} who={who} act={act} post={post} data={d} />}
         {d.orders.map((o: any) => <div className="letter" key={o.id}>
-          <div className="row"><b>PO #{o.id}</b><span className="tag">cost {eur(o.total_eur)} EUR</span><span className="tag">budget checks: {o.budget_checks.within_po_limit && o.budget_checks.not_below_cost ? "passed" : "failed"}</span></div>
+          <div className="row"><b>PO #{o.id}</b><span className="tag">cost {eur(o.total_eur)} EUR</span>{o.second_by && <span className="tag ok">confirmed by {o.second_by}</span>}<span className="tag">budget checks: {o.budget_checks.within_po_limit && o.budget_checks.not_below_cost ? "passed" : "failed"}</span></div>
           {o.invoice_requested_by ? <span className="muted">Invoice requested by {o.invoice_requested_by}</span>
             : <InvoiceRequest po={o} who={who} act={act} post={post} />}
           <Delivery po={o} who={who} />

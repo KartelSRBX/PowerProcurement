@@ -24,6 +24,7 @@ export default function Settings() {
   const [sm, setSm] = useState({ silent: "3", offer: "3", contract: "90" });
   const [urg, setUrg] = useState("2");
   const [rc, setRc] = useState({ months: "12", warn: "30" });
+  const [sp, setSp] = useState({ over: "0", newSup: false, bank: "0", red: false });
 
   const load = useCallback(async () => {
     try {
@@ -36,6 +37,7 @@ export default function Settings() {
       setSm({ silent: String(s.summary.silent_days), offer: String(s.summary.offer_days), contract: String(s.summary.contract_days) });
       setUrg(String(s.urgency.warn_days));
       setRc({ months: String(s.rechecks.months), warn: String(s.rechecks.warn_days) });
+      setSp({ over: String(s.second.over_eur), newSup: s.second.new_supplier, bank: String(s.second.bank_days), red: s.second.legal_red });
       setErr("");
     } catch (e: any) { setErr(e.message); }
   }, []);
@@ -73,6 +75,10 @@ export default function Settings() {
   const saveUrgency = () => run(async () => {
     const s = await api<any>("/settings/urgency", { method: "PUT", json: { changed_by: person, warn_days: Number(urg) } });
     setD(s); setNote({ ok: true, text: "Urgency setting saved." });
+  });
+  const saveSecond = () => run(async () => {
+    const s = await api<any>("/settings/second", { method: "PUT", json: { changed_by: person, over_eur: Number(sp.over), new_supplier: sp.newSup, bank_days: Number(sp.bank), legal_red: sp.red } });
+    setD(s); setNote({ ok: true, text: "Second-person rules saved." });
   });
   const saveRechecks = () => run(async () => {
     const s = await api<any>("/settings/rechecks", { method: "PUT", json: { changed_by: person, months: Number(rc.months), warn_days: Number(rc.warn) } });
@@ -182,6 +188,21 @@ export default function Settings() {
           <button className="primary" disabled={!named || !(Number(urg) >= 0 && Number(urg) <= 30)} onClick={saveUrgency}>Save</button>
         </div>
         <p className="muted">In use: {d.urgency.warn_days} day(s).</p>
+      </section>
+
+      <section data-testid="second-rules">
+        <h2>Second person for risky orders</h2>
+        <p className="muted">A purchase order that meets a rule switched on here is not created when one person approves it: a different person has to confirm it first. Every rule is off until you set it, because the limits are yours to choose. A met rule never changes a score or a price; it only asks for a second pair of eyes.</p>
+        <div className="row">
+          <label>Total above, EUR (0 = off) <input type="number" min={0} style={{ width: "8rem" }} value={sp.over} onChange={(e) => setSp({ ...sp, over: e.target.value })} data-testid="sp-over" /></label>
+          <label>Bank account changed within, days (0 = off) <input type="number" min={0} max={365} style={{ width: "5rem" }} value={sp.bank} onChange={(e) => setSp({ ...sp, bank: e.target.value })} data-testid="sp-bank" /></label>
+        </div>
+        <div className="row">
+          <label><input type="checkbox" checked={sp.newSup} onChange={(e) => setSp({ ...sp, newSup: e.target.checked })} data-testid="sp-new" /> Supplier with no delivered order yet</label>
+          <label><input type="checkbox" checked={sp.red} onChange={(e) => setSp({ ...sp, red: e.target.checked })} data-testid="sp-red" /> A linked contract has an open red remark</label>
+          <button className="primary" disabled={!named || !(Number(sp.over) >= 0) || !(Number(sp.bank) >= 0 && Number(sp.bank) <= 365)} onClick={saveSecond}>Save</button>
+        </div>
+        <p className="muted">In use: {[d.second.over_eur > 0 && `total above ${d.second.over_eur} EUR`, d.second.new_supplier && "new supplier", d.second.bank_days > 0 && `bank changed within ${d.second.bank_days} day(s)`, d.second.legal_red && "open red remark"].filter(Boolean).join("; ") || "no rule is on"}.</p>
       </section>
 
       <section>

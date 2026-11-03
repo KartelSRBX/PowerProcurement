@@ -139,6 +139,11 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   supplier invoice, cannot approve it. Refusals are audited as `auth.denied` with the reason. The vault `person` field is now checked against the
   signed-in name. One table of rules (`app/auth/rules.py`) with a test that every route is named. Migration 0028 (`edited_by` on RFQs, quotes and
   letters), 28 new tests, ADR 0026.
+- **Second person by risk (day 26):** an order that meets a rule switched on in Settings (a total above N EUR, a supplier with no delivered order, a bank
+  account changed in the last N days, an open red remark on a linked contract) is not created by one approval. The first approver asks, a different person
+  confirms (or rejects with a reason), and only the confirmation creates the order and sends the letter. All four rules are off until the company sets
+  them. The request page shows the rules an order meets and the waiting ask; the Today page lists orders waiting for a second person. Migration 0029
+  (`second_approvals`, `purchase_orders.second_by`), 11 new tests, ADR 0027.
 
 ## PP1.2
 
