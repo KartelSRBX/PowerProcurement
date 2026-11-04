@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.assist import review
 from app.config import Settings
 from app.currency import convert, to_eur
 from app.intake.evaluate import load_gold, normalize
@@ -850,6 +851,7 @@ def approvals(session: Session, settings: Settings, status: str = "pending", lim
                 "at": _iso(r.created_at),
                 "warnings": ["supplier is marked sanctioned"] if sup.sanctioned else [],
                 "drafted_by": r.drafted_by,
+                "changes": review.changes(r.template_body, r.body),
             }
         )
     for lt in session.scalars(select(Letter).where(Letter.status.in_(want))):
@@ -869,6 +871,7 @@ def approvals(session: Session, settings: Settings, status: str = "pending", lim
                 "at": _iso(lt.created_at),
                 "warnings": ["supplier is marked sanctioned"] if sup and sup.sanctioned else [],
                 "drafted_by": lt.drafted_by,
+                "changes": review.changes(lt.template_body, lt.body),
                 "reason": lt.reason,
             }
         )
@@ -891,6 +894,7 @@ def approvals(session: Session, settings: Settings, status: str = "pending", lim
                 "at": _iso(q.created_at),
                 "warnings": warnings,
                 "drafted_by": q.drafted_by,
+                "changes": review.changes(q.template_body, q.body),
                 "quote": {
                     "price": q.price,
                     "currency": q.currency,

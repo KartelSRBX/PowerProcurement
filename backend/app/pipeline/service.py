@@ -176,7 +176,7 @@ def draft_rfqs(session: Session, settings: Settings, request_id: int) -> list[Rf
             continue
         sup = session.get(Supplier, entry.supplier_id)
         lang = pick_language(sup.languages)
-        subject, body, drafted_by = rfq_text(
+        subject, body, drafted_by = draft = rfq_text(
             session, settings, lang, sup.name, _lines(items), req.parsed.get("needed_by"), _ref(request_id)
         )
         rfq = Rfq(
@@ -186,6 +186,7 @@ def draft_rfqs(session: Session, settings: Settings, request_id: int) -> list[Rf
             subject=subject,
             body=body,
             drafted_by=drafted_by,
+            template_body=draft.template,
         )
         session.add(rfq)
         created.append(rfq)
@@ -252,7 +253,7 @@ def decide_rfq(session: Session, sender: MailSender, rfq_id: int, approve: bool,
         rfq.sent_at = datetime.now(UTC)
     else:
         rfq.status = "rejected"
-    rfq.decided_by = by
+    rfq.decided_by, rfq.decided_at = by, datetime.now(UTC)
     _audit(session, "human", by, "rfq.approved" if approve else "rfq.rejected", rfq_id=rfq_id)
     session.commit()
     return rfq
@@ -552,7 +553,7 @@ def create_quote(
     cost_eur = basis.cost_eur
     price = convert(cost_eur * (1 + markup), "EUR", currency, settings)
     lang = _customer_language(req)
-    subject, body, drafted_by = quote_text(
+    subject, body, drafted_by = draft = quote_text(
         session,
         settings,
         lang,
@@ -575,6 +576,7 @@ def create_quote(
         subject=subject,
         body=body,
         drafted_by=drafted_by,
+        template_body=draft.template,
     )
     session.add(quote)
     session.add(
@@ -629,7 +631,7 @@ def decide_quote(
         )
     else:
         quote.status = "rejected"
-    quote.decided_by = by
+    quote.decided_by, quote.decided_at = by, datetime.now(UTC)
     _audit(session, "human", by, "quote.approved" if approve else "quote.rejected", quote_id=quote_id)
     session.commit()
     return quote

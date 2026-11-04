@@ -127,7 +127,7 @@ def draft_followups(
     for c in candidates(session, settings, request_id, silent_days):
         sup = session.get(Supplier, c["supplier_id"])
         lang = pick_language(sup.languages)
-        subject, body, by = followup_text(
+        subject, body, by = draft = followup_text(
             session, settings, lang, sup.name, items, c["needs"], _ref(request_id)
         )
         why = "no answer yet" if c["kind"] == "unanswered" else "answer is incomplete"
@@ -141,6 +141,7 @@ def draft_followups(
             body=body,
             reason=f"{why}: {'; '.join(c['needs'])}"[:500],
             drafted_by=by,
+            template_body=draft.template,
         )
         session.add(letter)
         created.append(letter)
@@ -164,7 +165,7 @@ def draft_reminder(session: Session, settings: Settings, quote_id: int) -> Lette
         raise PipelineError("a reminder is already waiting for approval")
     req = get_request(session, quote.request_id)
     lang = _customer_language(req)
-    subject, body, by = reminder_text(
+    subject, body, by = draft = reminder_text(
         session,
         settings,
         lang,
@@ -182,6 +183,7 @@ def draft_reminder(session: Session, settings: Settings, quote_id: int) -> Lette
         body=body,
         reason="the customer has not answered the quote",
         drafted_by=by,
+        template_body=draft.template,
     )
     session.add(letter)
     session.commit()
@@ -214,7 +216,7 @@ def draft_order_confirmation(session: Session, settings: Settings, po_id: int) -
     offer = session.get(Offer, po.offer_id)
     req = get_request(session, po.request_id)
     lang = _customer_language(req)
-    subject, body, by = order_confirmation_text(
+    subject, body, by = draft = order_confirmation_text(
         session,
         settings,
         lang,
@@ -234,6 +236,7 @@ def draft_order_confirmation(session: Session, settings: Settings, po_id: int) -
         body=body,
         reason=f"order #{po_id} placed after the customer accepted the quote",
         drafted_by=by,
+        template_body=draft.template,
     )
     session.add(letter)
     session.commit()
@@ -249,7 +252,7 @@ def draft_delivery_question(session: Session, settings: Settings, po_id: int) ->
         raise PipelineError("a delivery question for this order is already waiting for approval")
     sup = session.get(Supplier, po.supplier_id)
     lang = pick_language(sup.languages)
-    subject, body, by = delivery_question_text(
+    subject, body, by = draft = delivery_question_text(
         session, settings, lang, sup.name, _lines(items_of(session, po.request_id)), _ref(po.request_id)
     )
     letter = Letter(
@@ -263,6 +266,7 @@ def draft_delivery_question(session: Session, settings: Settings, po_id: int) ->
         body=body,
         reason=f"delivery of order #{po_id}",
         drafted_by=by,
+        template_body=draft.template,
     )
     session.add(letter)
     session.commit()
@@ -297,7 +301,7 @@ def draft_delay_question(
     sup = session.get(Supplier, po.supplier_id)
     lang = pick_language(sup.languages)
     promised = po.promised_date.isoformat()
-    subject, body, by = delay_question_text(
+    subject, body, by = draft = delay_question_text(
         session,
         settings,
         lang,
@@ -317,6 +321,7 @@ def draft_delay_question(
         body=body,
         reason=f"order #{po_id} is {days_late} day(s) late (promised {promised})",
         drafted_by=by,
+        template_body=draft.template,
     )
     session.add(letter)
     session.commit()
@@ -368,7 +373,7 @@ def decide_letter(
         letter.status = "sent"
     else:
         letter.status = "rejected"
-    letter.decided_by = by
+    letter.decided_by, letter.decided_at = by, datetime.now(UTC)
     session.add(
         AuditLog(
             actor="human",

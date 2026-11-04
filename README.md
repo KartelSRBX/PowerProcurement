@@ -768,6 +768,17 @@ waiting for a second person. `GET /requests/{id}/order-risks`, `POST /requests/{
 ![Second person rules](docs/img/ui/second-rules.png)
 ![A waiting order](docs/img/ui/second-person.png)
 
+### Hints for the reviewer
+
+On **Approvals**, above every letter, a box says what the text does differently from the plain template: lines added in green, removed in red, or "same as the
+template". It works the same for an AI draft and for a colleague's edit, and it blocks nothing. The **Analytics** page has a Letter review section: how many letters were
+decided in the period, approved and rejected, the median and longest time from draft to decision (this includes waiting), and how often the text differed from
+the template, for AI drafts and for template drafts. Letters drafted before this feature have no template and no time; they are shown as such, not guessed.
+`GET /approvals/stats?days=30`. See `docs/decisions/0028-reviewer-hints.md`.
+
+![Changed from the template](docs/img/ui/review-changes.png)
+![Letter review](docs/img/ui/review-stats.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the

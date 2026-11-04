@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, eur, fmtDate } from "../lib/api";
 import { usePerson } from "../lib/person";
+import { ChangesVsTemplate } from "../components/ReviewHints";
 
 const KIND: Record<string, string> = { rfq: "supplier RFQ", quote: "customer quote", followup: "supplier follow-up", reminder: "customer reminder", confirmation: "order confirmation", delivery: "delivery question", delay: "delay question" };
 
@@ -81,6 +82,7 @@ export default function Approvals() {
                 {cur.warnings.map((w: string) => <div key={w} className="err">{w}</div>)}
               </div>
               <div className="pane-b">
+                <ChangesVsTemplate changes={cur.changes} draftedBy={cur.drafted_by} />
                 {mode === "pending" ? (
                   <>
                     <textarea style={{ minHeight: "18rem" }} value={text} onChange={(e) => setText(e.target.value)} />

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Narrative from "../components/Narrative";
 import { api } from "../lib/api";
+import { ReviewStats } from "../components/ReviewHints";
 
 const LABELS: Record<string, string> = {
   confirmed: "confirmed by a person", needs_review: "needs review", parsed: "parsed by AI", not_request: "not a request",
@@ -75,6 +76,7 @@ export default function Analytics() {
           <h2 style={{ marginTop: "1rem" }}>Customer answers to quotes</h2>
           <Bars data={Object.entries(a.outcomes)} />
         </section>
+        <ReviewStats days={days} />
         <section><h2>Items per request</h2><Bars data={Object.entries(a.items_per_request).map(([k, v]) => [`${k} items`, v as number])} /></section>
       </div>
     </>

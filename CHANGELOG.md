@@ -144,6 +144,10 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   confirms (or rejects with a reason), and only the confirmation creates the order and sends the letter. All four rules are off until the company sets
   them. The request page shows the rules an order meets and the waiting ask; the Today page lists orders waiting for a second person. Migration 0029
   (`second_approvals`, `purchase_orders.second_by`), 11 new tests, ADR 0027.
+- **Hints for the reviewer (day 27):** every letter (RFQ, customer quote, follow-up, reminder, confirmation, delivery and delay question) keeps the plain template
+  text for the same facts. The Approvals page shows what the letter says differently, line by line (or "same as the template"); an AI draft and a colleague's
+  edit show the same way. Decisions now carry a time, and `GET /approvals/stats` with a new Letter review section on the Analytics page gives the time from draft to decision,
+  approvals and rejections and how often the text was changed, for AI drafts and template drafts. Migration 0030 (`template_body`, `decided_at`), 7 new tests, ADR 0028.
 
 ## PP1.2
 

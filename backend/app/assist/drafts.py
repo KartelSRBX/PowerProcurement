@@ -18,6 +18,18 @@ LANGUAGE_NAME = {"sr": "Serbian (Latin script)", "en": "English"}
 _PLACEHOLDER = re.compile(r"\{\{|\[(your|name|company|insert)\b|<(name|company|date)>", re.I)
 
 
+class Draft(tuple):
+    """(subject, body, drafted_by) that unpacks like that, and also carries `template`: the body the plain
+    template gives for the same facts, so a reader can see what an AI draft or a person changed."""
+
+    template: str
+
+    def __new__(cls, subject: str, body: str, drafted_by: str, template: str):
+        obj = super().__new__(cls, (subject, body, drafted_by))
+        obj.template = template
+        return obj
+
+
 def items_text(items: list[ItemLine]) -> str:
     return "\n".join(
         f"{n}. {fmt_qty(i.quantity)} x {i.description}"
@@ -112,9 +124,10 @@ def rfq_text(
         [x for i in items for x in (i.description, fmt_qty(i.quantity))],
         [],
     )
+    template = rfq_letter(lang, supplier_name, items, needed_by, ref)
     if subject is None:
-        subject, body = rfq_letter(lang, supplier_name, items, needed_by, ref)
-    return subject, body, by
+        subject, body = template
+    return Draft(subject, body, by, template[1])
 
 
 def quote_text(
@@ -144,9 +157,10 @@ def quote_text(
         [price_text, str(lead_days), *[i.description for i in items]],
         [price_text],
     )
+    template = quote_letter(lang, items, price, currency, lead_days, ref)
     if subject is None:
-        subject, body = quote_letter(lang, items, price, currency, lead_days, ref)
-    return subject, body, by
+        subject, body = template
+    return Draft(subject, body, by, template[1])
 
 
 def invoice_text(
@@ -174,9 +188,10 @@ def invoice_text(
         [ref, *([total_text] if total_text else []), *[i.description for i in items]],
         [total_text] if total_text else [],
     )
+    template = invoice_request_letter(lang, supplier_name, ref)
     if subject is None:
-        subject, body = invoice_request_letter(lang, supplier_name, ref)
-    return subject, body, by
+        subject, body = template
+    return Draft(subject, body, by, template[1])
 
 
 def followup_text(
@@ -204,9 +219,10 @@ def followup_text(
         [],
         [],
     )
+    template = _followup_template(lang, supplier_name, items, needs, ref)
     if subject is None:
-        subject, body = _followup_template(lang, supplier_name, items, needs, ref)
-    return subject, body, by
+        subject, body = template
+    return Draft(subject, body, by, template[1])
 
 
 def reminder_text(
@@ -234,9 +250,10 @@ def reminder_text(
         [price_text],
         [price_text],
     )
+    template = _reminder_template(lang, items, price_text, ref)
     if subject is None:
-        subject, body = _reminder_template(lang, items, price_text, ref)
-    return subject, body, by
+        subject, body = template
+    return Draft(subject, body, by, template[1])
 
 
 def order_confirmation_text(
@@ -266,9 +283,10 @@ def order_confirmation_text(
         [price_text, str(lead_days), *[i.description for i in items]],
         [price_text],
     )
+    template = _confirmation_template(lang, items, price_text, lead_days, ref)
     if subject is None:
-        subject, body = _confirmation_template(lang, items, price_text, lead_days, ref)
-    return subject, body, by
+        subject, body = template
+    return Draft(subject, body, by, template[1])
 
 
 def delivery_question_text(
@@ -294,9 +312,10 @@ def delivery_question_text(
         [ref, *[i.description for i in items]],
         [],
     )
+    template = _delivery_template(lang, supplier_name, items, ref)
     if subject is None:
-        subject, body = _delivery_template(lang, supplier_name, items, ref)
-    return subject, body, by
+        subject, body = template
+    return Draft(subject, body, by, template[1])
 
 
 def delay_question_text(
@@ -325,9 +344,10 @@ def delay_question_text(
         [ref, promised_date, *[i.description for i in items]],
         [],
     )
+    template = _delay_template(lang, supplier_name, items, ref, promised_date)
     if subject is None:
-        subject, body = _delay_template(lang, supplier_name, items, ref, promised_date)
-    return subject, body, by
+        subject, body = template
+    return Draft(subject, body, by, template[1])
 
 
 def _lines(items: list[ItemLine]) -> str:

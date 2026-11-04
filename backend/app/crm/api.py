@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.assist import review
 from app.config import Settings, get_settings
 from app.crm import service as svc
 from app.db import get_session
@@ -67,6 +68,12 @@ def approvals(
     settings: Settings = Depends(get_settings),
 ):
     return svc.approvals(session, settings, "pending" if status == "pending" else "decided")
+
+
+@router.get("/approvals/stats")
+def approval_stats(days: int = 30, session: Session = Depends(get_session)):
+    """How long letters take to be decided and how often their text differs from the template."""
+    return review.stats(session, max(1, min(days, 365)))
 
 
 # ---- analytics --------------------------------------------------------------------------------
