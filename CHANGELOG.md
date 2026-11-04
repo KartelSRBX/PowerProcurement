@@ -148,6 +148,10 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   text for the same facts. The Approvals page shows what the letter says differently, line by line (or "same as the template"); an AI draft and a colleague's
   edit show the same way. Decisions now carry a time, and `GET /approvals/stats` with a new Letter review section on the Analytics page gives the time from draft to decision,
   approvals and rejections and how often the text was changed, for AI drafts and template drafts. Migration 0030 (`template_body`, `decided_at`), 7 new tests, ADR 0028.
+- **ABC/XYZ on order history (day 28):** the Analytics page sorts the articles bought by spend (A, B, C by cumulative share) and by the steadiness of the monthly quantity
+  (X, Y, Z by coefficient of variation), with a 3x3 matrix, a table you can filter by class and an Excel download (`GET /analytics/abc-xyz`, `/analytics/abc-xyz.xlsx`).
+  Boundaries (80/95, 0.5/1.0), the history window and the minimum months for XYZ are in Settings. An order without prices per article is left out and counted;
+  with too little history no XYZ class is shown. No migration, 8 new tests, ADR 0029.
 
 ## PP1.2
 

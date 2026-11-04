@@ -64,6 +64,16 @@ class SecondIn(BaseModel):
     legal_red: bool
 
 
+class AbcXyzIn(BaseModel):
+    changed_by: str
+    a_pct: float = Field(gt=0, lt=100)
+    b_pct: float = Field(gt=0, le=100)
+    x_max: float = Field(gt=0, le=10)
+    y_max: float = Field(gt=0, le=10)
+    window_months: int = Field(ge=1, le=60)
+    min_months: int = Field(ge=2, le=24)
+
+
 class SummaryIn(BaseModel):
     changed_by: str
     silent_days: int = Field(ge=1, le=60)
@@ -121,6 +131,14 @@ def _view(session: Session, base: Settings) -> dict:
             "contract_days": eff.summary_contract_days,
         },
         "urgency": {"warn_days": eff.urgency_warn_days},
+        "abcxyz": {
+            "a_pct": eff.abc_a_pct,
+            "b_pct": eff.abc_b_pct,
+            "x_max": eff.xyz_x_max,
+            "y_max": eff.xyz_y_max,
+            "window_months": eff.abc_window_months,
+            "min_months": eff.xyz_min_months,
+        },
         "second": {
             "over_eur": eff.second_over_eur,
             "new_supplier": bool(eff.second_new_supplier),
@@ -336,6 +354,36 @@ def save_second(
                 "second_new_supplier": int(body.new_supplier),
                 "second_bank_days": body.bank_days,
                 "second_legal_red": int(body.legal_red),
+            },
+        )
+        store.apply(session, settings)
+    except store.SettingsError as exc:
+        session.rollback()
+        raise _bad(exc) from exc
+    return _view(session, settings)
+
+
+@router.put("/abcxyz")
+def save_abcxyz(
+    body: AbcXyzIn, session: Session = Depends(get_session), settings: Settings = Depends(get_settings)
+):
+    """Boundaries of the ABC and XYZ classes and the history they look at."""
+    if body.b_pct <= body.a_pct:
+        raise HTTPException(422, "the B boundary must be above the A boundary")
+    if body.y_max <= body.x_max:
+        raise HTTPException(422, "the Y boundary must be above the X boundary")
+    try:
+        store.save(
+            session,
+            settings,
+            body.changed_by,
+            {
+                "abc_a_pct": body.a_pct,
+                "abc_b_pct": body.b_pct,
+                "xyz_x_max": body.x_max,
+                "xyz_y_max": body.y_max,
+                "abc_window_months": body.window_months,
+                "xyz_min_months": body.min_months,
             },
         )
         store.apply(session, settings)

@@ -79,6 +79,16 @@ class Settings(BaseSettings):
     second_new_supplier: int = Field(default=0, ge=0, le=1)
     second_bank_days: int = Field(default=0, ge=0, le=365)
     second_legal_red: int = Field(default=0, ge=0, le=1)
+    # ABC/XYZ of the articles bought. A: articles up to this cumulative share of spend (percent); B: up to
+    # the next; C: the rest. X and Y: coefficient of variation of the monthly quantity up to these values; Z
+    # above. The window is the last N calendar months; XYZ needs at least xyz_min_months months of orders in
+    # it. The values are common starting points, not facts about the company. Set in Settings.
+    abc_a_pct: float = Field(default=80, gt=0, lt=100)
+    abc_b_pct: float = Field(default=95, gt=0, le=100)
+    xyz_x_max: float = Field(default=0.5, gt=0, le=10)
+    xyz_y_max: float = Field(default=1.0, gt=0, le=10)
+    abc_window_months: int = Field(default=12, ge=1, le=60)
+    xyz_min_months: int = Field(default=3, ge=2, le=24)
     # Sign-in. 0 = the old mode (a name typed at the top, a label in the log); 1 = every request needs a
     # signed-in user and every logged name is that user. Switched in Settings by an administrator.
     # AUTH_FORCE_OFF=true in the environment overrides it for recovery when nobody can sign in.

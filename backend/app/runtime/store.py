@@ -36,6 +36,12 @@ EDITABLE = {
     "second_new_supplier",
     "second_bank_days",
     "second_legal_red",
+    "abc_a_pct",
+    "abc_b_pct",
+    "xyz_x_max",
+    "xyz_y_max",
+    "abc_window_months",
+    "xyz_min_months",
 }
 FLOATS = {
     "fx_rsd_per_eur",
@@ -44,6 +50,10 @@ FLOATS = {
     "signal_price_rise_pct",
     "signal_lead_rise_pct",
     "second_over_eur",
+    "abc_a_pct",
+    "abc_b_pct",
+    "xyz_x_max",
+    "xyz_y_max",
 }
 INTS = {
     "duty_rate_max_age_days",
@@ -60,6 +70,8 @@ INTS = {
     "second_new_supplier",
     "second_bank_days",
     "second_legal_red",
+    "abc_window_months",
+    "xyz_min_months",
 }
 
 

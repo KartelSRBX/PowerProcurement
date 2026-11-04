@@ -24,6 +24,7 @@ export default function Settings() {
   const [sm, setSm] = useState({ silent: "3", offer: "3", contract: "90" });
   const [urg, setUrg] = useState("2");
   const [rc, setRc] = useState({ months: "12", warn: "30" });
+  const [ab, setAb] = useState({ a: "80", b: "95", x: "0.5", y: "1", win: "12", min: "3" });
   const [sp, setSp] = useState({ over: "0", newSup: false, bank: "0", red: false });
 
   const load = useCallback(async () => {
@@ -37,6 +38,7 @@ export default function Settings() {
       setSm({ silent: String(s.summary.silent_days), offer: String(s.summary.offer_days), contract: String(s.summary.contract_days) });
       setUrg(String(s.urgency.warn_days));
       setRc({ months: String(s.rechecks.months), warn: String(s.rechecks.warn_days) });
+      setAb({ a: String(s.abcxyz.a_pct), b: String(s.abcxyz.b_pct), x: String(s.abcxyz.x_max), y: String(s.abcxyz.y_max), win: String(s.abcxyz.window_months), min: String(s.abcxyz.min_months) });
       setSp({ over: String(s.second.over_eur), newSup: s.second.new_supplier, bank: String(s.second.bank_days), red: s.second.legal_red });
       setErr("");
     } catch (e: any) { setErr(e.message); }
@@ -75,6 +77,10 @@ export default function Settings() {
   const saveUrgency = () => run(async () => {
     const s = await api<any>("/settings/urgency", { method: "PUT", json: { changed_by: person, warn_days: Number(urg) } });
     setD(s); setNote({ ok: true, text: "Urgency setting saved." });
+  });
+  const saveAbc = () => run(async () => {
+    const s = await api<any>("/settings/abcxyz", { method: "PUT", json: { changed_by: person, a_pct: Number(ab.a), b_pct: Number(ab.b), x_max: Number(ab.x), y_max: Number(ab.y), window_months: Number(ab.win), min_months: Number(ab.min) } });
+    setD(s); setNote({ ok: true, text: "ABC/XYZ boundaries saved." });
   });
   const saveSecond = () => run(async () => {
     const s = await api<any>("/settings/second", { method: "PUT", json: { changed_by: person, over_eur: Number(sp.over), new_supplier: sp.newSup, bank_days: Number(sp.bank), legal_red: sp.red } });
@@ -203,6 +209,23 @@ export default function Settings() {
           <button className="primary" disabled={!named || !(Number(sp.over) >= 0) || !(Number(sp.bank) >= 0 && Number(sp.bank) <= 365)} onClick={saveSecond}>Save</button>
         </div>
         <p className="muted">In use: {[d.second.over_eur > 0 && `total above ${d.second.over_eur} EUR`, d.second.new_supplier && "new supplier", d.second.bank_days > 0 && `bank changed within ${d.second.bank_days} day(s)`, d.second.legal_red && "open red remark"].filter(Boolean).join("; ") || "no rule is on"}.</p>
+      </section>
+
+      <section data-testid="abc-settings">
+        <h2>ABC / XYZ classes</h2>
+        <p className="muted">The Analytics page sorts the articles you bought by money (A, B, C) and by how steady the monthly quantity is (X, Y, Z). 80 / 95 and 0.5 / 1.0 are common starting values, not facts about your business: change them to what suits you. XYZ needs at least the number of months of orders given below; with less, no XYZ class is shown.</p>
+        <div className="row">
+          <label>A up to, % of spend <input type="number" min={1} max={99} style={{ width: "5rem" }} value={ab.a} onChange={(e) => setAb({ ...ab, a: e.target.value })} data-testid="abc-a" /></label>
+          <label>B up to, % <input type="number" min={1} max={100} style={{ width: "5rem" }} value={ab.b} onChange={(e) => setAb({ ...ab, b: e.target.value })} /></label>
+          <label>X up to variation <input type="number" step="0.1" min={0.1} style={{ width: "5rem" }} value={ab.x} onChange={(e) => setAb({ ...ab, x: e.target.value })} /></label>
+          <label>Y up to <input type="number" step="0.1" min={0.1} style={{ width: "5rem" }} value={ab.y} onChange={(e) => setAb({ ...ab, y: e.target.value })} /></label>
+        </div>
+        <div className="row">
+          <label>History, months <input type="number" min={1} max={60} style={{ width: "5rem" }} value={ab.win} onChange={(e) => setAb({ ...ab, win: e.target.value })} /></label>
+          <label>XYZ needs at least, months <input type="number" min={2} max={24} style={{ width: "5rem" }} value={ab.min} onChange={(e) => setAb({ ...ab, min: e.target.value })} /></label>
+          <button className="primary" disabled={!named || !(Number(ab.a) > 0 && Number(ab.a) < Number(ab.b) && Number(ab.b) <= 100) || !(Number(ab.x) > 0 && Number(ab.x) < Number(ab.y))} onClick={saveAbc}>Save</button>
+        </div>
+        <p className="muted">In use: A up to {d.abcxyz.a_pct}%, B up to {d.abcxyz.b_pct}%; X up to {d.abcxyz.x_max}, Y up to {d.abcxyz.y_max}; last {d.abcxyz.window_months} month(s), XYZ from {d.abcxyz.min_months} month(s).</p>
       </section>
 
       <section>

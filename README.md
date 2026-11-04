@@ -779,6 +779,17 @@ the template, for AI drafts and for template drafts. Letters drafted before this
 ![Changed from the template](docs/img/ui/review-changes.png)
 ![Letter review](docs/img/ui/review-stats.png)
 
+### ABC / XYZ of the articles bought
+
+The **Analytics** page sorts the articles from your purchase orders two ways. **ABC** is by money: A makes up the first 80% of spend, B the next 15%, C the rest. **XYZ** is by
+steadiness: the quantity ordered each calendar month, and how much it varies (standard deviation over mean): X up to 0.5, Y up to 1.0, Z more. A matrix shows how many articles
+and how much money sit in each of the nine classes; click a cell to filter the table; **Download Excel** gives the table, the matrix and the basis. Spend is quantity times the offer's
+unit price in EUR; an order whose offer has no price per article is left out and counted. With fewer than 3 months of orders no XYZ class is shown. The 80/95 and 0.5/1.0 values,
+the history window (12 months) and the minimum months are **Settings, ABC / XYZ classes**: they are common starting values, not facts about your business.
+`GET /analytics/abc-xyz`, `PUT /settings/abcxyz`. See `docs/decisions/0029-abc-xyz.md`.
+
+![ABC/XYZ](docs/img/ui/abcxyz.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the
