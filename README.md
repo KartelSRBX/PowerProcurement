@@ -283,7 +283,7 @@ customer has accepted, when the order is above the budget limit, and when the ag
 
 ## The panel, tab by tab
 
-The left menu has twelve tabs. The top bar shows server and mail status, the AI state, a **dark / light theme
+The left menu has seventeen tabs. The top bar shows server and mail status, the AI state, a **dark / light theme
 switch** (the first visit follows your system, the choice is remembered), a link to Mailpit and the *Working as*
 name box.
 
@@ -1210,7 +1210,7 @@ uv run alembic upgrade head && uv run pytest        # integration tests need DAT
 cd ../frontend && npm ci && npm run lint && npm run build
 ```
 
-The backend suite has 156 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, the AI steps, file reading, order letters, the pre-release fixes, the task integration and the legal module with its loader and article parser, with scripted models and pages).
+The backend suite has 411 tests (pipeline end to end, scoring, mail guard, settings, profiles and vault, analytics, the AI steps, file reading, order letters, the task integration, the legal module, sign-in and roles, second-person approval, reviewer hints, ABC/XYZ and the regulation checklists, with scripted models and pages). 408 pass on SQLite in memory (3 need Postgres and are skipped) and all 411 pass on Postgres 16.
 What a run looks like (real output, Postgres 16; the AI steps are tested with a scripted model, not the live API):
 
 ![AI-assisted steps: 16 tests](docs/img/tests/ai-steps-tests.png)
@@ -1259,7 +1259,7 @@ Each phase ends with an acceptance check; the next one starts only after it pass
 | 7 | Analytics and markup | Test recovers patterns planted in the synthetic data (**done; real outcomes will replace synthetic ones**) |
 | 8 | Publication | README, demo GIF, AI work log; runs in a minute (**README and install done; demo video pending**) |
 
-Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal), Legal contract review (the norm base is filled by the loader: 30 of 53 acts have been loaded and checked, the 23 Serbian, Chinese and UAE acts wait for files; no statute text ships with the repository). Not built: roles and sign-in, live price sources.
+Also done: encrypted access vault, dark / light theme, task integration for Bitrix24 (built from the documentation, not yet run against a live portal), Legal contract review (the norm base is filled by the loader: 30 of 53 acts have been loaded and checked, the 23 Serbian, Chinese and UAE acts wait for files; no statute text ships with the repository). Sign-in with roles, second-person approval by risk, reviewer hints, ABC/XYZ and draft CBAM and Serbian e-invoice checklists were added in the 30-day improvement plan (see the [changelog](CHANGELOG.md)). Not built: live price sources.
 
 More: [architecture](docs/architecture.md) · [how AI was directed](docs/ai-workflow.md) ·
 [decision records](docs/decisions/)

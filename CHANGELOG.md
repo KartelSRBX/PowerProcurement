@@ -157,6 +157,14 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   "to check" question; dates not taken from a primary source are tagged. A buyer or legal person marks a line done or not applicable (with a note) under
   their name (`GET /checklists`, `PUT /checklists/{key}`). Gaps say "not found". Migration 0031, 6 new tests. See `docs/decisions/0030-regulation-checklists.md`.
 
+### Release check (day 30)
+- Full run before the proposed tag PP1.3: 411 backend tests pass on Postgres 16 (408 on SQLite, 3 need Postgres), ruff, `tsc` and `next build` are clean,
+  migrations 0001 to 0031 go up, down to 0030 and up again, and a browser pass opened all 17 pages of the menu without a console error.
+- README brought up to date: 17 menu tabs, test count, the plan's features no longer listed as "not built"; the screenshot of the full checks and the Settings
+  screenshot were retaken from this run.
+- Not verified, as before: the AI steps with a live key, the mail inbox on a real server, the task integration on a live portal; the CBAM and e-invoice
+  checklists are drafts from secondary sources and the Serbian law texts were not opened.
+
 ## PP1.2
 
 Legal: contract review.
