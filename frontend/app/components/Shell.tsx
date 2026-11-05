@@ -9,6 +9,7 @@ import { Login } from "./Login";
 
 const NAV = [
   { href: "/today", ico: "◔", label: "Today" },
+  { href: "/checklists", ico: "⚑", label: "Checklists" },
   { href: "/", ico: "☰", label: "Requests" },
   { href: "/mail", ico: "✉", label: "Mail" },
   { href: "/approvals", ico: "✓", label: "Approvals" },

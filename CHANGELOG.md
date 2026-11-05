@@ -152,6 +152,10 @@ Improvement plan, one change a day (one improvement and one commit per day, 21 O
   (X, Y, Z by coefficient of variation), with a 3x3 matrix, a table you can filter by class and an Excel download (`GET /analytics/abc-xyz`, `/analytics/abc-xyz.xlsx`).
   Boundaries (80/95, 0.5/1.0), the history window and the minimum months for XYZ are in Settings. An order without prices per article is left out and counted;
   with too little history no XYZ class is shown. No migration, 8 new tests, ADR 0029.
+- **Checklists for CBAM and Serbian e-invoicing (day 29):** a Checklists page lists 16 draft lines (8 for the EU carbon border adjustment
+  mechanism, 8 for Serbian SEF). Each line shows its source, whether that is primary or secondary, a short quote, the date it was read (05.11.2026) and a
+  "to check" question; dates not taken from a primary source are tagged. A buyer or legal person marks a line done or not applicable (with a note) under
+  their name (`GET /checklists`, `PUT /checklists/{key}`). Gaps say "not found". Migration 0031, 6 new tests. See `docs/decisions/0030-regulation-checklists.md`.
 
 ## PP1.2
 

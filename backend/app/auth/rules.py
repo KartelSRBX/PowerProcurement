@@ -41,6 +41,7 @@ LEGAL = frozenset({"legal"})
 ADMIN = frozenset()  # nobody but an administrator
 BUYER_OR_APPROVER = frozenset({"buyer", "approver"})
 LEGAL_READERS = frozenset({"legal", "approver"})
+BUYER_OR_LEGAL = frozenset({"buyer", "legal"})
 
 _MUTATING = ("POST", "PUT", "PATCH", "DELETE")
 _ALL = ("GET", "HEAD", *_MUTATING)
@@ -71,6 +72,8 @@ RULES: list[tuple[tuple[str, ...], re.Pattern, frozenset | None]] = [
     (("GET", "HEAD"), re.compile(r"^/"), ANY),
     # contracts and legal rules
     (_MUTATING, re.compile(r"^/legal(/|$)"), LEGAL),
+    # the CBAM and e-invoice checklists: whoever handles trade paperwork
+    (_MUTATING, re.compile(r"^/checklists(/|$)"), BUYER_OR_LEGAL),
     # the vault: asking for access, opening it, revealing what was approved
     (_MUTATING, re.compile(r"^/vault/(open|\d+/requests|requests/\d+/reveal)$"), BUYER_OR_APPROVER),
     # calculations that change nothing

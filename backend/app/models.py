@@ -955,3 +955,15 @@ class SecondApproval(Base):
     decided_by: Mapped[str | None] = mapped_column(String(128))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     comment: Mapped[str | None] = mapped_column(String(300))
+
+
+class ChecklistProgress(Base):
+    """Where a person stands on one line of a checklist: to do, done, or not applicable to us."""
+
+    __tablename__ = "checklist_progress"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    note: Mapped[str] = mapped_column(String(300), nullable=False, default="")
+    set_by: Mapped[str] = mapped_column(String(128), nullable=False)
+    set_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

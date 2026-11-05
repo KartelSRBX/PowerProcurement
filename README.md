@@ -790,6 +790,16 @@ the history window (12 months) and the minimum months are **Settings, ABC / XYZ 
 
 ![ABC/XYZ](docs/img/ui/abcxyz.png)
 
+### Checklists (CBAM and Serbian e-invoicing)
+
+The Checklists page holds 16 **draft** lines for two regulations: the EU carbon border adjustment mechanism (CBAM) and Serbian electronic invoicing (SEF).
+Each line gives its source address, whether the source is primary or secondary, a short quote, the day it was read and a question to check. A date that is
+not from a primary source carries a "check" tag, and what the pages read did not answer says "not found". It is a reading aid, not legal advice, and it
+never blocks or scores anything. A buyer or legal person marks a line done or not applicable (a note is needed) under their name.
+`GET /checklists`, `PUT /checklists/{key}`. See `docs/decisions/0030-regulation-checklists.md`.
+
+![Checklists](docs/img/ui/checklists.png)
+
 ### Savings
 
 A ledger of what the buyer's work saved, kept on a **Savings** tab. On each order a named person records a **baseline**: what the
