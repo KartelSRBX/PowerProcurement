@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## PP1.3
 
 Improvement plan, one change a day (one improvement and one commit per day, 21 Oct to 19 Nov 2026).
 
